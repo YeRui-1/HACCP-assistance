@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN" id="htmlRoot">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HACCP AI 助手</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>HACCP AI 助手</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-lang" id="btnLang" title="Switch Language">EN</button>
+        <button class="btn-admin" id="btnAdmin" data-i18n="nav.admin">管理</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- 首页大厅 -->
+    <section id="home" class="page active">
+      <div class="lobby-container">
+        <div class="lobby-header">
+          <div class="lobby-icon">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <h1 data-i18n="home.title">HACCP AI 助手</h1>
+          <p class="lobby-subtitle" data-i18n="home.subtitle">快速生成符合标准的 HACCP 计划，保障食品安全生产</p>
+        </div>
+        <div class="lobby-cards">
+          <div class="lobby-card" id="cardQuestionnaire">
+            <div class="card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </div>
+            <h2 data-i18n="lobby.card1.title">填写问卷</h2>
+            <p data-i18n="lobby.card1.desc">回答产品与工艺相关问题，为生成 HACCP 计划提供信息</p>
+            <button class="btn btn-primary" id="btnStart" data-i18n="home.btnStart">开始创建</button>
+          </div>
+          <div class="lobby-card" id="cardResults">
+            <div class="card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <h2 data-i18n="lobby.card2.title">查看结果</h2>
+            <p data-i18n="lobby.card2.desc">查看已生成的 HACCP 计划文档</p>
+            <div class="card-status" id="cardStatus"></div>
+            <button class="btn btn-secondary" id="btnGoResults" data-i18n="lobby.card2.btn">查看计划</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 问卷填写页 -->
+    <section id="questionnaire" class="page">
+      <div class="questionnaire-container" id="questionnaireContainer"></div>
+    </section>
+
+    <!-- 结果页 -->
+    <section id="results" class="page">
+      <div class="results-container">
+        <aside class="results-sidebar">
+          <h3 data-i18n="r.sidebarTitle">HACCP 计划</h3>
+          <ul class="results-nav" id="resultsNav"></ul>
+        </aside>
+        <div class="results-content" id="resultsContent"></div>
+      </div>
+    </section>
+
+    <!-- 管理页 -->
+    <section id="admin" class="page">
+      <div id="adminContainer"></div>
+    </section>
+  </main>
+
+  <!-- 密码验证弹窗 -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-box">
+      <h3 data-i18n="pwd.title">管理员验证</h3>
+      <p data-i18n="pwd.desc">请输入管理密码以进入问卷编辑</p>
+      <input type="password" id="passwordInput" data-i18n-placeholder="pwd.placeholder" placeholder="请输入密码" autocomplete="off">
+      <div class="modal-error" id="passwordError" data-i18n="pwd.error">密码错误，请重试</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="btnPasswordCancel" data-i18n="pwd.cancel">取消</button>
+        <button class="btn btn-primary" id="btnPasswordConfirm" data-i18n="pwd.confirm">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/mock-data.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/questionnaire.js"></script>
+  <script src="js/results.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

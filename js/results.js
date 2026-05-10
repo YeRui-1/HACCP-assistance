@@ -1,0 +1,300 @@
+// 结果展示：自动调用 AI 生成报告 + 用户答案 + HACCP 计划章节
+const Results = (() => {
+  let activeSection = 'aiReport';
+
+  function getEl(id) { return document.getElementById(id); }
+
+  function esc(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function loadTemplate() {
+    try { const raw = localStorage.getItem('haccp_questionnaire_template'); return raw ? JSON.parse(raw) : null; }
+    catch (e) { return null; }
+  }
+
+  async function syncTemplateFromBackend() {
+    try {
+      const resp = await fetch('http://localhost:8000/api/template');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.template && data.template.content) {
+        const c = data.template.content;
+        if (c.questionnaire) localStorage.setItem('haccp_questionnaire_template', JSON.stringify(c.questionnaire));
+        if (c.flowchart) localStorage.setItem('haccp_flowchart_template', JSON.stringify(c.flowchart));
+      }
+    } catch (e) { /* fallback to localStorage */ }
+  }
+
+  function loadAnswers() {
+    try { const raw = localStorage.getItem('haccp_answers'); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { return {}; }
+  }
+
+  function loadFcTemplate() {
+    try { const raw = localStorage.getItem('haccp_flowchart_template'); return raw ? JSON.parse(raw) : { enabled: false, defaultSteps: [] }; }
+    catch (e) { return { enabled: false, defaultSteps: [] }; }
+  }
+
+  function loadFcData() {
+    try { const raw = localStorage.getItem('haccp_flowchart'); return raw ? JSON.parse(raw) : []; }
+    catch (e) { return []; }
+  }
+
+  async function init() {
+    await syncTemplateFromBackend();
+    renderSidebar();
+    renderContent();
+    setupScrollSpy();
+    fetchAiReport();
+  }
+
+  // ===== 侧边栏 =====
+  function renderSidebar() {
+    const nav = getEl('resultsNav');
+    const lang = I18n.getLang();
+
+    const fcTemplate = loadFcTemplate();
+    const items = [
+      { key: 'aiReport', label: { zh: 'AI 分析报告', en: 'AI Analysis Report' } },
+    ];
+    if (fcTemplate.enabled) {
+      items.push({ key: 'flowchart', label: { zh: '生产流程图', en: 'Process Flow Chart' } });
+    }
+    items.push({ key: 'productDescription', label: mockHaccpPlan.productDescription.title });
+    sectionOrder.forEach(key => {
+      if (key !== 'productDescription') {
+        items.push({ key, label: mockHaccpPlan[key].title });
+      }
+    });
+
+    nav.innerHTML = items.map(item => `
+      <li data-section="${item.key}" class="${item.key === activeSection ? 'active' : ''}">${item.label[lang] || item.label.zh || item.label}</li>
+    `).join('');
+
+    nav.querySelectorAll('li').forEach(li => {
+      li.addEventListener('click', () => {
+        setActive(li.dataset.section);
+        const el = document.getElementById('section-' + li.dataset.section);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  }
+
+  // ===== 主内容 =====
+  function renderContent() {
+    const container = getEl('resultsContent');
+    const submitted = localStorage.getItem('haccp_submitted');
+    const lang = I18n.getLang();
+
+    if (!submitted) {
+      container.innerHTML = `
+        <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>${I18n.t('r.empty.title')}</h3>
+          <p>${I18n.t('r.empty.desc')}</p>
+          <button class="btn btn-primary" onclick="App.navigateTo('questionnaire')">${I18n.t('r.empty.btn')}</button>
+        </div>
+      `;
+      return;
+    }
+
+    // AI 报告区域（初始加载中）
+    const aiTitle = lang === 'en' ? 'AI Analysis Report' : 'AI 分析报告';
+    let html = `<a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>`;
+
+    html += `
+      <div class="results-section" id="section-aiReport">
+        <h2>${aiTitle}</h2>
+        <div id="aiReportBody">
+          <div class="report-loading">
+            <span class="spinner" style="width:20px;height:20px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
+            <span>${lang === 'en' ? 'Generating AI report...' : '正在生成 AI 报告...'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 生产流程图
+    const fcTemplate = loadFcTemplate();
+    if (fcTemplate.enabled) {
+      const fcTitle = lang === 'en' ? 'Process Flow Chart' : '生产流程图';
+      html += `
+        <div class="results-section" id="section-flowchart">
+          <h2>${fcTitle}</h2>
+          ${buildFlowchartDisplay(lang)}
+        </div>
+      `;
+    }
+
+    // 产品描述（用户答案）
+    const pdTitle = mockHaccpPlan.productDescription.title[lang] || mockHaccpPlan.productDescription.title.zh;
+    html += `
+      <div class="results-section" id="section-productDescription">
+        <h2>${pdTitle}</h2>
+        ${buildProductDescription(lang)}
+      </div>
+    `;
+
+    // 其余 HACCP 章节
+    sectionOrder.forEach(key => {
+      if (key === 'productDescription') return;
+      const section = mockHaccpPlan[key];
+      const title = section.title[lang] || section.title.zh;
+      const content = section.content[lang] || section.content.zh;
+      html += `
+        <div class="results-section" id="section-${key}">
+          <h2>${title}</h2>
+          ${content}
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  // ===== 调用后端 API 生成 AI 报告 =====
+  async function fetchAiReport() {
+    const body = getEl('aiReportBody');
+    if (!body) return;
+    const lang = I18n.getLang();
+
+    try {
+      const resp = await fetch('http://localhost:8000/api/generate_report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_date: '2026-05-01', end_date: '2026-05-31' }),
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const data = await resp.json();
+      body.innerHTML = `
+        <div class="report-card" style="margin:0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
+          <div class="report-card-body" style="font-size:14px;color:var(--gray-700);line-height:1.8;">${esc(data.report || '')}</div>
+        </div>
+      `;
+    } catch (err) {
+      const msg = lang === 'en'
+        ? `Generation failed. Please ensure the backend is running. (${err.message})`
+        : `报告生成失败，请确认后端已启动。(${err.message})`;
+      body.innerHTML = `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;color:#dc2626;font-size:14px;">
+          ${esc(msg)}
+        </div>
+      `;
+    }
+  }
+
+  function buildProductDescription(lang) {
+    const template = loadTemplate();
+    const answers = loadAnswers();
+
+    if (!template || !template.sections || template.sections.length === 0) {
+      return mockHaccpPlan.productDescription.content[lang] || mockHaccpPlan.productDescription.content.zh;
+    }
+
+    const zh = {
+      overview: '以下为您在问卷中提交的产品与工艺信息：',
+      noAnswer: '未填写',
+      sectionLabel: '章节',
+      questionLabel: '题目',
+      answerLabel: '您填写的内容',
+    };
+    const en = {
+      overview: 'Below is the product and process information you submitted:',
+      noAnswer: 'Not filled',
+      sectionLabel: 'Section',
+      questionLabel: 'Question',
+      answerLabel: 'Your Answer',
+    };
+    const t = lang === 'en' ? en : zh;
+
+    let rows = '';
+    template.sections.forEach(section => {
+      section.questions.forEach(q => {
+        const answer = answers[q.id];
+        let display = '';
+        if (answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0)) {
+          display = `<span style="color:var(--gray-400);font-style:italic;">${t.noAnswer}</span>`;
+        } else if (Array.isArray(answer)) {
+          display = esc(answer.join('、'));
+        } else {
+          display = esc(String(answer));
+        }
+        rows += `<tr><td>${esc(section.title)}</td><td>${esc(q.title)}</td><td>${display}</td></tr>`;
+      });
+    });
+
+    return `
+      <p>${t.overview}</p>
+      <table>
+        <thead><tr><th>${t.sectionLabel}</th><th>${t.questionLabel}</th><th>${t.answerLabel}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  function buildFlowchartDisplay(lang) {
+    const fcData = loadFcData();
+    const zh = { overview: '以下为产品生产流程及各步骤的工艺参数：', noData: '未填写生产流程', step: '步骤', param: '参数名称', value: '参数值', unit: '单位' };
+    const en = { overview: 'Below is the production process flow and parameters for each step:', noData: 'No process flow data', step: 'Step', param: 'Parameter', value: 'Value', unit: 'Unit' };
+    const t = lang === 'en' ? en : zh;
+
+    if (!fcData || fcData.length === 0) {
+      return `<p style="color:var(--gray-400);font-style:italic;">${t.noData}</p>`;
+    }
+
+    let html = `<p>${t.overview}</p>`;
+    fcData.forEach((step, si) => {
+      html += `
+        <div class="fc-step-card fc-result">
+          <div class="fc-step-header">
+            <span class="fc-step-num">${si + 1}</span>
+            <strong style="font-size:15px;color:var(--gray-800);">${esc(step.name || '(未命名)')}</strong>
+          </div>
+          ${step.description ? `<p style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">${esc(step.description)}</p>` : ''}
+          ${step.parameters && step.parameters.some(p => p.name) ? `
+            <table class="fc-result-params">
+              <thead><tr><th>${t.param}</th><th>${t.value}</th><th>${t.unit}</th></tr></thead>
+              <tbody>
+                ${step.parameters.filter(p => p.name).map(p => `
+                  <tr><td>${esc(p.name || '')}</td><td>${esc(p.value || '')}</td><td>${esc(p.unit || '')}</td></tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
+        </div>
+      `;
+    });
+    return html;
+  }
+
+  function setActive(key) {
+    activeSection = key;
+    const nav = getEl('resultsNav');
+    if (nav) {
+      nav.querySelectorAll('li').forEach(li => {
+        li.classList.toggle('active', li.dataset.section === key);
+      });
+    }
+  }
+
+  function setupScrollSpy() {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          setActive(entry.target.id.replace('section-', ''));
+        }
+      }
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    setTimeout(() => {
+      document.querySelectorAll('.results-section').forEach(s => observer.observe(s));
+    }, 200);
+  }
+
+  return { init };
+})();
