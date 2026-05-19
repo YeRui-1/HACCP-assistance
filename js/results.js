@@ -19,10 +19,8 @@ const Results = (() => {
       const resp = await fetch('http://localhost:8000/api/template');
       if (!resp.ok) return;
       const data = await resp.json();
-      if (data.template && data.template.content) {
-        const c = data.template.content;
-        if (c.questionnaire) localStorage.setItem('haccp_questionnaire_template', JSON.stringify(c.questionnaire));
-        if (c.flowchart) localStorage.setItem('haccp_flowchart_template', JSON.stringify(c.flowchart));
+      if (data.template && data.template.content && data.template.content.questionnaire) {
+        localStorage.setItem('haccp_questionnaire_template', JSON.stringify(data.template.content.questionnaire));
       }
     } catch (e) { /* fallback to localStorage */ }
   }
@@ -32,13 +30,8 @@ const Results = (() => {
     catch (e) { return {}; }
   }
 
-  function loadFcTemplate() {
-    try { const raw = localStorage.getItem('haccp_flowchart_template'); return raw ? JSON.parse(raw) : { enabled: false, defaultSteps: [] }; }
-    catch (e) { return { enabled: false, defaultSteps: [] }; }
-  }
-
-  function loadFcData() {
-    try { const raw = localStorage.getItem('haccp_flowchart'); return raw ? JSON.parse(raw) : []; }
+  function loadFcData(sectionId) {
+    try { const raw = localStorage.getItem(`haccp_flowchart_${sectionId}`); return raw ? JSON.parse(raw) : []; }
     catch (e) { return []; }
   }
 
@@ -55,12 +48,14 @@ const Results = (() => {
     const nav = getEl('resultsNav');
     const lang = I18n.getLang();
 
-    const fcTemplate = loadFcTemplate();
+    const template = loadTemplate();
+    const hasFlowchart = template && template.sections && template.sections.some(s => s.isFlowchart);
     const items = [
       { key: 'aiReport', label: { zh: 'AI 分析报告', en: 'AI Analysis Report' } },
     ];
-    if (fcTemplate.enabled) {
-      items.push({ key: 'flowchart', label: { zh: '生产流程图', en: 'Process Flow Chart' } });
+    if (hasFlowchart) {
+      const fcSection = template.sections.find(s => s.isFlowchart);
+      items.push({ key: 'flowchart', label: { zh: fcSection ? fcSection.title : '生产流程图', en: fcSection ? fcSection.title : 'Process Flow Chart' } });
     }
     items.push({ key: 'productDescription', label: mockHaccpPlan.productDescription.title });
     sectionOrder.forEach(key => {
@@ -117,16 +112,18 @@ const Results = (() => {
       </div>
     `;
 
-    // 生产流程图
-    const fcTemplate = loadFcTemplate();
-    if (fcTemplate.enabled) {
-      const fcTitle = lang === 'en' ? 'Process Flow Chart' : '生产流程图';
-      html += `
-        <div class="results-section" id="section-flowchart">
-          <h2>${fcTitle}</h2>
-          ${buildFlowchartDisplay(lang)}
-        </div>
-      `;
+    // 生产流程图章节
+    const template = loadTemplate();
+    if (template && template.sections) {
+      template.sections.filter(s => s.isFlowchart).forEach(s => {
+        const fcTitle = s.title || (lang === 'en' ? 'Process Flow Chart' : '生产流程图');
+        html += `
+          <div class="results-section" id="section-flowchart">
+            <h2>${esc(fcTitle)}</h2>
+            ${buildFlowchartDisplay(lang, s.id)}
+          </div>
+        `;
+      });
     }
 
     // 产品描述（用户答案）
@@ -219,6 +216,12 @@ const Results = (() => {
         let display = '';
         if (answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0)) {
           display = `<span style="color:var(--gray-400);font-style:italic;">${t.noAnswer}</span>`;
+        } else if (q.type === 'table' && Array.isArray(answer) && answer.length > 0 && answer.some(r => Array.isArray(r))) {
+          display = '<table class="fc-result-params"><thead><tr>' +
+            (q.options || []).map(c => `<th>${esc(c)}</th>`).join('') +
+            '</tr></thead><tbody>' +
+            answer.filter(r => Array.isArray(r) && r.some(c => c)).map(r => '<tr>' + r.map(c => `<td>${esc(c || '')}</td>`).join('') + '</tr>').join('') +
+            '</tbody></table>';
         } else if (Array.isArray(answer)) {
           display = esc(answer.join('、'));
         } else {
@@ -237,10 +240,10 @@ const Results = (() => {
     `;
   }
 
-  function buildFlowchartDisplay(lang) {
-    const fcData = loadFcData();
-    const zh = { overview: '以下为产品生产流程及各步骤的工艺参数：', noData: '未填写生产流程', step: '步骤', param: '参数名称', value: '参数值', unit: '单位' };
-    const en = { overview: 'Below is the production process flow and parameters for each step:', noData: 'No process flow data', step: 'Step', param: 'Parameter', value: 'Value', unit: 'Unit' };
+  function buildFlowchartDisplay(lang, sectionId) {
+    const fcData = loadFcData(sectionId);
+    const zh = { overview: '以下为产品生产流程及各步骤的工艺参数：', noData: '未填写生产流程', step: '步骤', param: '参数名称', value: '参数值', unit: '单位', controlPoint: '关键限值', equipment: '设备名称' };
+    const en = { overview: 'Below is the production process flow and parameters for each step:', noData: 'No process flow data', step: 'Step', param: 'Parameter', value: 'Value', unit: 'Unit', controlPoint: 'Control Point', equipment: 'Equipment' };
     const t = lang === 'en' ? en : zh;
 
     if (!fcData || fcData.length === 0) {
@@ -256,6 +259,7 @@ const Results = (() => {
             <strong style="font-size:15px;color:var(--gray-800);">${esc(step.name || '(未命名)')}</strong>
           </div>
           ${step.description ? `<p style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">${esc(step.description)}</p>` : ''}
+          ${(step.controlPoint || step.equipment) ? `<div style="display:flex;gap:20px;margin-bottom:10px;font-size:13px;">${step.controlPoint ? `<span><span style="color:var(--gray-400);">${t.controlPoint}: </span><span style="color:var(--gray-700);font-weight:500;">${esc(step.controlPoint)}</span></span>` : ''}${step.equipment ? `<span><span style="color:var(--gray-400);">${t.equipment}: </span><span style="color:var(--gray-700);font-weight:500;">${esc(step.equipment)}</span></span>` : ''}</div>` : ''}
           ${step.parameters && step.parameters.some(p => p.name) ? `
             <table class="fc-result-params">
               <thead><tr><th>${t.param}</th><th>${t.value}</th><th>${t.unit}</th></tr></thead>

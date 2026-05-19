@@ -2,7 +2,6 @@
 const Admin = (() => {
   const TEMPLATE_KEY = 'haccp_questionnaire_template';
   const ANSWERS_KEY = 'haccp_answers';
-  const FC_TEMPLATE_KEY = 'haccp_flowchart_template';
   const API_BASE = 'http://localhost:8000';
 
   function genId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
@@ -18,11 +17,6 @@ const Admin = (() => {
     catch (e) { return { sections: [] }; }
   }
   function save(template) { localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template)); syncToBackend(); }
-  function loadFcTemplate() {
-    try { const raw = localStorage.getItem(FC_TEMPLATE_KEY); return raw ? JSON.parse(raw) : { enabled: false, defaultSteps: [] }; }
-    catch (e) { return { enabled: false, defaultSteps: [] }; }
-  }
-  function saveFcTemplate(fc) { localStorage.setItem(FC_TEMPLATE_KEY, JSON.stringify(fc)); syncToBackend(); }
   function loadAnswers() {
     try { const raw = localStorage.getItem(ANSWERS_KEY); return raw ? JSON.parse(raw) : {}; }
     catch (e) { return {}; }
@@ -30,15 +24,11 @@ const Admin = (() => {
 
   function syncToBackend() {
     if (!currentTemplateId) return;
-    const body = {
-      name: currentTemplateName || 'default',
-      content: { questionnaire: load(), flowchart: loadFcTemplate() },
-    };
     fetch(`${API_BASE}/api/templates/${currentTemplateId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }).catch(() => { /* 后端不可用时静默回退 */ });
+      body: JSON.stringify({ name: currentTemplateName || 'default', content: { questionnaire: load() } }),
+    }).catch(() => {});
   }
 
   // ===== 状态 =====
@@ -49,9 +39,29 @@ const Admin = (() => {
   let currentTemplateId = null;
   let currentTemplateName = '';
 
+  // 迁移旧流程图模板数据
+  function migrateFlowchart() {
+    if (template.sections.some(s => s.isFlowchart)) return;
+    try {
+      const old = localStorage.getItem('haccp_flowchart_template');
+      if (old) {
+        const fc = JSON.parse(old);
+        if (fc.enabled && fc.defaultSteps && fc.defaultSteps.length > 0) {
+          template.sections.push({
+            id: genId(), title: '生产流程图', isFlowchart: true,
+            defaultSteps: fc.defaultSteps, questions: [],
+          });
+          save(template);
+        }
+        localStorage.removeItem('haccp_flowchart_template');
+      }
+    } catch (e) {}
+  }
+
   // ===== 入口 =====
   function init() {
     template = load();
+    migrateFlowchart();
     editMode = 'edit';
     renderLayout();
   }
@@ -260,9 +270,6 @@ const Admin = (() => {
           template = c.questionnaire;
           localStorage.setItem(TEMPLATE_KEY, JSON.stringify(template));
         }
-        if (c.flowchart) {
-          localStorage.setItem(FC_TEMPLATE_KEY, JSON.stringify(c.flowchart));
-        }
         activeSectionId = template.sections.length > 0 ? template.sections[0].id : null;
       }
     } catch (e) {
@@ -336,55 +343,30 @@ const Admin = (() => {
     const wrap = getEl('adminEditorWrap');
     if (!wrap) return;
 
-    const fcTemplate = loadFcTemplate();
     const sidebarHtml = `
       <div class="admin-sidebar" id="adminSidebar">
         <h3>${I18n.t('admin.sectionList')}</h3>
         <ul class="section-list" id="sectionList">
-          ${template.sections.map(s => `
-            <li data-sid="${s.id}" class="${s.id === activeSectionId ? 'active' : ''}">
-              <span>${esc(s.title) || I18n.t('admin.newSection')}</span>
+          ${template.sections.map((s, i) => `
+            <li data-sid="${s.id}" data-idx="${i}" class="${s.id === activeSectionId ? 'active' : ''}" draggable="true">
+              <span class="drag-handle">⠿</span>
+              <span>${s.isFlowchart ? '🔄 ' : ''}${esc(s.title) || I18n.t('admin.newSection')}</span>
               ${editMode === 'edit' ? `<button class="del-section" data-sid="${s.id}" title="${I18n.t('admin.delSection')}">&times;</button>` : ''}
             </li>
           `).join('')}
           ${template.sections.length === 0 ? `<li style="color:var(--gray-400);cursor:default;font-size:13px;">${I18n.t('admin.noSection')}</li>` : ''}
         </ul>
         ${editMode === 'edit' ? `<button class="btn-add-section" id="btnAddSection">${I18n.t('admin.addSection')}</button>` : ''}
-        ${editMode === 'edit' ? `
-        <div class="fc-config">
-          <label>
-            <input type="checkbox" id="fcEnabled" ${fcTemplate.enabled ? 'checked' : ''}>
-            ${I18n.t('fc.enableFlowchart')}
-          </label>
-          <div id="fcStepsConfig" style="${fcTemplate.enabled ? '' : 'display:none;'}">
-            <p style="font-size:12px;font-weight:500;color:var(--gray-600);margin-bottom:4px;">${I18n.t('fc.defaultSteps')}</p>
-            <textarea id="fcDefaultSteps" placeholder="${I18n.t('fc.defaultStepsHint')}">${esc((fcTemplate.defaultSteps || []).join('\n'))}</textarea>
-            <p class="fc-config-hint">${I18n.t('fc.defaultStepsHint')}</p>
-          </div>
-        </div>` : ''}
+        ${editMode === 'edit' ? `<button class="btn-add-section" id="btnAddFlowSection" style="margin-top:4px;">${I18n.t('admin.addFlowSection')}</button>` : ''}
       </div>
     `;
     wrap.innerHTML = sidebarHtml + '<div class="admin-main" id="adminMain"></div>';
 
     if (editMode === 'edit') {
-      const fcCheck = document.getElementById('fcEnabled');
-      const fcTextarea = document.getElementById('fcDefaultSteps');
-      if (fcCheck) {
-        fcCheck.addEventListener('change', () => {
-          fcTemplate.enabled = fcCheck.checked;
-          saveFcTemplate(fcTemplate);
-          renderEditorContent();
-        });
-      }
-      if (fcTextarea) {
-        fcTextarea.addEventListener('input', () => {
-          fcTemplate.defaultSteps = fcTextarea.value.split('\n').map(s => s.trim()).filter(s => s);
-          saveFcTemplate(fcTemplate);
-        });
-      }
-
       const btnAdd = document.getElementById('btnAddSection');
-      if (btnAdd) btnAdd.addEventListener('click', addSection);
+      const btnFlow = document.getElementById('btnAddFlowSection');
+      if (btnAdd) btnAdd.addEventListener('click', () => addSection('normal'));
+      if (btnFlow) btnFlow.addEventListener('click', () => addSection('flowchart'));
     }
     document.querySelectorAll('.section-list li[data-sid]').forEach(li => {
       li.addEventListener('click', (e) => {
@@ -399,6 +381,41 @@ const Admin = (() => {
         deleteSection(btn.dataset.sid);
       });
     });
+
+    // 拖拽排序
+    let dragSrcIdx = -1;
+    const list = document.getElementById('sectionList');
+    if (list) {
+      list.querySelectorAll('li[draggable]').forEach(li => {
+        li.addEventListener('dragstart', (e) => {
+          dragSrcIdx = parseInt(li.dataset.idx);
+          li.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        li.addEventListener('dragend', () => {
+          li.classList.remove('dragging');
+          list.querySelectorAll('li').forEach(l => l.classList.remove('drag-over'));
+        });
+        li.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          list.querySelectorAll('li').forEach(l => l.classList.remove('drag-over'));
+          li.classList.add('drag-over');
+        });
+        li.addEventListener('drop', (e) => {
+          e.preventDefault();
+          li.classList.remove('drag-over');
+          const dstIdx = parseInt(li.dataset.idx);
+          if (dragSrcIdx >= 0 && dragSrcIdx !== dstIdx) {
+            const moved = template.sections.splice(dragSrcIdx, 1)[0];
+            template.sections.splice(dstIdx, 0, moved);
+            save(template);
+            activeSectionId = moved.id;
+            renderEditorContent();
+          }
+        });
+      });
+    }
 
     renderMain();
   }
@@ -427,19 +444,57 @@ const Admin = (() => {
       return;
     }
 
+    // 流程图章节：编辑默认步骤
+    if (section.isFlowchart) {
+      main.innerHTML = `
+        <div class="title-row">
+          <h2 class="editable-title" id="sectionTitle">🔄 ${esc(section.title)}</h2>
+          <button class="btn-edit-title" id="btnEditTitle" title="${I18n.getLang() === 'zh' ? '修改章节名称' : 'Rename section'}">✎</button>
+        </div>
+        <p class="admin-hint">${I18n.getLang() === 'zh' ? '生产流程章节 — 设置默认步骤模板' : 'Flowchart section — Set default step templates'}</p>
+        <div style="margin-top:16px;">
+          <p style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px;">${I18n.t('fc.defaultSteps')}</p>
+          <textarea id="fcDefaultSteps" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;" placeholder="${I18n.t('fc.defaultStepsHint')}">${esc((section.defaultSteps || []).join('\n'))}</textarea>
+          <p class="fc-config-hint">${I18n.t('fc.defaultStepsHint')}</p>
+        </div>
+      `;
+
+      const btnEdit = document.getElementById('btnEditTitle');
+      const titleEl = document.getElementById('sectionTitle');
+      if (btnEdit) btnEdit.addEventListener('click', () => startRenameSection(section, titleEl));
+      if (titleEl) titleEl.addEventListener('click', () => startRenameSection(section, titleEl));
+
+      const fcTextarea = document.getElementById('fcDefaultSteps');
+      if (fcTextarea) {
+        fcTextarea.addEventListener('input', () => {
+          section.defaultSteps = fcTextarea.value.split('\n').map(s => s.trim()).filter(s => s);
+          save(template);
+        });
+      }
+      return;
+    }
+
     main.innerHTML = `
-      <h2>${esc(section.title)}</h2>
+      <div class="title-row">
+        <h2 class="editable-title" id="sectionTitle">${esc(section.title)}</h2>
+        <button class="btn-edit-title" id="btnEditTitle" title="${I18n.getLang() === 'zh' ? '修改章节名称' : 'Rename section'}">✎</button>
+      </div>
       <p class="admin-hint">${section.questions.length} ${I18n.t('admin.questions')}</p>
       ${section.questions.map((q, i) => renderQuestionCard(q, i)).join('')}
       <button class="btn-add-q" id="btnAddQ">${I18n.t('admin.addQuestion')}</button>
     `;
+
+    const btnEditTitle = document.getElementById('btnEditTitle');
+    const titleEl = document.getElementById('sectionTitle');
+    if (btnEditTitle) btnEditTitle.addEventListener('click', () => startRenameSection(section, titleEl));
+    if (titleEl) titleEl.addEventListener('click', () => startRenameSection(section, titleEl));
 
     document.getElementById('btnAddQ').addEventListener('click', () => addQuestion(section));
 
     section.questions.forEach((q, i) => {
       document.getElementById('del-' + q.id)?.addEventListener('click', () => deleteQuestion(section, i));
       document.getElementById('qtitle-' + q.id)?.addEventListener('input', function() { q.title = this.value; save(template); });
-      document.getElementById('qtype-' + q.id)?.addEventListener('change', function() { q.type = this.value; if (!['select','radio','checkbox'].includes(q.type)) q.options = []; save(template); renderEditorContent(); });
+      document.getElementById('qtype-' + q.id)?.addEventListener('change', function() { q.type = this.value; if (!['select','radio','checkbox','table'].includes(q.type)) q.options = []; save(template); renderEditorContent(); });
       document.getElementById('qreq-' + q.id)?.addEventListener('change', function() { q.required = this.checked; save(template); });
 
       const optInput = document.getElementById('optinput-' + q.id);
@@ -455,7 +510,8 @@ const Admin = (() => {
   }
 
   function renderQuestionCard(q, index) {
-    const needsOptions = ['select', 'radio', 'checkbox'].includes(q.type);
+    const needsOptions = ['select', 'radio', 'checkbox', 'table'].includes(q.type);
+    const isTable = q.type === 'table';
     return `
       <div class="question-card">
         <div class="q-header">
@@ -463,7 +519,7 @@ const Admin = (() => {
           <div class="q-row">
             <input type="text" id="qtitle-${q.id}" value="${esc(q.title)}" placeholder="${I18n.t('admin.qTitle')}">
             <select id="qtype-${q.id}">
-              ${['text','textarea','number','date','select','radio','checkbox'].map(t => `<option value="${t}" ${q.type === t ? 'selected' : ''}>${I18n.t('type.' + t)}</option>`).join('')}
+              ${['text','textarea','number','date','select','radio','checkbox','table'].map(t => `<option value="${t}" ${q.type === t ? 'selected' : ''}>${I18n.t('type.' + t)}</option>`).join('')}
             </select>
             <label class="q-required"><input type="checkbox" id="qreq-${q.id}" ${q.required ? 'checked' : ''}> ${I18n.t('admin.required')}</label>
             <button class="btn-delete-q" id="del-${q.id}" title="${I18n.t('admin.deleteQ')}">&times;</button>
@@ -471,18 +527,48 @@ const Admin = (() => {
         </div>
         ${needsOptions ? `
           <div class="q-options">
-            <span style="font-size:12px;color:var(--gray-400);">${I18n.t('admin.options')}</span>
+            <span style="font-size:12px;color:var(--gray-400);">${isTable ? I18n.t('tbl.columns') : I18n.t('admin.options')}</span>
             ${(q.options || []).map((opt, oi) => `<span class="opt-tag">${esc(opt)}<button id="optdel-${q.id}-${oi}">&times;</button></span>`).join('')}
-            <input type="text" id="optinput-${q.id}" placeholder="${I18n.t('admin.optPlaceholder')}">
+            <input type="text" id="optinput-${q.id}" placeholder="${isTable ? I18n.t('tbl.columnsHint') : I18n.t('admin.optPlaceholder')}">
             <button class="btn btn-xs btn-secondary" id="optadd-${q.id}">+</button>
           </div>` : ''}
       </div>`;
   }
 
-  function addSection() {
-    const title = prompt(I18n.t('admin.sectionPrompt'), I18n.t('admin.newSection'));
+  function startRenameSection(section, titleEl) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = section.title;
+    input.className = 'rename-input';
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const commit = () => {
+      const newTitle = input.value.trim();
+      if (newTitle) {
+        section.title = newTitle;
+        save(template);
+      }
+      renderEditorContent();
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { input.blur(); }
+      if (e.key === 'Escape') { input.value = section.title; input.blur(); }
+    });
+  }
+
+  function addSection(type) {
+    const isFlow = type === 'flowchart';
+    const defTitle = isFlow ? '生产流程图' : I18n.t('admin.newSection');
+    const title = prompt(I18n.t('admin.sectionPrompt'), defTitle);
     if (!title || !title.trim()) return;
-    template.sections.push({ id: genId(), title: title.trim(), questions: [] });
+    template.sections.push({
+      id: genId(), title: title.trim(), questions: [],
+      isFlowchart: isFlow,
+      defaultSteps: isFlow ? [] : undefined,
+    });
     activeSectionId = template.sections[template.sections.length - 1].id;
     save(template);
     renderEditorContent();
@@ -556,6 +642,12 @@ const Admin = (() => {
         let display = '';
         if (answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0)) {
           display = `<span class="empty">${I18n.t('admin.resultUnknown')}</span>`;
+        } else if (q.type === 'table' && Array.isArray(answer) && answer.some(r => Array.isArray(r))) {
+          display = '<table class="fc-result-params"><thead><tr>' +
+            (q.options || []).map(c => `<th>${esc(c)}</th>`).join('') +
+            '</tr></thead><tbody>' +
+            answer.filter(r => Array.isArray(r) && r.some(c => c)).map(r => '<tr>' + r.map(c => `<td>${esc(c || '')}</td>`).join('') + '</tr>').join('') +
+            '</tbody></table>';
         } else if (Array.isArray(answer)) {
           display = esc(answer.join(', '));
         } else {

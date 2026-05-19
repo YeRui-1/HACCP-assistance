@@ -68,6 +68,7 @@ const I18n = (() => {
     'admin.sectionList':    ['问卷章节', 'Sections'],
     'admin.noSection':      ['暂无章节', 'No sections'],
     'admin.addSection':     ['+ 添加章节', '+ Add Section'],
+    'admin.addFlowSection': ['+ 添加流程章节', '+ Add Flow Section'],
     'admin.preview':        ['预览问卷', 'Preview'],
     'admin.noSectionHint':  ['请先添加一个章节，然后在此编辑题目', 'Please add a section first, then edit questions here'],
     'admin.questions':      ['个题目', ' questions'],
@@ -103,6 +104,10 @@ const I18n = (() => {
     // ===== 生产流程图 =====
     'fc.title':             ['生产流程图', 'Process Flow Chart'],
     'fc.desc':              ['请按顺序填写每个生产步骤', 'Please fill in each production step in order'],
+    'fc.controlPoint':      ['关键限值', 'Critical Limit'],
+    'fc.controlPointPh':    ['如：温度≥72°C，时间≥15秒', 'e.g. Temp≥72°C, Time≥15s'],
+    'fc.equipment':         ['设备名称', 'Equipment'],
+    'fc.equipmentPh':       ['如：金属检测仪', 'e.g. Metal Detector'],
     'fc.stepName':          ['步骤名称', 'Step Name'],
     'fc.stepNamePh':        ['如：原料验收', 'e.g. Receiving'],
     'fc.stepDesc':          ['步骤描述', 'Description'],
@@ -136,6 +141,16 @@ const I18n = (() => {
     'type.select':          ['下拉选择', 'Dropdown'],
     'type.radio':           ['单选', 'Radio'],
     'type.checkbox':        ['多选', 'Checkbox'],
+    'type.table':           ['表格题', 'Table'],
+
+    // ===== 表格题 =====
+    'tbl.addRow':           ['+ 添加行', '+ Add Row'],
+    'tbl.delRow':           ['删除', 'Delete'],
+    'tbl.colPlaceholder':   ['列名', 'Column name'],
+    'tbl.cellPlaceholder':  ['请输入', 'Enter'],
+    'tbl.noData':           ['未填写', 'Not filled'],
+    'tbl.columns':          ['表格列', 'Columns'],
+    'tbl.columnsHint':      ['添加列名后回车', 'Add column name and press Enter'],
   };
 
   let currentLang = 'zh';

@@ -3,9 +3,7 @@ const Questionnaire = (() => {
   const TEMPLATE_KEY = 'haccp_questionnaire_template';
   const ANSWERS_KEY = 'haccp_answers';
   const TEST_ANSWERS_KEY = 'haccp_test_answers';
-  const FC_TEMPLATE_KEY = 'haccp_flowchart_template';
-  const FC_DATA_KEY = 'haccp_flowchart';
-  const FC_TEST_KEY = 'haccp_flowchart_test';
+  const FC_TEMPLATE_KEY = 'haccp_flowchart_template'; // 保留用于迁移
 
   function esc(str) {
     if (!str) return '';
@@ -17,35 +15,38 @@ const Questionnaire = (() => {
     try { const raw = localStorage.getItem(TEMPLATE_KEY); return raw ? JSON.parse(raw) : null; }
     catch (e) { return null; }
   }
-  function loadFcTemplate() {
-    try { const raw = localStorage.getItem(FC_TEMPLATE_KEY); return raw ? JSON.parse(raw) : { enabled: false, defaultSteps: [] }; }
-    catch (e) { return { enabled: false, defaultSteps: [] }; }
+  function loadFcData(sectionId, isTest) {
+    const key = isTest ? `haccp_flowchart_test_${sectionId}` : `haccp_flowchart_${sectionId}`;
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : []; }
+    catch (e) { return []; }
+  }
+  function saveFcData(sectionId, data, isTest) {
+    const key = isTest ? `haccp_flowchart_test_${sectionId}` : `haccp_flowchart_${sectionId}`;
+    localStorage.setItem(key, JSON.stringify(data));
   }
 
-  // 从后端拉取模板，更新 localStorage
+  // 迁移旧的全局流程图数据
+  function migrateFcData(sectionId) {
+    try {
+      const old = localStorage.getItem('haccp_flowchart');
+      if (old) {
+        localStorage.setItem(`haccp_flowchart_${sectionId}`, old);
+        localStorage.removeItem('haccp_flowchart');
+        localStorage.removeItem('haccp_flowchart_test');
+      }
+    } catch (e) {}
+  }
   async function syncTemplateFromBackend() {
     try {
       const resp = await fetch('http://localhost:8000/api/template');
       if (!resp.ok) return;
       const data = await resp.json();
-      if (data.template && data.template.content) {
-        const c = data.template.content;
-        if (c.questionnaire) {
-          localStorage.setItem(TEMPLATE_KEY, JSON.stringify(c.questionnaire));
-        }
-        if (c.flowchart) {
-          localStorage.setItem(FC_TEMPLATE_KEY, JSON.stringify(c.flowchart));
-        }
+      if (data.template && data.template.content && data.template.content.questionnaire) {
+        localStorage.setItem(TEMPLATE_KEY, JSON.stringify(data.template.content.questionnaire));
       }
-    } catch (e) { /* 后端不可用，使用 localStorage 数据 */ }
+    } catch (e) {}
   }
-  function loadFcData(isTest) {
-    try { const raw = localStorage.getItem(isTest ? FC_TEST_KEY : FC_DATA_KEY); return raw ? JSON.parse(raw) : []; }
-    catch (e) { return []; }
-  }
-  function saveFcData(data, isTest) {
-    localStorage.setItem(isTest ? FC_TEST_KEY : FC_DATA_KEY, JSON.stringify(data));
-  }
+
   function loadAnswers(isTest) {
     try { const raw = localStorage.getItem(isTest ? TEST_ANSWERS_KEY : ANSWERS_KEY); return raw ? JSON.parse(raw) : {}; }
     catch (e) { return {}; }
@@ -81,18 +82,26 @@ const Questionnaire = (() => {
   function renderInto(container, template, opts = {}) {
     const { isTest = false, onSubmit = null } = opts;
     const answers = loadAnswers(isTest);
-    const fcTemplate = loadFcTemplate();
-    const fcData = loadFcData(isTest);
 
-    // 初始化流程图数据
-    if (fcTemplate.enabled && fcData.length === 0 && fcTemplate.defaultSteps.length > 0) {
-      fcTemplate.defaultSteps.forEach(name => {
-        fcData.push({ id: genId(), name, description: '', parameters: [{ name: '', value: '', unit: '' }] });
-      });
-      saveFcData(fcData, isTest);
-    }
+    // 收集流程图 section 的 ID 和数据
+    const fcSections = template.sections.filter(s => s.isFlowchart);
+    const fcDataMap = {};
+    fcSections.forEach(s => {
+      migrateFcData(s.id);
+      let fcData = loadFcData(s.id, isTest);
+      if (fcData.length === 0 && s.defaultSteps && s.defaultSteps.length > 0) {
+        s.defaultSteps.forEach(name => {
+          fcData.push({ id: genId(), name, description: '', controlPoint: '', equipment: '', parameters: [{ name: '', value: '', unit: '' }] });
+        });
+        saveFcData(s.id, fcData, isTest);
+      }
+      fcDataMap[s.id] = fcData;
+    });
 
     let html = template.sections.map(section => {
+      if (section.isFlowchart) {
+        return renderFlowchartHTML(section, fcDataMap[section.id]);
+      }
       return `
         <div class="q-section">
           <h2>${esc(section.title)}</h2>
@@ -101,11 +110,6 @@ const Questionnaire = (() => {
         </div>
       `;
     }).join('');
-
-    // 流程图模块
-    if (fcTemplate.enabled) {
-      html += renderFlowchartHTML(fcData);
-    }
 
     const btnLabel = isTest ? I18n.t('q.submitTest') : I18n.t('q.submit');
     html += `
@@ -117,48 +121,43 @@ const Questionnaire = (() => {
 
     container.innerHTML = html;
 
+    bindTableEvents(container, template, answers, isTest);
+
     // 流程图事件绑定
-    if (fcTemplate.enabled) {
-      bindFlowchartEvents(container, fcData, isTest);
-    }
+    fcSections.forEach(s => {
+      bindFlowchartEvents(container, s, fcDataMap[s.id], isTest);
+    });
 
     const btnSubmit = container.querySelector('#btnSubmit');
     if (btnSubmit) {
       btnSubmit.addEventListener('click', () => {
         collectAnswers(container, template, answers);
-        if (fcTemplate.enabled) collectFlowchartData(container, fcData);
-        if (!validate(template, answers)) return;
-        if (fcTemplate.enabled && !validateFlowchart(fcData)) return;
+        let allValid = validate(template, answers);
+        fcSections.forEach(s => {
+          collectFlowchartData(container, fcDataMap[s.id]);
+          if (!validateFlowchart(fcDataMap[s.id])) allValid = false;
+        });
+        if (!allValid) return;
         saveAnswers(answers, isTest);
-        if (fcTemplate.enabled) saveFcData(fcData, isTest);
+        fcSections.forEach(s => saveFcData(s.id, fcDataMap[s.id], isTest));
         if (onSubmit) onSubmit(answers);
       });
     }
 
     container.querySelectorAll('input:not(.fc-input), textarea:not(.fc-textarea), select').forEach(el => {
-      el.addEventListener('input', () => {
-        collectAnswers(container, template, answers);
-        saveAnswers(answers, isTest);
-      });
-      el.addEventListener('change', () => {
-        collectAnswers(container, template, answers);
-        saveAnswers(answers, isTest);
-      });
+      el.addEventListener('input', () => { collectAnswers(container, template, answers); saveAnswers(answers, isTest); });
+      el.addEventListener('change', () => { collectAnswers(container, template, answers); saveAnswers(answers, isTest); });
     });
 
-    // 流程图输入实时保存
-    if (fcTemplate.enabled) {
+    fcSections.forEach(s => {
       container.querySelectorAll('.fc-input, .fc-textarea').forEach(el => {
-        el.addEventListener('input', () => {
-          collectFlowchartData(container, fcData);
-          saveFcData(fcData, isTest);
-        });
+        el.addEventListener('input', () => { collectFlowchartData(container, fcDataMap[s.id]); saveFcData(s.id, fcDataMap[s.id], isTest); });
       });
-    }
+    });
   }
 
   // ===== 流程图 HTML =====
-  function renderFlowchartHTML(fcData) {
+  function renderFlowchartHTML(section, fcData) {
     let steps = '';
     fcData.forEach((step, si) => {
       steps += `
@@ -174,6 +173,10 @@ const Questionnaire = (() => {
           </div>
           <div class="fc-step-desc">
             <textarea class="fc-textarea" data-fc-idx="${si}" data-fc-field="description" placeholder="${I18n.t('fc.stepDescPh')}">${esc(step.description || '')}</textarea>
+          </div>
+          <div class="fc-step-extra">
+            <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="controlPoint" value="${esc(step.controlPoint || '')}" placeholder="${I18n.t('fc.controlPointPh')}">
+            <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="equipment" value="${esc(step.equipment || '')}" placeholder="${I18n.t('fc.equipmentPh')}">
           </div>
           <div class="fc-params">
             <div class="fc-params-label">
@@ -207,14 +210,14 @@ const Questionnaire = (() => {
   }
 
   // ===== 流程图事件 =====
-  function bindFlowchartEvents(container, fcData, isTest) {
+  function bindFlowchartEvents(container, section, fcData, isTest) {
     // 添加步骤
     const btnAdd = container.querySelector('#fcAddStep');
     if (btnAdd) {
       btnAdd.addEventListener('click', () => {
         fcData.push({ id: genId(), name: '', description: '', parameters: [{ name: '', value: '', unit: '' }] });
-        saveFcData(fcData, isTest);
-        refreshFlowchart(container, fcData, isTest);
+        saveFcData(section.id, fcData, isTest);
+        refreshFlowchart(container, section, fcData, isTest);
       });
     }
 
@@ -223,8 +226,8 @@ const Questionnaire = (() => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.fcIdx);
         fcData.splice(idx, 1);
-        saveFcData(fcData, isTest);
-        refreshFlowchart(container, fcData, isTest);
+        saveFcData(section.id, fcData, isTest);
+        refreshFlowchart(container, section, fcData, isTest);
       });
     });
 
@@ -234,7 +237,7 @@ const Questionnaire = (() => {
         const idx = parseInt(btn.dataset.fcIdx);
         if (idx > 0) {
           [fcData[idx - 1], fcData[idx]] = [fcData[idx], fcData[idx - 1]];
-          saveFcData(fcData, isTest);
+          saveFcData(section.id, fcData, isTest);
           refreshFlowchart(container, fcData, isTest);
         }
       });
@@ -246,7 +249,7 @@ const Questionnaire = (() => {
         const idx = parseInt(btn.dataset.fcIdx);
         if (idx < fcData.length - 1) {
           [fcData[idx], fcData[idx + 1]] = [fcData[idx + 1], fcData[idx]];
-          saveFcData(fcData, isTest);
+          saveFcData(section.id, fcData, isTest);
           refreshFlowchart(container, fcData, isTest);
         }
       });
@@ -258,8 +261,8 @@ const Questionnaire = (() => {
         const idx = parseInt(btn.dataset.fcIdx);
         if (!fcData[idx].parameters) fcData[idx].parameters = [];
         fcData[idx].parameters.push({ name: '', value: '', unit: '' });
-        saveFcData(fcData, isTest);
-        refreshFlowchart(container, fcData, isTest);
+        saveFcData(section.id, fcData, isTest);
+        refreshFlowchart(container, section, fcData, isTest);
       });
     });
 
@@ -272,13 +275,13 @@ const Questionnaire = (() => {
         if (fcData[stepIdx].parameters.length === 0) {
           fcData[stepIdx].parameters = [{ name: '', value: '', unit: '' }];
         }
-        saveFcData(fcData, isTest);
-        refreshFlowchart(container, fcData, isTest);
+        saveFcData(section.id, fcData, isTest);
+        refreshFlowchart(container, section, fcData, isTest);
       });
     });
   }
 
-  function refreshFlowchart(container, fcData, isTest) {
+  function refreshFlowchart(container, section, fcData, isTest) {
     const fcSection = container.querySelector('#fcSection');
     if (!fcSection) return;
     const wrapper = container.querySelector('#qForm') || container;
@@ -298,6 +301,10 @@ const Questionnaire = (() => {
           </div>
           <div class="fc-step-desc">
             <textarea class="fc-textarea" data-fc-idx="${si}" data-fc-field="description" placeholder="${I18n.t('fc.stepDescPh')}">${esc(step.description || '')}</textarea>
+          </div>
+          <div class="fc-step-extra">
+            <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="controlPoint" value="${esc(step.controlPoint || '')}" placeholder="${I18n.t('fc.controlPointPh')}">
+            <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="equipment" value="${esc(step.equipment || '')}" placeholder="${I18n.t('fc.equipmentPh')}">
           </div>
           <div class="fc-params">
             <div class="fc-params-label"><span>${I18n.t('fc.paramHeader')}</span></div>
@@ -322,7 +329,7 @@ const Questionnaire = (() => {
     container.querySelectorAll('.fc-input, .fc-textarea').forEach(el => {
       el.addEventListener('input', () => {
         collectFlowchartData(container, fcData);
-        saveFcData(fcData, isTest);
+        saveFcData(section.id, fcData, isTest);
       });
     });
   }
@@ -335,6 +342,10 @@ const Questionnaire = (() => {
       const descInput = card.querySelector('[data-fc-field="description"]');
       if (nameInput) fcData[si].name = nameInput.value;
       if (descInput) fcData[si].description = descInput.value;
+      const cpInput = card.querySelector('[data-fc-field="controlPoint"]');
+      const eqInput = card.querySelector('[data-fc-field="equipment"]');
+      if (cpInput) fcData[si].controlPoint = cpInput.value;
+      if (eqInput) fcData[si].equipment = eqInput.value;
 
       const paramRows = card.querySelectorAll('.fc-param-row');
       paramRows.forEach((row, pi) => {
@@ -372,6 +383,70 @@ const Questionnaire = (() => {
   function hideFcError() {
     const el = document.getElementById('fcError');
     if (el) el.style.display = 'none';
+  }
+
+  function bindTableEvents(container, template, answers, isTest) {
+    // 添加行
+    container.querySelectorAll('.btn-tbl-add').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qid = btn.dataset.qid;
+        const q = findQuestion(template, qid);
+        if (!q) return;
+        const cols = (q.options || []).length;
+        if (!Array.isArray(answers[qid])) answers[qid] = [];
+        answers[qid].push(Array(cols).fill(''));
+        saveAnswers(answers, isTest);
+        refreshTableInDOM(container, q, answers, isTest);
+      });
+    });
+
+    // 删除行
+    container.querySelectorAll('.btn-tbl-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qid = btn.dataset.qid;
+        const row = parseInt(btn.dataset.row);
+        if (Array.isArray(answers[qid]) && answers[qid].length > 1) {
+          answers[qid].splice(row, 1);
+          saveAnswers(answers, isTest);
+          refreshTableInDOM(container, findQuestion(template, qid), answers, isTest);
+        }
+      });
+    });
+
+    // 单元格输入
+    container.querySelectorAll('.tbl-cell').forEach(cell => {
+      cell.addEventListener('input', () => {
+        const qid = cell.dataset.qid;
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        if (!Array.isArray(answers[qid])) answers[qid] = [];
+        if (!Array.isArray(answers[qid][row])) answers[qid][row] = [];
+        answers[qid][row][col] = cell.value;
+        saveAnswers(answers, isTest);
+      });
+    });
+  }
+
+  function findQuestion(template, qid) {
+    for (const s of template.sections) {
+      for (const q of s.questions) {
+        if (q.id === qid) return q;
+      }
+    }
+    return null;
+  }
+
+  function refreshTableInDOM(container, q, answers, isTest) {
+    const tableDiv = container.querySelector(`.table-input[data-qid="${q.id}"]`);
+    if (!tableDiv) return;
+    tableDiv.outerHTML = renderTableInput(q, answers[q.id]);
+    // 重新绑定事件
+    const newDiv = container.querySelector(`.table-input[data-qid="${q.id}"]`);
+    if (newDiv) {
+      const tempContainer = { querySelectorAll: (sel) => newDiv.parentElement.querySelectorAll(sel) };
+      // 简化：直接在容器级别重新绑定
+      bindTableEvents(container, { sections: [{ questions: [q] }] }, answers, isTest);
+    }
   }
 
   function onUserSubmit(answers) {
@@ -415,6 +490,9 @@ const Questionnaire = (() => {
           ${(q.options || []).map(opt => `<label><input type="checkbox" data-qid="${q.id}" value="${esc(opt)}" ${checkedVals.includes(opt) ? 'checked' : ''}> ${esc(opt)}</label>`).join('')}
         </div>`;
         break;
+      case 'table':
+        input = renderTableInput(q, val);
+        break;
       default:
         input = `<input type="text" data-qid="${q.id}" value="${esc(val)}">`;
     }
@@ -428,6 +506,25 @@ const Questionnaire = (() => {
     `;
   }
 
+  function renderTableInput(q, val) {
+    const rows = Array.isArray(val) && val.length > 0 ? val : [Array((q.options || []).length).fill('')];
+    const cols = q.options || [];
+    return `
+      <div class="table-input" data-qid="${q.id}">
+        <table>
+          <thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}<th style="width:50px;"></th></tr></thead>
+          <tbody>${rows.map((row, ri) => `
+            <tr data-row="${ri}">
+              ${cols.map((_, ci) => `<td><input type="text" class="tbl-cell" data-qid="${q.id}" data-row="${ri}" data-col="${ci}" value="${esc(row[ci] || '')}" placeholder="${I18n.t('tbl.cellPlaceholder')}"></td>`).join('')}
+              <td><button class="btn-tbl-del" data-qid="${q.id}" data-row="${ri}" title="${I18n.t('tbl.delRow')}">&times;</button></td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+        <button class="btn-tbl-add" data-qid="${q.id}">${I18n.t('tbl.addRow')}</button>
+      </div>
+    `;
+  }
+
   function collectAnswers(container, template, answers) {
     template.sections.forEach(section => {
       section.questions.forEach(q => {
@@ -437,8 +534,20 @@ const Questionnaire = (() => {
         } else if (q.type === 'radio') {
           const selected = container.querySelector(`input[type="radio"][data-qid="${q.id}"]:checked`);
           answers[q.id] = selected ? selected.value : '';
+        } else if (q.type === 'table') {
+          // 表格数据由 tbl-cell 的 input 事件实时收集，这里做兜底
+          const cells = container.querySelectorAll(`.tbl-cell[data-qid="${q.id}"]`);
+          const rows = new Set();
+          cells.forEach(c => rows.add(parseInt(c.dataset.row)));
+          const data = [];
+          rows.forEach(ri => {
+            const rowCells = container.querySelectorAll(`.tbl-cell[data-qid="${q.id}"][data-row="${ri}"]`);
+            data[ri] = [];
+            rowCells.forEach(c => { data[ri][parseInt(c.dataset.col)] = c.value; });
+          });
+          answers[q.id] = data.filter(r => r && r.some(c => c));
         } else {
-          const el = container.querySelector(`[data-qid="${q.id}"]`);
+          const el = container.querySelector(`input[data-qid="${q.id}"], textarea[data-qid="${q.id}"], select[data-qid="${q.id}"]`);
           answers[q.id] = el ? el.value : '';
         }
       });
@@ -451,7 +560,14 @@ const Questionnaire = (() => {
       section.questions.forEach(q => {
         if (!q.required) return;
         const val = answers[q.id];
-        const isEmpty = Array.isArray(val) ? val.length === 0 : !val || !val.toString().trim();
+        let isEmpty;
+        if (q.type === 'table') {
+          isEmpty = !Array.isArray(val) || val.length === 0 || !val.some(row => Array.isArray(row) && row.some(c => c && c.trim()));
+        } else if (Array.isArray(val)) {
+          isEmpty = val.length === 0;
+        } else {
+          isEmpty = !val || !val.toString().trim();
+        }
         const group = document.querySelector(`.form-group[data-qid="${q.id}"]`);
         if (isEmpty) {
           if (group) { group.classList.add('error'); if (!firstError) firstError = group; }
