@@ -91,7 +91,7 @@ const Questionnaire = (() => {
       let fcData = loadFcData(s.id, isTest);
       if (fcData.length === 0 && s.defaultSteps && s.defaultSteps.length > 0) {
         s.defaultSteps.forEach(name => {
-          fcData.push({ id: genId(), name, description: '', controlPoint: '', equipment: '', parameters: [{ name: '', value: '', unit: '' }] });
+          fcData.push({ id: genId(), name, description: '', controlPoint: '', equipment: '', ingredients: [{ name: '', amount: '', purpose: '' }], parameters: [{ name: '', value: '', unit: '' }] });
         });
         saveFcData(s.id, fcData, isTest);
       }
@@ -126,6 +126,17 @@ const Questionnaire = (() => {
     // 流程图事件绑定
     fcSections.forEach(s => {
       bindFlowchartEvents(container, s, fcDataMap[s.id], isTest);
+      // 添加步骤按钮（只绑定一次）
+      const btnAddStep = container.querySelector('#fcAddStep');
+      if (btnAddStep && !btnAddStep.dataset.bound) {
+        btnAddStep.dataset.bound = '1';
+        btnAddStep.addEventListener('click', () => {
+          const fcData = fcDataMap[s.id];
+          fcData.push({ id: genId(), name: '', description: '', controlPoint: '', equipment: '', ingredients: [{ name: '', amount: '', purpose: '' }], parameters: [{ name: '', value: '', unit: '' }] });
+          saveFcData(s.id, fcData, isTest);
+          refreshFlowchart(container, s, fcData, isTest);
+        });
+      }
     });
 
     const btnSubmit = container.querySelector('#btnSubmit');
@@ -178,6 +189,20 @@ const Questionnaire = (() => {
             <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="controlPoint" value="${esc(step.controlPoint || '')}" placeholder="${I18n.t('fc.controlPointPh')}">
             <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="equipment" value="${esc(step.equipment || '')}" placeholder="${I18n.t('fc.equipmentPh')}">
           </div>
+          <div class="fc-ingredients">
+            <div class="fc-params-label">
+              <span>${I18n.t('fc.ingredients')}</span>
+            </div>
+            ${(step.ingredients || []).map((ing, ii) => `
+              <div class="fc-param-row">
+                <input type="text" class="fc-input param-name" data-fc-idx="${si}" data-fc-ii="${ii}" data-fc-ifield="name" value="${esc(ing.name || '')}" placeholder="${I18n.t('fc.ingNamePh')}">
+                <input type="text" class="fc-input param-value" data-fc-idx="${si}" data-fc-ii="${ii}" data-fc-ifield="amount" value="${esc(ing.amount || '')}" placeholder="${I18n.t('fc.ingAmountPh')}">
+                <input type="text" class="fc-input param-unit" data-fc-idx="${si}" data-fc-ii="${ii}" data-fc-ifield="purpose" value="${esc(ing.purpose || '')}" placeholder="${I18n.t('fc.ingPurposePh')}">
+                <button class="fc-param-del fc-ing-del" data-fc-idx="${si}" data-fc-ii="${ii}">&times;</button>
+              </div>
+            `).join('')}
+            <button class="fc-add-param fc-add-ing" data-fc-idx="${si}">${I18n.t('fc.addIng')}</button>
+          </div>
           <div class="fc-params">
             <div class="fc-params-label">
               <span>${I18n.t('fc.paramHeader')}</span>
@@ -211,16 +236,6 @@ const Questionnaire = (() => {
 
   // ===== 流程图事件 =====
   function bindFlowchartEvents(container, section, fcData, isTest) {
-    // 添加步骤
-    const btnAdd = container.querySelector('#fcAddStep');
-    if (btnAdd) {
-      btnAdd.addEventListener('click', () => {
-        fcData.push({ id: genId(), name: '', description: '', parameters: [{ name: '', value: '', unit: '' }] });
-        saveFcData(section.id, fcData, isTest);
-        refreshFlowchart(container, section, fcData, isTest);
-      });
-    }
-
     // 删除步骤
     container.querySelectorAll('.fc-del-step').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -238,7 +253,7 @@ const Questionnaire = (() => {
         if (idx > 0) {
           [fcData[idx - 1], fcData[idx]] = [fcData[idx], fcData[idx - 1]];
           saveFcData(section.id, fcData, isTest);
-          refreshFlowchart(container, fcData, isTest);
+          refreshFlowchart(container, section, fcData, isTest);
         }
       });
     });
@@ -250,13 +265,13 @@ const Questionnaire = (() => {
         if (idx < fcData.length - 1) {
           [fcData[idx], fcData[idx + 1]] = [fcData[idx + 1], fcData[idx]];
           saveFcData(section.id, fcData, isTest);
-          refreshFlowchart(container, fcData, isTest);
+          refreshFlowchart(container, section, fcData, isTest);
         }
       });
     });
 
-    // 添加参数
-    container.querySelectorAll('.fc-add-param').forEach(btn => {
+    // 添加参数（排除原料添加按钮）
+    container.querySelectorAll('.fc-add-param:not(.fc-add-ing)').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.fcIdx);
         if (!fcData[idx].parameters) fcData[idx].parameters = [];
@@ -266,14 +281,40 @@ const Questionnaire = (() => {
       });
     });
 
-    // 删除参数
-    container.querySelectorAll('.fc-param-del').forEach(btn => {
+    // 删除参数（仅参数，排除原料删除按钮）
+    container.querySelectorAll('.fc-param-del:not(.fc-ing-del)').forEach(btn => {
       btn.addEventListener('click', () => {
         const stepIdx = parseInt(btn.dataset.fcIdx);
         const paramIdx = parseInt(btn.dataset.fcPi);
         fcData[stepIdx].parameters.splice(paramIdx, 1);
         if (fcData[stepIdx].parameters.length === 0) {
           fcData[stepIdx].parameters = [{ name: '', value: '', unit: '' }];
+        }
+        saveFcData(section.id, fcData, isTest);
+        refreshFlowchart(container, section, fcData, isTest);
+      });
+    });
+
+    // 添加原料
+    container.querySelectorAll('.fc-add-ing').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.fcIdx);
+        if (!fcData[idx].ingredients) fcData[idx].ingredients = [];
+        fcData[idx].ingredients.push({ name: '', amount: '', purpose: '' });
+        saveFcData(section.id, fcData, isTest);
+        refreshFlowchart(container, section, fcData, isTest);
+      });
+    });
+
+    // 删除原料
+    container.querySelectorAll('.fc-ing-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const stepIdx = parseInt(btn.dataset.fcIdx);
+        const ingIdx = parseInt(btn.dataset.fcIi);
+        if (!fcData[stepIdx].ingredients) fcData[stepIdx].ingredients = [];
+        fcData[stepIdx].ingredients.splice(ingIdx, 1);
+        if (fcData[stepIdx].ingredients.length === 0) {
+          fcData[stepIdx].ingredients = [{ name: '', amount: '', purpose: '' }];
         }
         saveFcData(section.id, fcData, isTest);
         refreshFlowchart(container, section, fcData, isTest);
@@ -306,6 +347,20 @@ const Questionnaire = (() => {
             <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="controlPoint" value="${esc(step.controlPoint || '')}" placeholder="${I18n.t('fc.controlPointPh')}">
             <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="equipment" value="${esc(step.equipment || '')}" placeholder="${I18n.t('fc.equipmentPh')}">
           </div>
+          <div class="fc-ingredients">
+            <div class="fc-params-label">
+              <span>${I18n.t('fc.ingredients')}</span>
+            </div>
+            ${(step.ingredients || []).map((ing, ii) => `
+              <div class="fc-param-row">
+                <input type="text" class="fc-input param-name" data-fc-idx="${si}" data-fc-ii="${ii}" data-fc-ifield="name" value="${esc(ing.name || '')}" placeholder="${I18n.t('fc.ingNamePh')}">
+                <input type="text" class="fc-input param-value" data-fc-idx="${si}" data-fc-ii="${ii}" data-fc-ifield="amount" value="${esc(ing.amount || '')}" placeholder="${I18n.t('fc.ingAmountPh')}">
+                <input type="text" class="fc-input param-unit" data-fc-idx="${si}" data-fc-ii="${ii}" data-fc-ifield="purpose" value="${esc(ing.purpose || '')}" placeholder="${I18n.t('fc.ingPurposePh')}">
+                <button class="fc-param-del fc-ing-del" data-fc-idx="${si}" data-fc-ii="${ii}">&times;</button>
+              </div>
+            `).join('')}
+            <button class="fc-add-param fc-add-ing" data-fc-idx="${si}">${I18n.t('fc.addIng')}</button>
+          </div>
           <div class="fc-params">
             <div class="fc-params-label"><span>${I18n.t('fc.paramHeader')}</span></div>
             ${(step.parameters || []).map((p, pi) => `
@@ -323,7 +378,7 @@ const Questionnaire = (() => {
     }).join('');
 
     fcSection.querySelector('#fcSteps').innerHTML = newSteps;
-    bindFlowchartEvents(container, fcData, isTest);
+    bindFlowchartEvents(container, section, fcData, isTest);
 
     // 重新绑定输入事件
     container.querySelectorAll('.fc-input, .fc-textarea').forEach(el => {
@@ -347,7 +402,8 @@ const Questionnaire = (() => {
       if (cpInput) fcData[si].controlPoint = cpInput.value;
       if (eqInput) fcData[si].equipment = eqInput.value;
 
-      const paramRows = card.querySelectorAll('.fc-param-row');
+      // 收集参数
+      const paramRows = card.querySelector('.fc-params')?.querySelectorAll('.fc-param-row') || [];
       paramRows.forEach((row, pi) => {
         if (!fcData[si].parameters) fcData[si].parameters = [];
         if (!fcData[si].parameters[pi]) fcData[si].parameters[pi] = {};
@@ -357,6 +413,18 @@ const Questionnaire = (() => {
         if (nameEl) fcData[si].parameters[pi].name = nameEl.value;
         if (valueEl) fcData[si].parameters[pi].value = valueEl.value;
         if (unitEl) fcData[si].parameters[pi].unit = unitEl.value;
+      });
+      // 收集原料
+      const ingRows = card.querySelector('.fc-ingredients')?.querySelectorAll('.fc-param-row') || [];
+      ingRows.forEach((row, ii) => {
+        if (!fcData[si].ingredients) fcData[si].ingredients = [];
+        if (!fcData[si].ingredients[ii]) fcData[si].ingredients[ii] = {};
+        const nameEl = row.querySelector('[data-fc-ifield="name"]');
+        const amountEl = row.querySelector('[data-fc-ifield="amount"]');
+        const purposeEl = row.querySelector('[data-fc-ifield="purpose"]');
+        if (nameEl) fcData[si].ingredients[ii].name = nameEl.value;
+        if (amountEl) fcData[si].ingredients[ii].amount = amountEl.value;
+        if (purposeEl) fcData[si].ingredients[ii].purpose = purposeEl.value;
       });
     });
   }

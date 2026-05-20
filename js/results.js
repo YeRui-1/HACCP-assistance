@@ -242,8 +242,8 @@ const Results = (() => {
 
   function buildFlowchartDisplay(lang, sectionId) {
     const fcData = loadFcData(sectionId);
-    const zh = { overview: '以下为产品生产流程及各步骤的工艺参数：', noData: '未填写生产流程', step: '步骤', param: '参数名称', value: '参数值', unit: '单位', controlPoint: '关键限值', equipment: '设备名称' };
-    const en = { overview: 'Below is the production process flow and parameters for each step:', noData: 'No process flow data', step: 'Step', param: 'Parameter', value: 'Value', unit: 'Unit', controlPoint: 'Control Point', equipment: 'Equipment' };
+    const zh = { overview: '以下为产品生产流程及各步骤的工艺参数：', noData: '未填写生产流程', step: '步骤', param: '参数名称', value: '参数值', unit: '单位', controlPoint: '关键限值', equipment: '设备名称', ingName: '名称', ingAmount: '用量', ingPurpose: '作用', ingredients: '原料/辅料/添加剂' };
+    const en = { overview: 'Below is the production process flow and parameters for each step:', noData: 'No process flow data', step: 'Step', param: 'Parameter', value: 'Value', unit: 'Unit', controlPoint: 'Control Point', equipment: 'Equipment', ingName: 'Name', ingAmount: 'Amount', ingPurpose: 'Purpose', ingredients: 'Ingredients/Additives' };
     const t = lang === 'en' ? en : zh;
 
     if (!fcData || fcData.length === 0) {
@@ -260,6 +260,17 @@ const Results = (() => {
           </div>
           ${step.description ? `<p style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">${esc(step.description)}</p>` : ''}
           ${(step.controlPoint || step.equipment) ? `<div style="display:flex;gap:20px;margin-bottom:10px;font-size:13px;">${step.controlPoint ? `<span><span style="color:var(--gray-400);">${t.controlPoint}: </span><span style="color:var(--gray-700);font-weight:500;">${esc(step.controlPoint)}</span></span>` : ''}${step.equipment ? `<span><span style="color:var(--gray-400);">${t.equipment}: </span><span style="color:var(--gray-700);font-weight:500;">${esc(step.equipment)}</span></span>` : ''}</div>` : ''}
+          ${step.ingredients && step.ingredients.some(ing => ing.name) ? `
+            <p style="font-size:12px;font-weight:600;color:var(--gray-500);margin:8px 0 4px;">${t.ingredients}</p>
+            <table class="fc-result-params">
+              <thead><tr><th>${t.ingName}</th><th>${t.ingAmount}</th><th>${t.ingPurpose}</th></tr></thead>
+              <tbody>
+                ${step.ingredients.filter(ing => ing.name).map(ing => `
+                  <tr><td>${esc(ing.name || '')}</td><td>${esc(ing.amount || '')}</td><td>${esc(ing.purpose || '')}</td></tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
           ${step.parameters && step.parameters.some(p => p.name) ? `
             <table class="fc-result-params">
               <thead><tr><th>${t.param}</th><th>${t.value}</th><th>${t.unit}</th></tr></thead>
