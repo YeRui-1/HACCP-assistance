@@ -77,17 +77,6 @@ const Admin = (() => {
       <div class="admin-layout">
         <div class="admin-menu" id="adminMenu">
           <div class="admin-menu-header">功能菜单</div>
-          <button class="admin-menu-item" data-menu="results">
-            <span class="menu-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-            </span>
-            <span>${I18n.t('admin.card2.title')}</span>
-          </button>
           <button class="admin-menu-item active" data-menu="templates">
             <span class="menu-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -95,6 +84,15 @@ const Admin = (() => {
               </svg>
             </span>
             <span>${I18n.t('admin.templates')}</span>
+          </button>
+          <button class="admin-menu-item" data-menu="reports">
+            <span class="menu-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </span>
+            <span>${I18n.t('admin.reports')}</span>
           </button>
         </div>
         <div class="admin-content" id="adminContent"></div>
@@ -124,8 +122,8 @@ const Admin = (() => {
     content.style.opacity = '0';
     setTimeout(() => {
       if (activeMenu === 'editor') renderEditor(content);
-      else if (activeMenu === 'results') renderResults(content);
       else if (activeMenu === 'templates') renderTemplates(content);
+      else if (activeMenu === 'reports') renderReports(content);
       content.style.opacity = '1';
     }, 120);
   }
@@ -599,93 +597,123 @@ const Admin = (() => {
     setTimeout(() => { document.getElementById('optinput-' + q.id)?.focus(); }, 100);
   }
 
-  // ===== 查看用户提交结果 =====
-  function renderResults(content) {
-    const submitted = localStorage.getItem('haccp_submitted');
-
+  // ===== 报告管理 =====
+  async function renderReports(content) {
+    const lang = I18n.getLang();
     content.innerHTML = `
-      <div class="admin-page-title">${I18n.t('admin.card2.title')}</div>
-      <div class="admin-page-desc">${I18n.t('admin.card2.desc')}</div>
-      <div class="report-actions">
-        <button class="btn btn-primary" id="btnGenerateReport">${I18n.t('admin.genReport')}</button>
-        <span class="report-error" id="reportError"></span>
-      </div>
-      <div class="report-card" id="reportCard" style="display:none;">
-        <div class="report-card-title">${I18n.t('admin.reportTitle')}</div>
-        <div class="report-card-body" id="reportBody"></div>
-      </div>
-      <div class="results-viewer" id="resultsViewer"></div>
+      <div class="admin-page-title">${I18n.t('admin.reports')}</div>
+      <div class="admin-page-desc">${I18n.t('admin.reportsDesc')}</div>
+      <div id="reportListContainer"></div>
+      <div id="reportDetail" style="display:none;"></div>
     `;
 
-    const btnReport = document.getElementById('btnGenerateReport');
-    if (btnReport) btnReport.addEventListener('click', () => generateReport());
-
-    const viewer = document.getElementById('resultsViewer');
-    if (!submitted) {
-      viewer.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>${I18n.t('admin.card2.empty')}</h3><p>${I18n.t('admin.noUserResult')}</p></div>`;
-      return;
-    }
-
-    const tmpl = load();
-    const answers = loadAnswers();
-
-    if (!tmpl || !tmpl.sections || tmpl.sections.length === 0) {
-      viewer.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>${I18n.t('admin.noUserResult')}</h3></div>`;
-      return;
-    }
-
-    let html = '';
-    tmpl.sections.forEach(section => {
-      html += `<div class="result-section"><h3>${esc(section.title)}</h3>`;
-      section.questions.forEach(q => {
-        const answer = answers[q.id];
-        let display = '';
-        if (answer === undefined || answer === '' || (Array.isArray(answer) && answer.length === 0)) {
-          display = `<span class="empty">${I18n.t('admin.resultUnknown')}</span>`;
-        } else if (q.type === 'table' && Array.isArray(answer) && answer.some(r => Array.isArray(r))) {
-          display = '<table class="fc-result-params"><thead><tr>' +
-            (q.options || []).map(c => `<th>${esc(c)}</th>`).join('') +
-            '</tr></thead><tbody>' +
-            answer.filter(r => Array.isArray(r) && r.some(c => c)).map(r => '<tr>' + r.map(c => `<td>${esc(c || '')}</td>`).join('') + '</tr>').join('') +
-            '</tbody></table>';
-        } else if (Array.isArray(answer)) {
-          display = esc(answer.join(', '));
-        } else {
-          display = esc(String(answer));
-        }
-        html += `<div class="result-item"><span class="ri-label">${esc(q.title) || '(未命名)'}</span><span class="ri-value">${display}</span></div>`;
-      });
-      html += '</div>';
-    });
-    viewer.innerHTML = html;
-  }
-
-  async function generateReport() {
-    const btn = document.getElementById('btnGenerateReport');
-    const errorEl = document.getElementById('reportError');
-    const card = document.getElementById('reportCard');
-    const body = document.getElementById('reportBody');
-
-    if (errorEl) errorEl.textContent = '';
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner"></span> ${I18n.t('admin.genLoading')}`;
-
+    const listContainer = document.getElementById('reportListContainer');
     try {
-      const resp = await fetch(`${API_BASE}/api/generate_report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start_date: '2026-05-01', end_date: '2026-05-31' }),
-      });
+      const resp = await fetch(`${API_BASE}/api/reports`);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
-      if (body) body.textContent = data.report || '';
-      if (card) card.style.display = 'block';
+      const reports = data.reports || [];
+
+      if (reports.length === 0) {
+        listContainer.innerHTML = `
+          <div class="empty-state" style="padding:40px 20px;">
+            <div class="empty-icon">📋</div>
+            <h3>${lang === 'en' ? 'No Reports' : '暂无报告'}</h3>
+            <p>${lang === 'en' ? 'No user reports have been generated yet.' : '用户尚未生成任何报告'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      listContainer.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--gray-200);text-align:left;font-size:13px;color:var(--gray-500);">
+              <th style="padding:10px 12px;">#</th>
+              <th style="padding:10px 12px;">${lang === 'en' ? 'Time' : '生成时间'}</th>
+              <th style="padding:10px 12px;">${lang === 'en' ? 'Language' : '语言'}</th>
+              <th style="padding:10px 12px;width:120px;">${lang === 'en' ? 'Actions' : '操作'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reports.map((r, i) => `
+              <tr style="border-bottom:1px solid var(--gray-100);font-size:14px;" data-report-id="${r.id}">
+                <td style="padding:10px 12px;color:var(--gray-400);">${r.id}</td>
+                <td style="padding:10px 12px;">${esc(r.created_at || '')}</td>
+                <td style="padding:10px 12px;">${r.language === 'en' ? 'English' : '中文'}</td>
+                <td style="padding:10px 12px;">
+                  <button class="btn btn-secondary btn-sm btn-report-view" data-id="${r.id}" style="margin-right:6px;">${lang === 'en' ? 'View' : '查看'}</button>
+                  <button class="btn btn-secondary btn-sm btn-report-del" data-id="${r.id}" style="color:var(--red);">${lang === 'en' ? 'Del' : '删除'}</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      // 查看按钮
+      listContainer.querySelectorAll('.btn-report-view').forEach(btn => {
+        btn.addEventListener('click', () => viewReport(btn.dataset.id));
+      });
+      // 删除按钮
+      listContainer.querySelectorAll('.btn-report-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm(lang === 'en' ? 'Delete this report?' : '确定删除这份报告？')) return;
+          const resp = await fetch(`${API_BASE}/api/reports/${btn.dataset.id}`, { method: 'DELETE' });
+          if (resp.ok) renderReports(content);
+        });
+      });
     } catch (err) {
-      if (errorEl) errorEl.textContent = `${I18n.t('admin.genError')} (${err.message})`;
-      if (card) card.style.display = 'none';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = I18n.t('admin.genReport');
+      listContainer.innerHTML = `<p style="color:var(--red);margin-top:16px;">${lang === 'en' ? 'Failed to load reports' : '加载报告失败'} (${esc(err.message)})</p>`;
+    }
+  }
+
+  async function viewReport(reportId) {
+    const detail = document.getElementById('reportDetail');
+    const lang = I18n.getLang();
+    try {
+      const resp = await fetch(`${API_BASE}/api/reports/${reportId}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      const report = data.report;
+      if (!report) return;
+
+      let html = `<button class="btn btn-secondary btn-sm" onclick="document.getElementById('reportDetail').style.display='none';document.getElementById('reportListContainer').style.display='block';" style="margin-bottom:16px;">← ${lang === 'en' ? 'Back' : '返回'}</button>`;
+
+      // AI 报告摘要
+      const aiReport = report.plan && report.plan.aiReport;
+      if (aiReport) {
+        const text = aiReport[lang] || aiReport.zh || '';
+        html += `
+          <div class="result-section">
+            <h3>${lang === 'en' ? 'AI Analysis Report' : 'AI 分析报告'}</h3>
+            <div style="font-size:14px;line-height:1.8;white-space:pre-wrap;">${esc(text)}</div>
+          </div>
+        `;
+      }
+
+      // HACCP 章节
+      const sectionKeys = ['hazardAnalysis', 'ccp', 'criticalLimits', 'monitoring', 'correctiveActions', 'verification', 'recordKeeping'];
+      sectionKeys.forEach(key => {
+        const section = report.plan && report.plan[key];
+        if (!section) return;
+        const title = section.title[lang] || section.title.zh || key;
+        const content = section.content[lang] || section.content.zh || '';
+        if (!content) return;
+        html += `
+          <div class="result-section">
+            <h3>${esc(title)}</h3>
+            <div style="font-size:14px;line-height:1.8;">${content}</div>
+          </div>
+        `;
+      });
+
+      detail.innerHTML = html;
+      detail.style.display = 'block';
+      document.getElementById('reportListContainer').style.display = 'none';
+    } catch (err) {
+      detail.innerHTML = `<p style="color:var(--red);">${lang === 'en' ? 'Failed to load report' : '加载报告失败'} (${esc(err.message)})</p>`;
+      detail.style.display = 'block';
     }
   }
 

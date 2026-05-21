@@ -37,8 +37,77 @@ def init_db():
         if count > 0:
             conn.execute("UPDATE templates SET is_published = 1 WHERE id = 1")
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL DEFAULT '',
+            template_id INTEGER,
+            answers TEXT NOT NULL DEFAULT '{}',
+            flowcharts TEXT NOT NULL DEFAULT '{}',
+            plan TEXT NOT NULL DEFAULT '{}',
+            language TEXT NOT NULL DEFAULT 'zh',
+            created_at TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
     conn.close()
+
+
+# ===== 报告 CRUD =====
+
+def save_report(title: str, template_id: int | None, answers: dict, flowcharts: dict, plan: dict, language: str) -> dict:
+    now = _now()
+    conn = get_conn()
+    cur = conn.execute(
+        "INSERT INTO reports (title, template_id, answers, flowcharts, plan, language, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (title, template_id, json.dumps(answers, ensure_ascii=False), json.dumps(flowcharts, ensure_ascii=False), json.dumps(plan, ensure_ascii=False), language, now),
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return get_report(new_id)
+
+
+def get_report(report_id: int) -> dict | None:
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return _report_row_to_dict(row)
+
+
+def list_reports() -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute("SELECT id, title, template_id, language, created_at FROM reports ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_report(report_id: int) -> bool:
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM reports WHERE id = ?", (report_id,)).fetchone()
+    if not existing:
+        conn.close()
+        return False
+    conn.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def _report_row_to_dict(row) -> dict:
+    return {
+        "id": row["id"],
+        "title": row["title"],
+        "template_id": row["template_id"],
+        "answers": json.loads(row["answers"]),
+        "flowcharts": json.loads(row["flowcharts"]),
+        "plan": json.loads(row["plan"]),
+        "language": row["language"],
+        "created_at": row["created_at"],
+    }
 
 
 # ===== 基础 CRUD =====

@@ -1,6 +1,6 @@
 // 结果展示：自动调用 AI 生成报告 + 用户答案 + HACCP 计划章节
 const Results = (() => {
-  let activeSection = 'aiReport';
+  let activeSection = 'productDescription';
 
   function getEl(id) { return document.getElementById(id); }
 
@@ -35,46 +35,137 @@ const Results = (() => {
     catch (e) { return []; }
   }
 
+  // ===== 报告历史管理 =====
+  function getReportHistory() {
+    try { return JSON.parse(localStorage.getItem('haccp_report_history') || '[]'); }
+    catch (e) { return []; }
+  }
+  function addReportToHistory(id, title) {
+    const history = getReportHistory();
+    history.push({ id: id, title: title, date: new Date().toLocaleString() });
+    localStorage.setItem('haccp_report_history', JSON.stringify(history));
+  }
+  function getLatestReportId() {
+    const history = getReportHistory();
+    return history.length > 0 ? history[history.length - 1].id : null;
+  }
+  let _activeReportId = null;
+
   async function init() {
     await syncTemplateFromBackend();
+    const reportId = getLatestReportId();
+    if (reportId) {
+      const loaded = await loadExistingReport(reportId);
+      if (loaded) {
+        _activeReportId = reportId;
+        renderSidebar();
+        renderContent();
+        setupScrollSpy();
+        return;
+      }
+    }
+    // 没有已保存的报告，调用 AI 生成
     renderSidebar();
-    renderContent();
+    showLoadingContent();
     setupScrollSpy();
-    fetchAiReport();
+    await fetchAiReport();
+    if (!window._aiHaccpPlan) {
+      renderContent();
+    }
+  }
+
+  async function switchReport(reportId) {
+    const loaded = await loadExistingReport(reportId);
+    if (loaded) {
+      _activeReportId = reportId;
+      renderSidebar();
+      renderContent();
+      setupScrollSpy();
+      document.getElementById('section-productDescription')?.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   // ===== 侧边栏 =====
   function renderSidebar() {
     const nav = getEl('resultsNav');
     const lang = I18n.getLang();
+    const plan = window._aiHaccpPlan;
+
+    function getTitle(key, fallback) {
+      if (plan && plan[key] && plan[key].title) {
+        return plan[key].title;
+      }
+      return fallback;
+    }
 
     const template = loadTemplate();
     const hasFlowchart = template && template.sections && template.sections.some(s => s.isFlowchart);
     const items = [
-      { key: 'aiReport', label: { zh: 'AI 分析报告', en: 'AI Analysis Report' } },
+      { key: 'productDescription', label: getTitle('productDescription', mockHaccpPlan.productDescription.title) },
+      { key: 'aiReport', label: getTitle('aiReport', { zh: '生产流程', en: 'Production Process' }) },
     ];
     if (hasFlowchart) {
       const fcSection = template.sections.find(s => s.isFlowchart);
       items.push({ key: 'flowchart', label: { zh: fcSection ? fcSection.title : '生产流程图', en: fcSection ? fcSection.title : 'Process Flow Chart' } });
     }
-    items.push({ key: 'productDescription', label: mockHaccpPlan.productDescription.title });
     sectionOrder.forEach(key => {
       if (key !== 'productDescription') {
-        items.push({ key, label: mockHaccpPlan[key].title });
+        items.push({ key, label: getTitle(key, mockHaccpPlan[key].title) });
       }
     });
 
+    // 章节导航
     nav.innerHTML = items.map(item => `
       <li data-section="${item.key}" class="${item.key === activeSection ? 'active' : ''}">${item.label[lang] || item.label.zh || item.label}</li>
     `).join('');
 
-    nav.querySelectorAll('li').forEach(li => {
+    // 历史报告列表
+    const history = getReportHistory();
+    if (history.length > 1) {
+      nav.innerHTML += `
+        <li class="nav-divider" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200);font-size:11px;color:var(--gray-400);padding-left:12px;">${lang === 'en' ? 'Report History' : '历史报告'}</li>
+      `;
+      history.slice().reverse().forEach(r => {
+        const activeClass = r.id === _activeReportId ? 'active' : '';
+        nav.innerHTML += `
+          <li data-report-id="${r.id}" class="${activeClass}" style="font-size:12px;padding:6px 12px;">${esc(r.title)}</li>
+        `;
+      });
+    }
+
+    nav.querySelectorAll('li[data-section]').forEach(li => {
       li.addEventListener('click', () => {
         setActive(li.dataset.section);
         const el = document.getElementById('section-' + li.dataset.section);
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       });
     });
+
+    nav.querySelectorAll('li[data-report-id]').forEach(li => {
+      li.addEventListener('click', () => {
+        switchReport(parseInt(li.dataset.reportId));
+      });
+    });
+  }
+
+  // ===== 加载占位 =====
+  function showLoadingContent() {
+    const container = getEl('resultsContent');
+    const submitted = localStorage.getItem('haccp_submitted');
+    if (!submitted) {
+      renderContent();
+      return;
+    }
+    const lang = I18n.getLang();
+    container.innerHTML = `
+      <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
+      <div class="results-section">
+        <div class="report-loading" style="text-align:center;padding:40px;">
+          <span class="spinner" style="width:24px;height:24px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
+          <p style="margin-top:12px;color:var(--gray-400);">${lang === 'en' ? 'Generating HACCP plan...' : '正在生成 HACCP 计划书...'}</p>
+        </div>
+      </div>
+    `;
   }
 
   // ===== 主内容 =====
@@ -96,23 +187,58 @@ const Results = (() => {
       return;
     }
 
-    // AI 报告区域（初始加载中）
-    const aiTitle = lang === 'en' ? 'AI Analysis Report' : 'AI 分析报告';
+    const plan = window._aiHaccpPlan;
+
+    // 辅助函数：AI 数据优先，fallback 到 mock
+    function getSection(key) {
+      if (plan && plan[key]) return plan[key];
+      return mockHaccpPlan[key] || null;
+    }
+
     let html = `<a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>`;
 
+    // 1) 产品描述（排最前）
+    const pdSection = getSection('productDescription');
+    const pdTitle = pdSection.title[lang] || pdSection.title.zh;
     html += `
-      <div class="results-section" id="section-aiReport">
-        <h2>${aiTitle}</h2>
-        <div id="aiReportBody">
-          <div class="report-loading">
-            <span class="spinner" style="width:20px;height:20px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
-            <span>${lang === 'en' ? 'Generating AI report...' : '正在生成 AI 报告...'}</span>
-          </div>
-        </div>
+      <div class="results-section" id="section-productDescription">
+        <h2>${pdTitle}</h2>
+        ${buildProductDescription(lang)}
       </div>
     `;
 
-    // 生产流程图章节
+    // 2) 生产流程（AI 报告区）
+    const aiSection = plan ? plan.aiReport : null;
+    const aiTitle = (aiSection && aiSection.title ? aiSection.title[lang] : null)
+      || (lang === 'en' ? 'Production Process' : '生产流程');
+    const aiContent = aiSection ? (aiSection[lang] || aiSection.zh || '') : '';
+
+    if (aiContent) {
+      html += `
+        <div class="results-section" id="section-aiReport">
+          <h2>${esc(aiTitle)}</h2>
+          <div id="aiReportBody">
+            <div class="report-card" style="margin:0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
+              <div class="report-card-body" style="font-size:14px;color:var(--gray-700);line-height:1.8;">${aiContent.replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="results-section" id="section-aiReport">
+          <h2>${esc(aiTitle)}</h2>
+          <div id="aiReportBody">
+            <div class="report-loading">
+              <span class="spinner" style="width:20px;height:20px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
+              <span>${lang === 'en' ? 'Generating...' : '正在生成...'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 3) 生产流程图章节
     const template = loadTemplate();
     if (template && template.sections) {
       template.sections.filter(s => s.isFlowchart).forEach(s => {
@@ -126,21 +252,13 @@ const Results = (() => {
       });
     }
 
-    // 产品描述（用户答案）
-    const pdTitle = mockHaccpPlan.productDescription.title[lang] || mockHaccpPlan.productDescription.title.zh;
-    html += `
-      <div class="results-section" id="section-productDescription">
-        <h2>${pdTitle}</h2>
-        ${buildProductDescription(lang)}
-      </div>
-    `;
-
     // 其余 HACCP 章节
     sectionOrder.forEach(key => {
       if (key === 'productDescription') return;
-      const section = mockHaccpPlan[key];
-      const title = section.title[lang] || section.title.zh;
-      const content = section.content[lang] || section.content.zh;
+      const section = getSection(key);
+      if (!section) return;
+      const title = section.title[lang] || section.title.zh || key;
+      const content = section.content[lang] || section.content.zh || '';
       html += `
         <div class="results-section" id="section-${key}">
           <h2>${title}</h2>
@@ -152,31 +270,100 @@ const Results = (() => {
     container.innerHTML = html;
   }
 
+  // ===== 从后端加载已有报告 =====
+  async function loadExistingReport(reportId) {
+    try {
+      const resp = await fetch(`http://localhost:8000/api/reports/${reportId}`);
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      if (data.report && data.report.plan) {
+        window._aiHaccpPlan = data.report.plan;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Load report error:', e);
+      return false;
+    }
+  }
+
   // ===== 调用后端 API 生成 AI 报告 =====
   async function fetchAiReport() {
     const body = getEl('aiReportBody');
     if (!body) return;
     const lang = I18n.getLang();
+    const answers = loadAnswers();
+    const template = loadTemplate();
+
+    // 收集所有流程图数据
+    const flowcharts = {};
+    if (template && template.sections) {
+      template.sections.filter(s => s.isFlowchart).forEach(s => {
+        flowcharts[s.id] = loadFcData(s.id);
+      });
+    }
 
     try {
       const resp = await fetch('http://localhost:8000/api/generate_report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start_date: '2026-05-01', end_date: '2026-05-31' }),
+        body: JSON.stringify({
+          language: lang,
+          answers: answers,
+          template: template,
+          flowcharts: flowcharts,
+        }),
       });
 
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
       const data = await resp.json();
-      body.innerHTML = `
-        <div class="report-card" style="margin:0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
-          <div class="report-card-body" style="font-size:14px;color:var(--gray-700);line-height:1.8;">${esc(data.report || '')}</div>
-        </div>
-      `;
+
+      // 存储 AI 生成的 HACCP 计划
+      window._aiHaccpPlan = data.plan;
+
+      // 自动保存报告到后端
+      try {
+        const saveResp = await fetch('http://localhost:8000/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: new Date().toLocaleString(),
+            answers: answers,
+            flowcharts: flowcharts,
+            plan: data.plan,
+            language: lang,
+          }),
+        });
+        if (saveResp.ok) {
+          const saved = await saveResp.json();
+          if (saved.report && saved.report.id) {
+            addReportToHistory(saved.report.id, saved.report.title || '');
+            _activeReportId = saved.report.id;
+          }
+        }
+      } catch (e) { console.error('Report save error:', e); }
+
+      // 更新 AI 报告摘要
+      const aiReport = data.plan && data.plan.aiReport;
+      if (aiReport) {
+        const reportText = aiReport[lang] || aiReport.zh || '';
+        body.innerHTML = `
+          <div class="report-card" style="margin:0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
+            <div class="report-card-body" style="font-size:14px;color:var(--gray-700);line-height:1.8;">${reportText.replace(/\n/g, '<br>')}</div>
+          </div>
+        `;
+      }
+
+      // 重新渲染章节和侧边栏以使用 AI 数据
+      renderContent();
+      renderSidebar();
+      setupScrollSpy();
     } catch (err) {
+      window._aiHaccpPlan = null;
       const msg = lang === 'en'
-        ? `Generation failed. Please ensure the backend is running. (${err.message})`
-        : `报告生成失败，请确认后端已启动。(${err.message})`;
+        ? `AI generation failed. Showing sample data. (${err.message})`
+        : `AI 生成失败，显示示例数据。(${err.message})`;
       body.innerHTML = `
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;color:#dc2626;font-size:14px;">
           ${esc(msg)}

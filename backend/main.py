@@ -1,3 +1,4 @@
+import json
 import random
 from datetime import datetime, timedelta
 
@@ -14,6 +15,18 @@ from database import (
     delete_template,
     publish_template,
     get_published_template,
+    save_report,
+    get_report,
+    list_reports,
+    delete_report,
+)
+from ai_service import (
+    load_template_markdown,
+    build_system_prompt,
+    build_user_prompt,
+    call_deepseek,
+    validate_response,
+    DEEPSEEK_API_KEY,
 )
 
 app = FastAPI(title="HACCP AI 助手后端")
@@ -30,8 +43,10 @@ app.add_middleware(
 # ===== Pydantic models =====
 
 class GenerateReportRequest(BaseModel):
-    start_date: str
-    end_date: str
+    language: str = "zh"
+    answers: dict = {}
+    template: dict = {}
+    flowcharts: dict = {}
 
 
 class SaveTemplateRequest(BaseModel):
@@ -144,17 +159,61 @@ async def get_usage():
     return {"dates": dates, "values": values, "details": details}
 
 
-# ===== 生成报告接口（Mock）=====
+# ===== 生成报告接口（AI）=====
 
 @app.post("/api/generate_report")
 async def generate_report(req: GenerateReportRequest):
-    report = (
-        f"在 {req.start_date} 至 {req.end_date} 期间，"
-        "本系统依据 HACCP 七项原则对产品全过程进行了危害分析与关键控制点判定。"
-        "共识别生物性危害 3 项、化学性危害 2 项、物理性危害 1 项，"
-        "确定 CCP 3 个，分别位于原料验收、热处理和金属检测工序。"
-        "针对各 CCP 已制定关键限值、监控程序及纠偏措施。"
-        "建议企业定期验证 CCP 记录并每年复审 HACCP 计划，"
-        "确保体系持续有效运行。"
-    )
+    if not DEEPSEEK_API_KEY:
+        raise HTTPException(status_code=500, detail="DEEPSEEK_API_KEY not configured")
+
+    template_md = load_template_markdown()
+    system_prompt = build_system_prompt(template_md, req.language)
+    user_prompt = build_user_prompt(req.answers, req.template, req.flowcharts, req.language)
+
+    try:
+        ai_response = call_deepseek(system_prompt, user_prompt)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=502, detail=f"AI returned invalid JSON: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI API error: {str(e)}")
+
+    validated = validate_response(ai_response)
+    return {"plan": validated}
+
+
+# ===== 报告管理接口 =====
+
+class SaveReportRequest(BaseModel):
+    title: str = ""
+    template_id: int | None = None
+    answers: dict = {}
+    flowcharts: dict = {}
+    plan: dict = {}
+    language: str = "zh"
+
+
+@app.post("/api/reports")
+async def api_save_report(req: SaveReportRequest):
+    report = save_report(req.title, req.template_id, req.answers, req.flowcharts, req.plan, req.language)
     return {"report": report}
+
+
+@app.get("/api/reports")
+async def api_list_reports():
+    return {"reports": list_reports()}
+
+
+@app.get("/api/reports/{report_id}")
+async def api_get_report(report_id: int):
+    report = get_report(report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="报告不存在")
+    return {"report": report}
+
+
+@app.delete("/api/reports/{report_id}")
+async def api_delete_report(report_id: int):
+    ok = delete_report(report_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="报告不存在")
+    return {"ok": True}
