@@ -519,6 +519,7 @@ const Questionnaire = (() => {
 
   function onUserSubmit(answers) {
     localStorage.setItem('haccp_submitted', 'true');
+    localStorage.setItem('haccp_just_submitted', 'true');
     App.navigateTo('results');
   }
 

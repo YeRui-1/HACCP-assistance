@@ -53,41 +53,96 @@ const Results = (() => {
 
   async function init() {
     await syncTemplateFromBackend();
-    const reportId = getLatestReportId();
-    if (reportId) {
-      const loaded = await loadExistingReport(reportId);
-      if (loaded) {
-        _activeReportId = reportId;
+    // 刚提交完问卷，自动生成新报告并直接查看
+    if (localStorage.getItem('haccp_just_submitted')) {
+      localStorage.removeItem('haccp_just_submitted');
+      showLoading();
+      const ok = await fetchAiReport();
+      if (ok && _activeReportId) {
         renderSidebar();
         renderContent();
         setupScrollSpy();
         return;
       }
     }
-    // 没有已保存的报告，调用 AI 生成
-    renderSidebar();
-    showLoadingContent();
-    setupScrollSpy();
-    await fetchAiReport();
-    if (!window._aiHaccpPlan) {
-      renderContent();
-    }
+    showReportList();
   }
 
-  async function switchReport(reportId) {
+  // ===== 报告列表 =====
+  function showReportList() {
+    const container = getEl('resultsContent');
+    const nav = getEl('resultsNav');
+    const lang = I18n.getLang();
+    const history = getReportHistory();
+
+    nav.innerHTML = '';
+
+    let html = `<a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>`;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 style="margin:0;">${lang === 'en' ? 'My Reports' : '我的报告'}</h2>
+      <button class="btn btn-primary" onclick="App.navigateTo('questionnaire')">${lang === 'en' ? '+ New Report' : '+ 新建报告'}</button>
+    </div>`;
+
+    if (history.length === 0) {
+      html += `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>${lang === 'en' ? 'No Reports' : '暂无报告'}</h3>
+          <p>${lang === 'en' ? 'Fill in the questionnaire to generate your first HACCP report.' : '填写问卷生成第一份 HACCP 报告'}</p>
+          <button class="btn btn-primary" onclick="App.navigateTo('questionnaire')">${lang === 'en' ? 'Start' : '开始填写'}</button>
+        </div>
+      `;
+    } else {
+      html += `<div style="display:flex;flex-direction:column;gap:12px;">`;
+      history.slice().reverse().forEach(r => {
+        html += `
+          <div class="report-card" style="cursor:pointer;padding:16px 20px;" onclick="Results.viewReport(${r.id})">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong style="font-size:15px;">#${r.id} ${esc(r.title)}</strong>
+                <p style="margin:4px 0 0;font-size:12px;color:var(--gray-400);">${esc(r.date)}</p>
+              </div>
+              <span style="color:var(--primary);font-size:13px;">${lang === 'en' ? 'View →' : '查看 →'}</span>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    container.innerHTML = html;
+    // 列表视图隐藏侧边栏
+    const sidebar = document.querySelector('.results-sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    window._aiHaccpPlan = null;
+    _activeReportId = null;
+  }
+
+  // ===== 查看单份报告 =====
+  async function viewReport(reportId) {
+    showLoading();
     const loaded = await loadExistingReport(reportId);
     if (loaded) {
       _activeReportId = reportId;
       renderSidebar();
       renderContent();
       setupScrollSpy();
-      document.getElementById('section-productDescription')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      showReportList();
     }
+  }
+
+  async function switchReport(reportId) {
+    await viewReport(reportId);
+    document.getElementById('section-productDescription')?.scrollIntoView({ behavior: 'smooth' });
   }
 
   // ===== 侧边栏 =====
   function renderSidebar() {
     const nav = getEl('resultsNav');
+    if (!nav) return;
+    const sidebar = document.querySelector('.results-sidebar');
+    if (sidebar) sidebar.style.display = '';
     const lang = I18n.getLang();
     const plan = window._aiHaccpPlan;
 
@@ -100,6 +155,15 @@ const Results = (() => {
 
     const template = loadTemplate();
     const hasFlowchart = template && template.sections && template.sections.some(s => s.isFlowchart);
+
+    let inner = '';
+
+    // 返回列表按钮
+    inner += `<li style="padding:4px 0 12px;">
+      <a href="javascript:Results.showReportList()" style="font-size:13px;color:var(--primary);text-decoration:none;">← ${lang === 'en' ? 'Back to List' : '返回报告列表'}</a>
+    </li>`;
+
+    // 章节导航
     const items = [
       { key: 'productDescription', label: getTitle('productDescription', mockHaccpPlan.productDescription.title) },
       { key: 'aiReport', label: getTitle('aiReport', { zh: '生产流程', en: 'Production Process' }) },
@@ -114,24 +178,20 @@ const Results = (() => {
       }
     });
 
-    // 章节导航
-    nav.innerHTML = items.map(item => `
+    inner += items.map(item => `
       <li data-section="${item.key}" class="${item.key === activeSection ? 'active' : ''}">${item.label[lang] || item.label.zh || item.label}</li>
     `).join('');
 
-    // 历史报告列表
+    // 历史报告
     const history = getReportHistory();
     if (history.length > 1) {
-      nav.innerHTML += `
-        <li class="nav-divider" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200);font-size:11px;color:var(--gray-400);padding-left:12px;">${lang === 'en' ? 'Report History' : '历史报告'}</li>
-      `;
+      inner += `<li class="nav-divider" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200);font-size:11px;color:var(--gray-400);padding-left:12px;">${lang === 'en' ? 'History' : '历史报告'}</li>`;
       history.slice().reverse().forEach(r => {
-        const activeClass = r.id === _activeReportId ? 'active' : '';
-        nav.innerHTML += `
-          <li data-report-id="${r.id}" class="${activeClass}" style="font-size:12px;padding:6px 12px;">${esc(r.title)}</li>
-        `;
+        inner += `<li data-report-id="${r.id}" style="font-size:12px;padding:6px 12px;cursor:pointer;${r.id === _activeReportId ? 'color:var(--primary);font-weight:600;' : ''}">${esc(r.title)}</li>`;
       });
     }
+
+    nav.innerHTML = inner;
 
     nav.querySelectorAll('li[data-section]').forEach(li => {
       li.addEventListener('click', () => {
@@ -146,6 +206,21 @@ const Results = (() => {
         switchReport(parseInt(li.dataset.reportId));
       });
     });
+  }
+
+  // ===== 加载状态 =====
+  function showLoading() {
+    const container = getEl('resultsContent');
+    const nav = getEl('resultsNav');
+    if (nav) nav.innerHTML = '';
+    const lang = I18n.getLang();
+    container.innerHTML = `
+      <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
+      <div class="report-loading" style="text-align:center;padding:60px 20px;">
+        <span class="spinner" style="width:24px;height:24px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
+        <p style="margin-top:12px;color:var(--gray-400);">${lang === 'en' ? 'Loading...' : '加载中...'}</p>
+      </div>
+    `;
   }
 
   // ===== 加载占位 =====
@@ -289,13 +364,10 @@ const Results = (() => {
 
   // ===== 调用后端 API 生成 AI 报告 =====
   async function fetchAiReport() {
-    const body = getEl('aiReportBody');
-    if (!body) return;
     const lang = I18n.getLang();
     const answers = loadAnswers();
     const template = loadTemplate();
 
-    // 收集所有流程图数据
     const flowcharts = {};
     if (template && template.sections) {
       template.sections.filter(s => s.isFlowchart).forEach(s => {
@@ -307,68 +379,36 @@ const Results = (() => {
       const resp = await fetch('http://localhost:8000/api/generate_report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: lang,
-          answers: answers,
-          template: template,
-          flowcharts: flowcharts,
-        }),
+        body: JSON.stringify({ language: lang, answers: answers, template: template, flowcharts: flowcharts }),
       });
-
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
       const data = await resp.json();
-
-      // 存储 AI 生成的 HACCP 计划
       window._aiHaccpPlan = data.plan;
 
-      // 自动保存报告到后端
-      try {
-        const saveResp = await fetch('http://localhost:8000/api/reports', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: new Date().toLocaleString(),
-            answers: answers,
-            flowcharts: flowcharts,
-            plan: data.plan,
-            language: lang,
-          }),
-        });
-        if (saveResp.ok) {
-          const saved = await saveResp.json();
-          if (saved.report && saved.report.id) {
-            addReportToHistory(saved.report.id, saved.report.title || '');
-            _activeReportId = saved.report.id;
-          }
+      const saveResp = await fetch('http://localhost:8000/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: new Date().toLocaleString(),
+          answers: answers,
+          flowcharts: flowcharts,
+          plan: data.plan,
+          language: lang,
+        }),
+      });
+      if (saveResp.ok) {
+        const saved = await saveResp.json();
+        if (saved.report && saved.report.id) {
+          addReportToHistory(saved.report.id, saved.report.title || '');
+          _activeReportId = saved.report.id;
         }
-      } catch (e) { console.error('Report save error:', e); }
-
-      // 更新 AI 报告摘要
-      const aiReport = data.plan && data.plan.aiReport;
-      if (aiReport) {
-        const reportText = aiReport[lang] || aiReport.zh || '';
-        body.innerHTML = `
-          <div class="report-card" style="margin:0;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px 24px;">
-            <div class="report-card-body" style="font-size:14px;color:var(--gray-700);line-height:1.8;">${reportText.replace(/\n/g, '<br>')}</div>
-          </div>
-        `;
       }
-
-      // 重新渲染章节和侧边栏以使用 AI 数据
-      renderContent();
-      renderSidebar();
-      setupScrollSpy();
+      return true;
     } catch (err) {
       window._aiHaccpPlan = null;
-      const msg = lang === 'en'
-        ? `AI generation failed. Showing sample data. (${err.message})`
-        : `AI 生成失败，显示示例数据。(${err.message})`;
-      body.innerHTML = `
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;color:#dc2626;font-size:14px;">
-          ${esc(msg)}
-        </div>
-      `;
+      console.error('AI generation failed:', err);
+      return false;
     }
   }
 
@@ -498,5 +538,5 @@ const Results = (() => {
     }, 200);
   }
 
-  return { init };
+  return { init, viewReport, showReportList };
 })();
