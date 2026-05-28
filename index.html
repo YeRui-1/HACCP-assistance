@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="header">
+  <header class="header" id="mainHeader" style="display:none;">
     <div class="header-inner">
       <div class="logo">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -16,15 +16,24 @@
         <span>HACCP AI 助手</span>
       </div>
       <div class="header-actions">
+        <span class="header-user" id="headerUser"></span>
         <button class="btn-lang" id="btnLang" title="Switch Language">EN</button>
         <button class="btn-admin" id="btnAdmin" data-i18n="nav.admin">管理</button>
+        <button class="btn-logout" id="btnLogout" data-i18n="logout">退出登录</button>
       </div>
     </div>
   </header>
 
   <main class="main">
+    <!-- 登录页 -->
+    <section id="loginPage" class="page active">
+      <div class="auth-container" id="authContainer">
+        <!-- 动态渲染登录/注册表单 -->
+      </div>
+    </section>
+
     <!-- 首页大厅 -->
-    <section id="home" class="page active">
+    <section id="home" class="page">
       <div class="lobby-container">
         <div class="lobby-header">
           <div class="lobby-icon">
@@ -67,7 +76,7 @@
       </div>
     </section>
 
-    <!-- 问卷填写页 -->
+    <!-- 15min HACCP 问卷填写页 -->
     <section id="questionnaire" class="page">
       <div class="questionnaire-container" id="questionnaireContainer"></div>
     </section>
@@ -103,7 +112,10 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });</script>
   <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/mock-data.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/questionnaire.js"></script>
