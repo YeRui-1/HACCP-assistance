@@ -618,4 +618,96 @@ body {
   .fc-param-row input.param-value { flex: 1; }
   .fc-param-row input.param-unit { flex: 0.5; }
   .tpl-actions { flex-direction: column; }
+  }
+
+/* ===== 15min Questionnaire ===== */
+.q15-header { text-align: center; margin-bottom: 28px; }
+.q15-header h1 { font-size: 24px; color: var(--gray-900); font-weight: 800; margin-bottom: 8px; }
+.q15-header .q15-desc { font-size: 14px; color: var(--gray-400); line-height: 1.6; max-width: 600px; margin: 0 auto; }
+
+.q15-progress { display: flex; justify-content: center; gap: 6px; margin-top: 24px; flex-wrap: wrap; }
+.q15-step { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 20px; background: var(--gray-100); cursor: pointer; transition: all var(--transition); font-size: 13px; color: var(--gray-400); font-weight: 500; user-select: none; }
+.q15-step:hover { background: var(--gray-200); }
+.q15-step.active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
+.q15-step.done { background: var(--green-100); color: var(--green-700); }
+.q15-step-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: rgba(0,0,0,0.08); }
+.q15-step.active .q15-step-num { background: rgba(255,255,255,0.25); }
+.q15-step.done .q15-step-num { background: var(--green); color: #fff; }
+
+.q15-section { background: #fff; border-radius: 14px; padding: 36px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--gray-100); }
+.q15-section > h2 { font-size: 20px; color: var(--gray-900); margin-bottom: 24px; font-weight: 700; padding-bottom: 16px; border-bottom: 2px solid var(--primary-light); }
+.q15-section > h3 { font-size: 16px; color: var(--gray-800); margin: 20px 0 12px; font-weight: 700; }
+.q15-section .q15-table-hint { font-size: 13px; color: var(--gray-400); margin-bottom: 12px; line-height: 1.5; }
+
+.q15-field-group { margin-bottom: 18px; }
+.q15-field-group label { display: block; font-size: 14px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+.q15-field-group label .required { color: var(--red); }
+.q15-field-group input[type="text"],
+.q15-field-group input[type="number"],
+.q15-field-group textarea,
+.q15-field-group select { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; color: var(--gray-800); transition: all var(--transition); background: #fff; }
+.q15-field-group input:focus,
+.q15-field-group textarea:focus,
+.q15-field-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79,70,229,0.08); }
+.q15-field-group textarea { resize: vertical; min-height: 60px; }
+
+.q15-row { display: flex; gap: 16px; }
+.q15-row .q15-field-group { flex: 1; }
+
+.q15-table-section { margin-top: 20px; background: var(--gray-50); border-radius: 10px; padding: 18px; }
+
+.q15-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 12px; border-radius: 8px; overflow: hidden; }
+.q15-table th { padding: 10px 12px; text-align: left; background: linear-gradient(180deg, #f8fafc, #f1f5f9); font-weight: 600; color: var(--gray-600); font-size: 12px; border: none; }
+.q15-table td { padding: 6px 8px; border: none; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+.q15-table tbody tr:nth-child(even) { background: var(--gray-50); }
+.q15-table tbody tr:hover { background: var(--primary-light); }
+.q15-table input[type="text"],
+.q15-table input[type="number"],
+.q15-table select { width: 100%; padding: 7px 10px; border: 1px solid var(--gray-200); border-radius: 5px; font-size: 12px; font-family: inherit; background: #fff; transition: all var(--transition); }
+.q15-table input:focus,
+.q15-table select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+.q15-del-row { width: 28px; height: 28px; border: none; background: none; color: var(--gray-400); cursor: pointer; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto; transition: all var(--transition); }
+.q15-del-row:hover { color: var(--red); background: var(--red-100); }
+.q15-empty-row td { color: var(--gray-400); font-style: italic; }
+
+.q15-divider { border: none; border-top: 1px solid var(--gray-100); margin: 28px 0; }
+
+.q15-process-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 12px; padding: 18px; margin-bottom: 14px; transition: box-shadow var(--transition); }
+.q15-process-card:hover { box-shadow: var(--shadow-sm); }
+.q15-process-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.q15-step-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; background: linear-gradient(135deg, var(--primary), var(--primary-700)); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 6px rgba(79,70,229,0.25); }
+.q15-del-process { width: 28px; height: 28px; border: none; background: none; color: var(--gray-400); cursor: pointer; border-radius: 50%; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
+.q15-del-process:hover { color: var(--red); background: var(--red-100); }
+.q15-process-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.q15-process-grid .q15-field-group { margin-bottom: 0; }
+.q15-process-grid .q15-field-group label { font-size: 12px; }
+
+.q15-ai-btn-wrapper { margin: 12px 0; }
+.q15-ai-result { background: linear-gradient(135deg, var(--primary-light), #fff); border: 1px solid var(--primary-100); border-radius: 10px; padding: 16px 20px; font-size: 13px; line-height: 1.8; color: var(--gray-700); white-space: pre-wrap; }
+
+.q15-confirm-box { background: var(--green-light); border: 1px solid var(--green-100); border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+.q15-checkbox-label { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--gray-700); cursor: pointer; font-weight: 500; line-height: 1.5; }
+.q15-checkbox-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); margin-top: 2px; flex-shrink: 0; }
+
+.q15-nav-buttons { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+.q15-step-indicator { font-size: 14px; color: var(--gray-400); font-weight: 500; }
+
+.q15-record-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+.q15-record-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 20px; text-align: center; transition: all var(--transition); }
+.q15-record-card:hover { box-shadow: var(--shadow-sm); }
+.q15-record-icon { font-size: 32px; margin-bottom: 10px; }
+.q15-record-card h4 { font-size: 14px; color: var(--gray-700); margin-bottom: 4px; font-weight: 600; }
+.q15-record-card p { font-size: 12px; color: var(--gray-400); line-height: 1.4; }
+.q15-export-actions { text-align: center; }
+
+@media (max-width: 768px) {
+  .q15-row { flex-direction: column; gap: 0; }
+  .q15-process-grid { grid-template-columns: 1fr; }
+  .q15-record-cards { grid-template-columns: 1fr; }
+  .q15-progress { gap: 4px; }
+  .q15-step { padding: 6px 12px; font-size: 12px; }
+  .q15-section { padding: 20px; }
+  .q15-table { font-size: 12px; }
+  .q15-table th, .q15-table td { padding: 6px; }
+  .q15-table input { font-size: 11px; padding: 5px 8px; }
 }

@@ -3,6 +3,7 @@ const App = (() => {
   const ADMIN_PASSWORD = 'admin123';
   let isAdmin = false;
   let currentUser = null;
+  let use15minQuestionnaire = false;
 
   const API_BASE = '';  // 空字符串表示同源请求
 
@@ -25,7 +26,15 @@ const App = (() => {
     translatePage();
     const activePage = document.querySelector('.page.active');
     if (activePage) {
-      if (activePage.id === 'questionnaire') Questionnaire.init();
+      if (activePage.id === 'questionnaire') {
+        // 检测当前显示的是哪种问卷
+        const has15minHeader = document.querySelector('.q15-header');
+        if (has15minHeader) {
+          Questionnaire15min.init();
+        } else {
+          Questionnaire.init();
+        }
+      }
       else if (activePage.id === 'results') Results.init();
       else if (activePage.id === 'admin') Admin.init();
       else if (activePage.id === 'home') updateLobbyStatus();
@@ -47,12 +56,19 @@ const App = (() => {
       translatePage();
       const btnStart = getEl('btnStart');
       const btnResults = getEl('btnGoResults');
+      const btn15min = getEl('btnStart15min');
       if (btnStart) btnStart.onclick = () => navigateTo('questionnaire');
       if (btnResults) btnResults.onclick = () => navigateTo('results');
+      if (btn15min) btn15min.onclick = () => { use15minQuestionnaire = true; navigateTo('questionnaire'); };
       updateLobbyStatus();
     } else if (page === 'questionnaire') {
       translatePage();
-      Questionnaire.init();
+      if (use15minQuestionnaire) {
+        use15minQuestionnaire = false;
+        Questionnaire15min.init();
+      } else {
+        Questionnaire.init();
+      }
     } else if (page === 'results') {
       translatePage();
       Results.init();
