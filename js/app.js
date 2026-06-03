@@ -1,7 +1,10 @@
-// 应用入口：页面路由、密码验证、语言切换
+// 应用入口：页面路由、密码验证、语言切换、用户认证
 const App = (() => {
   const ADMIN_PASSWORD = 'admin123';
   let isAdmin = false;
+  let currentUser = null;
+
+  const API_BASE = '';  // 空字符串表示同源请求
 
   function getEl(id) { return document.getElementById(id); }
 
@@ -27,6 +30,8 @@ const App = (() => {
       else if (activePage.id === 'admin') Admin.init();
       else if (activePage.id === 'home') updateLobbyStatus();
     }
+    // 刷新认证按钮文本
+    updateAuthButton();
   }
 
   function navigateTo(page) {
@@ -57,6 +62,7 @@ const App = (() => {
     }
   }
 
+  // ===== 密码验证（管理员） =====
   function showPasswordModal() {
     const modal = getEl('passwordModal');
     const input = getEl('passwordInput');
@@ -104,6 +110,218 @@ const App = (() => {
     }
   }
 
+  // ===== 用户认证 =====
+
+  function getToken() {
+    try { return localStorage.getItem('haccp_token'); } catch (e) { return null; }
+  }
+
+  function setToken(token) {
+    try { localStorage.setItem('haccp_token', token); } catch (e) { /* ignore */ }
+  }
+
+  function clearToken() {
+    try { localStorage.removeItem('haccp_token'); } catch (e) { /* ignore */ }
+  }
+
+  async function updateAuthButton() {
+    const btn = getEl('btnAuth');
+    if (!btn) return;
+    if (currentUser) {
+      btn.textContent = `${currentUser.username} | ${I18n.t('auth.logout')}`;
+      btn.className = 'btn-header logged-in';
+      btn.style.display = '';
+      btn.onclick = handleLogout;
+    } else {
+      btn.textContent = I18n.t('auth.login');
+      btn.className = 'btn-header';
+      btn.style.display = '';
+      btn.onclick = showLoginModal;
+    }
+  }
+
+  function showLoginModal() {
+    const modal = getEl('loginModal');
+    getEl('loginUsername').value = '';
+    getEl('loginPassword').value = '';
+    getEl('loginError').style.display = 'none';
+    translatePage();
+    modal.classList.add('show');
+    setTimeout(() => getEl('loginUsername').focus(), 100);
+  }
+
+  function hideLoginModal() {
+    getEl('loginModal').classList.remove('show');
+  }
+
+  function showRegisterModal() {
+    hideLoginModal();
+    const modal = getEl('registerModal');
+    getEl('registerUsername').value = '';
+    getEl('registerCompany').value = '';
+    getEl('registerPassword').value = '';
+    getEl('registerConfirmPassword').value = '';
+    getEl('registerError').style.display = 'none';
+    translatePage();
+    modal.classList.add('show');
+    setTimeout(() => getEl('registerUsername').focus(), 100);
+  }
+
+  function hideRegisterModal() {
+    getEl('registerModal').classList.remove('show');
+  }
+
+  function showLoginFromRegister() {
+    hideRegisterModal();
+    showLoginModal();
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = getEl(btnId);
+    if (!btn) return;
+    if (loading) {
+      btn.disabled = true;
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = I18n.t('auth.loading');
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
+    }
+  }
+
+  async function handleRegister() {
+    const username = getEl('registerUsername').value.trim();
+    const company = getEl('registerCompany').value.trim();
+    const password = getEl('registerPassword').value;
+    const confirm = getEl('registerConfirmPassword').value;
+    const errorEl = getEl('registerError');
+
+    // 前端校验
+    if (username.length < 2 || username.length > 50) {
+      errorEl.textContent = I18n.t('auth.usernameError');
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (!company) {
+      errorEl.textContent = I18n.t('auth.companyNameError');
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (password.length < 6) {
+      errorEl.textContent = I18n.t('auth.passwordError');
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (password !== confirm) {
+      errorEl.textContent = I18n.t('auth.passwordMismatch');
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    errorEl.style.display = 'none';
+    setLoading('btnRegisterConfirm', true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, company_name: company, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.detail || I18n.t('auth.registerSuccess');
+        errorEl.style.display = 'block';
+        setLoading('btnRegisterConfirm', false);
+        return;
+      }
+
+      // 注册成功，保存 token 和用户信息
+      setToken(data.token);
+      currentUser = data.user;
+      hideRegisterModal();
+      updateAuthButton();
+      alert(I18n.t('auth.registerSuccess'));
+    } catch (e) {
+      errorEl.textContent = 'Network error';
+      errorEl.style.display = 'block';
+    }
+    setLoading('btnRegisterConfirm', false);
+  }
+
+  async function handleLogin() {
+    const username = getEl('loginUsername').value.trim();
+    const password = getEl('loginPassword').value;
+    const errorEl = getEl('loginError');
+
+    if (!username || !password) {
+      errorEl.textContent = I18n.t('auth.username') + ' / ' + I18n.t('auth.password') + ' ' + I18n.t('q.required');
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    errorEl.style.display = 'none';
+    setLoading('btnLoginConfirm', true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.detail || '登录失败';
+        errorEl.style.display = 'block';
+        setLoading('btnLoginConfirm', false);
+        return;
+      }
+
+      // 登录成功
+      setToken(data.token);
+      currentUser = data.user;
+      hideLoginModal();
+      updateAuthButton();
+    } catch (e) {
+      errorEl.textContent = 'Network error';
+      errorEl.style.display = 'block';
+    }
+    setLoading('btnLoginConfirm', false);
+  }
+
+  function handleLogout() {
+    if (!confirm(I18n.t('auth.logout') + '?')) return;
+    currentUser = null;
+    clearToken();
+    updateAuthButton();
+    if (isAdmin) exitAdmin();
+  }
+
+  async function checkAuth() {
+    const token = getToken();
+    if (!token) {
+      updateAuthButton();
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        currentUser = data.user;
+      } else {
+        clearToken();
+        currentUser = null;
+      }
+    } catch (e) {
+      // 后端未启动时不报错，只是不显示用户信息
+      currentUser = null;
+    }
+    updateAuthButton();
+  }
+
   function updateLobbyStatus() {
     const statusEl = getEl('cardStatus');
     if (!statusEl) return;
@@ -117,6 +335,8 @@ const App = (() => {
 
   function init() {
     translatePage();
+
+    // 管理员
     getEl('btnAdmin').addEventListener('click', handleAdminClick);
     getEl('btnLang').addEventListener('click', toggleLang);
     getEl('btnPasswordConfirm').addEventListener('click', confirmPassword);
@@ -124,6 +344,40 @@ const App = (() => {
     getEl('passwordInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') confirmPassword();
     });
+
+    // 登录
+    getEl('btnLoginConfirm').addEventListener('click', handleLogin);
+    getEl('btnLoginCancel').addEventListener('click', hideLoginModal);
+    getEl('loginPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+    getEl('btnSwitchToRegister').addEventListener('click', (e) => {
+      e.preventDefault();
+      showRegisterModal();
+    });
+
+    // 注册
+    getEl('btnRegisterConfirm').addEventListener('click', handleRegister);
+    getEl('btnRegisterCancel').addEventListener('click', hideRegisterModal);
+    getEl('registerConfirmPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleRegister();
+    });
+    getEl('btnSwitchToLogin').addEventListener('click', (e) => {
+      e.preventDefault();
+      showLoginFromRegister();
+    });
+
+    // 点击弹窗外部关闭
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('show');
+        }
+      });
+    });
+
+    // 检查登录状态
+    checkAuth();
     navigateTo('home');
   }
 

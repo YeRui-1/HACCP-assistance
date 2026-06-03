@@ -17,6 +17,7 @@
       </div>
       <div class="header-actions">
         <button class="btn-lang" id="btnLang" title="Switch Language">EN</button>
+        <button class="btn-header" id="btnAuth" style="display:none;"></button>
         <button class="btn-admin" id="btnAdmin" data-i18n="nav.admin">管理</button>
       </div>
     </div>
@@ -88,6 +89,66 @@
       <div id="adminContainer"></div>
     </section>
   </main>
+
+  <!-- 登录弹窗 -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-box auth-modal">
+      <h3 data-i18n="auth.loginTitle">用户登录</h3>
+      <p data-i18n="auth.loginDesc">登录以使用全部功能</p>
+      <div class="auth-form">
+        <div class="form-group">
+          <label data-i18n="auth.username">用户名</label>
+          <input type="text" id="loginUsername" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label data-i18n="auth.password">密码</label>
+          <input type="password" id="loginPassword" autocomplete="current-password">
+        </div>
+      </div>
+      <div class="modal-error" id="loginError">错误提示</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="btnLoginCancel" data-i18n="auth.cancel">取消</button>
+        <button class="btn btn-primary" id="btnLoginConfirm" data-i18n="auth.login">登录</button>
+      </div>
+      <div class="auth-switch">
+        <a href="#" id="btnSwitchToRegister" data-i18n="auth.noAccount">没有账号？去注册</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注册弹窗 -->
+  <div class="modal-overlay" id="registerModal">
+    <div class="modal-box auth-modal">
+      <h3 data-i18n="auth.registerTitle">用户注册</h3>
+      <p data-i18n="auth.registerDesc">注册账号以使用 HACCP AI 助手</p>
+      <div class="auth-form">
+        <div class="form-group">
+          <label data-i18n="auth.username">用户名</label>
+          <input type="text" id="registerUsername" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label data-i18n="auth.companyName">企业名称</label>
+          <input type="text" id="registerCompany" autocomplete="organization">
+        </div>
+        <div class="form-group">
+          <label data-i18n="auth.password">密码</label>
+          <input type="password" id="registerPassword" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label data-i18n="auth.confirmPassword">确认密码</label>
+          <input type="password" id="registerConfirmPassword" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="modal-error" id="registerError">错误提示</div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="btnRegisterCancel" data-i18n="auth.cancel">取消</button>
+        <button class="btn btn-primary" id="btnRegisterConfirm" data-i18n="auth.register">注册</button>
+      </div>
+      <div class="auth-switch">
+        <a href="#" id="btnSwitchToLogin" data-i18n="auth.hasAccount">已有账号？去登录</a>
+      </div>
+    </div>
+  </div>
 
   <!-- 密码验证弹窗 -->
   <div class="modal-overlay" id="passwordModal">

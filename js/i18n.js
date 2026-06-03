@@ -136,6 +136,29 @@ const I18n = (() => {
     'type.select':          ['下拉选择', 'Dropdown'],
     'type.radio':           ['单选', 'Radio'],
     'type.checkbox':        ['多选', 'Checkbox'],
+
+    // ===== 用户认证 =====
+    'auth.login':             ['登录', 'Login'],
+    'auth.register':          ['注册', 'Register'],
+    'auth.logout':            ['退出', 'Logout'],
+    'auth.username':          ['用户名', 'Username'],
+    'auth.password':          ['密码', 'Password'],
+    'auth.confirmPassword':   ['确认密码', 'Confirm Password'],
+    'auth.companyName':       ['企业名称', 'Company Name'],
+    'auth.loginTitle':        ['用户登录', 'User Login'],
+    'auth.registerTitle':     ['用户注册', 'User Registration'],
+    'auth.loginDesc':         ['登录以使用全部功能', 'Login to access all features'],
+    'auth.registerDesc':      ['注册账号以使用 HACCP AI 助手', 'Register to use HACCP AI Assistant'],
+    'auth.noAccount':         ['没有账号？去注册', 'No account? Register'],
+    'auth.hasAccount':        ['已有账号？去登录', 'Already have an account? Login'],
+    'auth.registerSuccess':   ['注册成功', 'Registration successful'],
+    'auth.loginSuccess':      ['登录成功', 'Login successful'],
+    'auth.passwordMismatch':  ['两次密码输入不一致', 'Passwords do not match'],
+    'auth.usernameError':     ['用户名长度应在 2-50 之间', 'Username must be 2-50 characters'],
+    'auth.passwordError':     ['密码长度至少 6 位', 'Password must be at least 6 characters'],
+    'auth.companyNameError':  ['企业名称不能为空', 'Company name cannot be empty'],
+    'auth.cancel':            ['取消', 'Cancel'],
+    'auth.loading':           ['处理中...', 'Loading...'],
   };
 
   let currentLang = 'zh';

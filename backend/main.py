@@ -1,8 +1,13 @@
+import base64
+import hashlib
+import hmac
+import json
 import random
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from database import (
@@ -14,6 +19,9 @@ from database import (
     delete_template,
     publish_template,
     get_published_template,
+    create_user,
+    get_user_by_username,
+    get_user_by_id,
 )
 
 app = FastAPI(title="HACCP AI 助手后端")
@@ -25,6 +33,85 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# JWT 配置
+JWT_SECRET = "haccp-secret-key-2026"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_HOURS = 24
+
+security = HTTPBearer(auto_error=False)
+
+
+# ===== JWT 工具函数（使用标准库实现 HMAC-SHA256）=====
+
+def _base64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode('ascii')
+
+
+def _base64url_decode(s: str) -> bytes:
+    padding = 4 - len(s) % 4
+    if padding != 4:
+        s += '=' * padding
+    return base64.urlsafe_b64decode(s)
+
+
+def create_jwt(user_id: int, username: str, role: str) -> str:
+    header = {"alg": "HS256", "typ": "JWT"}
+    payload = {
+        "user_id": user_id,
+        "username": username,
+        "role": role,
+        "exp": int((datetime.utcnow() + timedelta(hours=JWT_EXPIRE_HOURS)).timestamp()),
+        "iat": int(datetime.utcnow().timestamp()),
+    }
+    header_b64 = _base64url_encode(json.dumps(header, separators=(',', ':')).encode())
+    payload_b64 = _base64url_encode(json.dumps(payload, separators=(',', ':')).encode())
+    signing_input = f"{header_b64}.{payload_b64}".encode()
+    signature = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
+    sig_b64 = _base64url_encode(signature)
+    return f"{header_b64}.{payload_b64}.{sig_b64}"
+
+
+def decode_jwt(token: str) -> dict | None:
+    try:
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        header_b64, payload_b64, sig_b64 = parts
+
+        # 验证签名
+        signing_input = f"{header_b64}.{payload_b64}".encode()
+        expected_sig = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
+        actual_sig = _base64url_decode(sig_b64)
+        if not hmac.compare_digest(expected_sig, actual_sig):
+            return None
+
+        # 解析 payload
+        payload = json.loads(_base64url_decode(payload_b64))
+
+        # 检查过期
+        exp = payload.get("exp", 0)
+        if exp < datetime.utcnow().timestamp():
+            return None
+
+        return payload
+    except Exception:
+        return None
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict | None:
+    """从请求头解析 JWT，返回当前用户信息（不含密码）"""
+    if credentials is None:
+        return None
+    payload = decode_jwt(credentials.credentials)
+    if payload is None:
+        return None
+    user = get_user_by_id(payload["user_id"])
+    return user
 
 
 # ===== Pydantic models =====
@@ -49,6 +136,62 @@ class UpdateTemplateRequest(BaseModel):
     name: str | None = None
     description: str | None = None
     content: dict | None = None
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    company_name: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+# ===== 用户认证接口 =====
+
+@app.post("/api/auth/register")
+async def api_register(req: RegisterRequest):
+    if len(req.username) < 2 or len(req.username) > 50:
+        raise HTTPException(status_code=400, detail="用户名长度应在 2-50 之间")
+    if len(req.password) < 6:
+        raise HTTPException(status_code=400, detail="密码长度至少 6 位")
+    if not req.company_name.strip():
+        raise HTTPException(status_code=400, detail="企业名称不能为空")
+
+    existing = get_user_by_username(req.username)
+    if existing:
+        raise HTTPException(status_code=409, detail="用户名已存在")
+
+    password_hash = hash_password(req.password)
+    user = create_user(req.username.strip(), req.company_name.strip(), password_hash)
+    if user is None:
+        raise HTTPException(status_code=500, detail="注册失败")
+
+    token = create_jwt(user["id"], user["username"], user["role"])
+    return {"ok": True, "user": user, "token": token}
+
+
+@app.post("/api/auth/login")
+async def api_login(req: LoginRequest):
+    user = get_user_by_username(req.username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+
+    if user["password_hash"] != hash_password(req.password):
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+
+    token = create_jwt(user["id"], user["username"], user["role"])
+    safe_user = {k: v for k, v in user.items() if k != "password_hash"}
+    return {"ok": True, "user": safe_user, "token": token}
+
+
+@app.get("/api/auth/me")
+async def api_me(user: dict = Depends(get_current_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="未登录或 token 已过期")
+    return {"user": user}
 
 
 # ===== 多模板管理接口 =====
