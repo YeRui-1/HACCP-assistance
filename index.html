@@ -175,12 +175,123 @@
     </div>
   </div>
 
-  <script src="js/i18n.js"></script>
-  <script src="js/mock-data.js"></script>
-  <script src="js/admin.js"></script>
-  <script src="js/questionnaire.js"></script>
-  <script src="js/questionnaire-15min.js"></script>
-  <script src="js/results.js"></script>
-  <script src="js/app.js"></script>
+  <!-- ===== 第三方库动态加载（多 CDN 源降级）===== -->
+  <script>
+    // 需要加载的库列表
+    var _libsToLoad = [
+      {
+        name: 'mammoth',
+        check: function() { return typeof mammoth !== 'undefined'; },
+        urls: [
+          'https://cdn.bootcdn.net/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
+          'https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js'
+        ]
+      },
+      {
+        name: 'pdfjs',
+        check: function() { return typeof pdfjsLib !== 'undefined' && typeof pdfjsLib.getDocument === 'function'; },
+        urls: [
+          'https://cdn.bootcdn.net/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+          'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+        ],
+        onload: function() {
+          // 设置 pdf.js worker
+          var workerUrls = [
+            'https://cdn.bootcdn.net/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+            'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+          ];
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrls[0];
+          // 尝试预加载 worker（静默失败，运行时自动回退）
+          var testWorker = new Image();
+          testWorker.onerror = function() {
+            // 如果第一个 worker 源失败，尝试第二个
+            pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrls[1];
+          };
+          testWorker.src = workerUrls[0];
+        }
+      }
+    ];
+
+    // 检查已加载的库
+    var _allLibsLoaded = function() {
+      for (var i = 0; i < _libsToLoad.length; i++) {
+        if (!_libsToLoad[i].check()) return false;
+      }
+      return true;
+    };
+
+    // 动态加载单个库，尝试多个 URL
+    function _loadLibrary(lib, callback) {
+      if (lib.check()) { callback(); return; }
+      var idx = 0;
+      function tryNext() {
+        if (idx >= lib.urls.length) {
+          console.warn('库加载失败: ' + lib.name + '，部分功能不可用');
+          callback();
+          return;
+        }
+        var url = lib.urls[idx++];
+        var script = document.createElement('script');
+        script.src = url;
+        script.onload = function() {
+          if (lib.check()) {
+            if (lib.onload) lib.onload();
+            callback();
+          } else {
+            tryNext();
+          }
+        };
+        script.onerror = tryNext;
+        document.head.appendChild(script);
+      }
+      tryNext();
+    }
+
+    // 顺序加载所有库
+    var _loadQueue = _libsToLoad.slice();
+    function _loadNext() {
+      if (_loadQueue.length === 0) {
+        // 所有库加载完毕，启动应用
+        _startApp();
+        return;
+      }
+      var lib = _loadQueue.shift();
+      _loadLibrary(lib, _loadNext);
+    }
+
+    function _startApp() {
+      // 加载项目自己的脚本
+      var scripts = [
+        'js/i18n.js',
+        'js/mock-data.js',
+        'js/admin.js',
+        'js/questionnaire.js',
+        'js/questionnaire-15min.js',
+        'js/results.js',
+        'js/app.js'
+      ];
+      function loadNextScript() {
+        if (scripts.length === 0) {
+          // 全部加载完成，手动启动应用
+          if (typeof App !== 'undefined' && App.init) {
+            App.init();
+          }
+          return;
+        }
+        var src = scripts.shift();
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = loadNextScript;
+        s.onerror = loadNextScript;
+        document.body.appendChild(s);
+      }
+      loadNextScript();
+    }
+    // 启动加载流程
+    _loadNext();
+  </script>
 </body>
 </html>

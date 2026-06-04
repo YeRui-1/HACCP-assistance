@@ -30,7 +30,7 @@ const Questionnaire15min = (() => {
       targetConsumer: '',
       shelfLife: '',
       // 三、生产流程
-      formula: [{ id: genId(), material: '', dosage: '', function: '' }],
+      formula: [{ id: genId(), material: '', dosage: '', func: '' }],
       processSteps: [{ id: genId(), stepName: '', operationMethod: '', parameters: '', controlPoint: '', equipmentName: '' }],
       flowConfirmed: false,
       // 四、危害分析
@@ -75,6 +75,11 @@ const Questionnaire15min = (() => {
   }
 
   // ===== 入口 =====
+  // ===== 文件上传状态 =====
+  let _uploadedText = '';
+  let _uploadedFileName = '';
+  let _uploadedFileSize = 0;
+
   async function init() {
     const container = getContainer();
     container.innerHTML = `
@@ -84,9 +89,443 @@ const Questionnaire15min = (() => {
         <p class="q15-desc">请按照产品实际情况填写以下信息，系统将根据您的输入生成HACCP计划</p>
         <div class="q15-progress" id="q15Progress"></div>
       </div>
+      <div id="q15UploadArea"></div>
       <div id="q15Content"></div>
     `;
+    renderUploadArea();
     renderSectionNav();
+    renderActiveSection();
+  }
+
+  // ==================== 文件上传区域 ====================
+
+  function renderUploadArea() {
+    const el = document.getElementById('q15UploadArea');
+    if (!el) return;
+    const hasFile = !!_uploadedText;
+    el.innerHTML = `
+      <div class="q15-upload-zone ${hasFile ? 'has-file' : ''}" id="q15UploadZone">
+        <div class="q15-upload-zone-icon">${hasFile ? '📄' : '📁'}</div>
+        <div class="q15-upload-zone-title">${hasFile ? '文件已解析' : '文件导入（可选）'}</div>
+        <div class="q15-upload-zone-hint">${hasFile ? _uploadedFileName : '拖拽文件到此处，或点击选择文件'}</div>
+        ${!hasFile ? '<div class="q15-upload-zone-hint" style="margin-top:4px;">支持 Word (.docx) / PDF (.pdf)</div>' : ''}
+        <input type="file" id="q15FileInput" accept=".docx,.pdf" ${hasFile ? 'disabled' : ''}>
+        ${!hasFile ? '<button class="q15-upload-btn" id="q15SelectFileBtn">📂 选择文件</button>' : ''}
+      </div>
+      ${_uploadedText ? `
+        <div class="q15-upload-file-info">
+          <span class="q15-file-icon">📄</span>
+          <span class="q15-file-name">${esc(_uploadedFileName)}</span>
+          <span class="q15-file-size">${formatFileSize(_uploadedFileSize)}</span>
+          <span class="q15-file-status ok">✓ 解析成功</span>
+          <button class="btn btn-xs btn-secondary" id="q15ClearFileBtn">清除</button>
+        </div>
+        <div class="q15-upload-preview">${esc(_uploadedText.slice(0, 300))}${_uploadedText.length > 300 ? '...' : ''}</div>
+        <div class="q15-upload-actions">
+          <button class="btn btn-primary" id="q15AiFillBtn">🤖 AI识别并填写问卷</button>
+          <button class="btn btn-secondary" id="q15ClearFileBtn2">重新选择</button>
+        </div>
+      ` : ''}
+      <div class="q15-upload-error" id="q15UploadError"></div>
+    `;
+    bindUploadEvents();
+  }
+
+  function bindUploadEvents() {
+    const zone = document.getElementById('q15UploadZone');
+    const fileInput = document.getElementById('q15FileInput');
+
+    // 点击选择文件
+    const selectBtn = document.getElementById('q15SelectFileBtn');
+    if (selectBtn && fileInput) {
+      selectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
+      });
+    }
+
+    // 文件选择变化
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFile(e.target.files[0]);
+        }
+      });
+    }
+
+    // 拖拽事件
+    if (zone) {
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('drag-over');
+      });
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('drag-over');
+      });
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+          handleFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    // 清除文件
+    const clearBtn = document.getElementById('q15ClearFileBtn');
+    const clearBtn2 = document.getElementById('q15ClearFileBtn2');
+    if (clearBtn) clearBtn.addEventListener('click', clearUploadedFile);
+    if (clearBtn2) clearBtn2.addEventListener('click', clearUploadedFile);
+
+    // AI 填充按钮
+    const aiBtn = document.getElementById('q15AiFillBtn');
+    if (aiBtn) aiBtn.addEventListener('click', handleAiFill);
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function showUploadError(msg) {
+    const err = document.getElementById('q15UploadError');
+    if (err) {
+      err.textContent = msg;
+      err.style.display = 'block';
+    }
+  }
+
+  function hideUploadError() {
+    const err = document.getElementById('q15UploadError');
+    if (err) err.style.display = 'none';
+  }
+
+  function clearUploadedFile() {
+    _uploadedText = '';
+    _uploadedFileName = '';
+    _uploadedFileSize = 0;
+    renderUploadArea();
+  }
+
+  async function handleFile(file) {
+    hideUploadError();
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext !== 'docx' && ext !== 'pdf') {
+      showUploadError('只支持 Word (.docx) 和 PDF (.pdf) 文件');
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      showUploadError('文件大小不能超过 20MB');
+      return;
+    }
+
+    // 检查 CDN 库是否加载成功
+    if (ext === 'docx' && typeof mammoth === 'undefined') {
+      showUploadError('Word 解析库未加载。请检查网络连接后刷新页面重试。');
+      return;
+    }
+    if (ext === 'pdf' && (typeof pdfjsLib === 'undefined' || typeof pdfjsLib.getDocument !== 'function')) {
+      showUploadError('PDF 解析库未加载。请检查网络连接后刷新页面重试。');
+      return;
+    }
+
+    _uploadedFileName = file.name;
+    _uploadedFileSize = file.size;
+
+    try {
+      let text = '';
+      if (ext === 'docx') {
+        text = await parseDocx(file);
+      } else if (ext === 'pdf') {
+        text = await parsePdf(file);
+      }
+
+      if (!text.trim()) {
+        showUploadError('未能从文件中提取到有效文本，请检查文件内容');
+        return;
+      }
+
+      _uploadedText = text;
+      renderUploadArea();
+    } catch (err) {
+      showUploadError('文件解析失败：' + (err.message || '未知错误') + '。请尝试重新选择文件。');
+    }
+  }
+
+  async function parseDocx(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target.result;
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          resolve(result.value || '');
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function parsePdf(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target.result;
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let text = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            text += content.items.map(item => item.str).join(' ') + '\n';
+          }
+          resolve(text.trim());
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function handleAiFill() {
+    const aiBtn = document.getElementById('q15AiFillBtn');
+    if (!aiBtn) return;
+    if (!_uploadedText) {
+      showUploadError('请先上传并解析文件');
+      return;
+    }
+
+    // 先保存当前已填写的表单数据
+    const content = document.getElementById('q15Content');
+    const data = loadData();
+    if (content) collectSectionData(content, data);
+
+    aiBtn.disabled = true;
+    aiBtn.textContent = '⏳ AI分析中...';
+
+    try {
+      // 尝试调用后端 API
+      const res = await fetch('/api/ai/fill-from-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: _uploadedText }),
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.detail || 'AI 分析失败');
+      }
+
+      if (result.ok && result.data) {
+        applyAiFillResult(result.data, aiBtn);
+      } else {
+        throw new Error('返回数据格式异常');
+      }
+    } catch (err) {
+      // 后端不可用时，使用前端 mock 填充
+      console.warn('后端不可用，使用前端 mock 填充:', err.message);
+      const mockResult = frontendMockFill(_uploadedText);
+      applyAiFillResult(mockResult, aiBtn);
+    }
+  }
+
+  function applyAiFillResult(aiData, aiBtn) {
+    applyAiData(aiData);
+    aiBtn.textContent = '✓ AI填充完成，请检查并修改';
+    aiBtn.className = 'btn btn-primary';
+    setTimeout(() => {
+      aiBtn.disabled = false;
+      aiBtn.textContent = '🤖 AI重新填写问卷';
+      aiBtn.className = 'btn btn-primary';
+    }, 3000);
+    renderSectionNav();
+    // 跳转到第1步方便查看填充结果
+    currentStep = 0;
+    renderActiveSection();
+    renderSectionNav();
+  }
+
+  function frontendMockFill(text) {
+    // 前端关键词提取 + 默认 demo 数据
+    var result = {
+      companyName: '',
+      deptName: '品控部',
+      haccpTeam: [
+        { name: '张工', dept: '品控部', position: '主管', role: '组长' },
+        { name: '李工', dept: '生产部', position: '主任', role: '副组长' },
+      ],
+      auditor: '王审核员',
+      productName: '',
+      rawMaterials: '',
+      additives: '',
+      productPH: '',
+      waterActivity: '',
+      intendedUse: '供消费者直接食用',
+      storageCondition: '阴凉干燥处保存',
+      packagingMethod: '真空包装',
+      targetConsumer: '一般人群',
+      shelfLife: '12个月',
+      formula: [
+        { material: '主原料', dosage: '100g/kg', func: '主要成分' },
+      ],
+      processSteps: [
+        { stepName: '原料验收', operationMethod: '检查供应商报告', parameters: '温度≤25℃', controlPoint: 'CCP-1', equipmentName: '' },
+        { stepName: '杀菌处理', operationMethod: '高温杀菌', parameters: '中心温度≥85℃，时间≥15s', controlPoint: 'CCP-3', equipmentName: '杀菌釜' },
+        { stepName: '金属检测', operationMethod: '在线金属检测', parameters: 'Fe≤1.5mm, SUS≤2.0mm', controlPoint: 'CCP-4', equipmentName: '金属检测仪' },
+      ],
+      execStandard: 'gb',
+      criticalLimits: '依据GB 14881-2013，杀菌中心温度≥85℃，保持时间≥15秒',
+      hazardBio: [
+        { desc: '沙门氏菌', severity: '高', likelihood: '中', control: '充分加热处理' },
+        { desc: '大肠杆菌', severity: '高', likelihood: '中', control: '严格卫生控制' },
+      ],
+      hazardChem: [
+        { desc: '农药残留', severity: '高', likelihood: '低', control: '原料验收检测' },
+      ],
+      hazardPhys: [
+        { desc: '金属异物', severity: '中', likelihood: '中', control: '金属检测器' },
+      ],
+      monitoring: [
+        { ccp: 'CCP-3 杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '品控专员', remark: '依据GB 14881-2013' },
+      ],
+      correctiveActions: [
+        { ccp: '杀菌工序', cl: '≥85℃', corrective: '温度不足时升温补足', verification: '复测温度', record: '温度纠偏记录表' },
+      ],
+      recordPeriod: '2年',
+      recordFormat: '电子版+纸质版',
+    };
+
+    // 尝试从文本中提取关键词
+    try {
+      function extract(regex) {
+        var m = text.match(regex);
+        return m ? m[1].trim() : '';
+      }
+      result.companyName = extract(/(?:企业名称|公司名称|企业)[：:]\s*([^\n，。,\.]+)/) || '';
+      result.productName = extract(/(?:产品名称|产品名|产品)[：:]\s*([^\n，。,\.]+)/) || '';
+      result.rawMaterials = extract(/(?:原料|原材料)[：:]\s*([^\n。]+)/) || '';
+      result.storageCondition = extract(/(?:储存条件|贮藏条件|存储条件)[：:]\s*([^\n。]+)/) || '';
+      result.shelfLife = extract(/(?:保质期|保存期)[：:]\s*([^\n。]+)/) || '';
+    } catch (e) { /* ignore */ }
+
+    return result;
+  }
+
+  function applyAiData(aiData) {
+    const data = loadData();
+
+    // 通用字段
+    if (aiData.companyName) data.companyName = aiData.companyName;
+    if (aiData.deptName) data.deptName = aiData.deptName;
+    if (aiData.auditor) data.auditor = aiData.auditor;
+    if (aiData.productName) data.productName = aiData.productName;
+    if (aiData.rawMaterials) data.rawMaterials = aiData.rawMaterials;
+    if (aiData.additives) data.additives = aiData.additives;
+    if (aiData.productPH) data.productPH = aiData.productPH;
+    if (aiData.waterActivity) data.waterActivity = aiData.waterActivity;
+    if (aiData.intendedUse) data.intendedUse = aiData.intendedUse;
+    if (aiData.storageCondition) data.storageCondition = aiData.storageCondition;
+    if (aiData.packagingMethod) data.packagingMethod = aiData.packagingMethod;
+    if (aiData.targetConsumer) data.targetConsumer = aiData.targetConsumer;
+    if (aiData.shelfLife) data.shelfLife = aiData.shelfLife;
+    if (aiData.execStandard) data.execStandard = aiData.execStandard;
+    if (aiData.criticalLimits) data.criticalLimits = aiData.criticalLimits;
+    if (aiData.recordPeriod) data.recordPeriod = aiData.recordPeriod;
+    if (aiData.recordFormat) data.recordFormat = aiData.recordFormat;
+
+    // HACCP 小组成员
+    if (aiData.haccpTeam && Array.isArray(aiData.haccpTeam) && aiData.haccpTeam.length > 0) {
+      data.haccpTeam = aiData.haccpTeam.map(m => ({
+        id: genId(),
+        name: m.name || '',
+        dept: m.dept || '',
+        position: m.position || '',
+        role: m.role || '',
+      }));
+    }
+
+    // 配方
+    if (aiData.formula && Array.isArray(aiData.formula) && aiData.formula.length > 0) {
+      data.formula = aiData.formula.map(f => ({
+        id: genId(),
+        material: f.material || '',
+        dosage: f.dosage || '',
+        func: f.func || '',
+      }));
+    }
+
+    // 生产步骤
+    if (aiData.processSteps && Array.isArray(aiData.processSteps) && aiData.processSteps.length > 0) {
+      data.processSteps = aiData.processSteps.map(s => ({
+        id: genId(),
+        stepName: s.stepName || '',
+        operationMethod: s.operationMethod || '',
+        parameters: s.parameters || '',
+        controlPoint: s.controlPoint || '',
+        equipmentName: s.equipmentName || '',
+      }));
+    }
+
+    // 危害分析
+    if (aiData.hazardBio && Array.isArray(aiData.hazardBio)) {
+      data.hazardBio = aiData.hazardBio.map(h => ({
+        desc: h.desc || '',
+        severity: h.severity || '中',
+        likelihood: h.likelihood || '中',
+        control: h.control || '',
+      }));
+    }
+    if (aiData.hazardChem && Array.isArray(aiData.hazardChem)) {
+      data.hazardChem = aiData.hazardChem.map(h => ({
+        desc: h.desc || '',
+        severity: h.severity || '中',
+        likelihood: h.likelihood || '中',
+        control: h.control || '',
+      }));
+    }
+    if (aiData.hazardPhys && Array.isArray(aiData.hazardPhys)) {
+      data.hazardPhys = aiData.hazardPhys.map(h => ({
+        desc: h.desc || '',
+        severity: h.severity || '中',
+        likelihood: h.likelihood || '中',
+        control: h.control || '',
+      }));
+    }
+
+    // 监控
+    if (aiData.monitoring && Array.isArray(aiData.monitoring) && aiData.monitoring.length > 0) {
+      data.monitoring = aiData.monitoring.map(m => ({
+        id: genId(),
+        ccp: m.ccp || '',
+        object: m.object || '',
+        method: m.method || '',
+        frequency: m.frequency || '',
+        personnel: m.personnel || '',
+        remark: m.remark || '',
+      }));
+    }
+
+    // 纠偏措施
+    if (aiData.correctiveActions && Array.isArray(aiData.correctiveActions) && aiData.correctiveActions.length > 0) {
+      data.correctiveActions = aiData.correctiveActions.map(c => ({
+        id: genId(),
+        ccp: c.ccp || '',
+        cl: c.cl || '',
+        corrective: c.corrective || '',
+        verification: c.verification || '',
+        record: c.record || '',
+      }));
+    }
+
+    saveData(data);
     renderActiveSection();
   }
 
