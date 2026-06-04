@@ -147,6 +147,12 @@ const Results = (() => {
       </div>
     `;
 
+    // 如果生产步骤有数据，展示可视化流程图（使用独立ID避免重复）
+    const steps = data.processSteps || [];
+    if (steps.some(s => s.stepName && s.stepName.trim())) {
+      html += `<div class="results-section" id="section-q15-flowchart"><h2>生产流程图</h2>${render15minFlowchart(steps)}</div>`;
+    }
+
     // 一、企业信息
     html += `<div class="results-section" id="section-q15-company"><h2>一、企业信息</h2>
       <div class="result-item"><span class="ri-label">企业名称</span><span class="ri-value">${fieldValue(data.companyName)}</span></div>
@@ -440,6 +446,55 @@ const Results = (() => {
         li.classList.toggle('active', li.dataset.section === key);
       });
     }
+  }
+
+  // 15分钟结果的流程图可视化渲染
+  function render15minFlowchart(steps) {
+    if (!steps || steps.length === 0 || !steps.some(s => s.stepName && s.stepName.trim())) {
+      return '<p style="color:var(--gray-400);font-style:italic;text-align:center;padding:20px;">暂无生产流程步骤数据</p>';
+    }
+    const validSteps = steps.filter(s => s.stepName && s.stepName.trim());
+    
+    let html = '<div class="q15-visual-flowchart">';
+    
+    // 开始节点
+    html += `
+      <div class="q15-vf-node start-end">
+        <div class="q15-vf-node-shape start">开始</div>
+        <div class="q15-vf-arrow-down"></div>
+      </div>
+    `;
+    
+    validSteps.forEach((step, i) => {
+      const isCCP = step.controlPoint && step.controlPoint.toLowerCase().indexOf('ccp') !== -1;
+      const ccpLabel = isCCP ? `<span class="q15-vf-ccp-badge">${step.controlPoint}</span>` : '';
+      
+      html += `
+        <div class="q15-vf-node">
+          <div class="q15-vf-node-shape ${isCCP ? 'ccp' : 'step'}">
+            <span class="q15-vf-step-num">${i + 1}</span>
+            <div class="q15-vf-step-content">
+              <strong>${esc(step.stepName)}</strong>
+              ${step.operationMethod ? `<p class="q15-vf-detail">方法：${esc(step.operationMethod)}</p>` : ''}
+              ${step.parameters ? `<p class="q15-vf-detail">参数：${esc(step.parameters)}</p>` : ''}
+              ${step.equipmentName ? `<p class="q15-vf-detail">设备：${esc(step.equipmentName)}</p>` : ''}
+            </div>
+            ${ccpLabel}
+          </div>
+          ${i < validSteps.length - 1 ? '<div class="q15-vf-arrow-down"></div>' : ''}
+        </div>
+      `;
+    });
+    
+    html += `
+      <div class="q15-vf-node start-end">
+        <div class="q15-vf-arrow-down"></div>
+        <div class="q15-vf-node-shape end">结束</div>
+      </div>
+    `;
+    
+    html += '</div>';
+    return html;
   }
 
   function setupScrollSpy() {

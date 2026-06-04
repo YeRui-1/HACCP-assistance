@@ -29,10 +29,11 @@ const Questionnaire15min = (() => {
       packagingMethod: '',
       targetConsumer: '',
       shelfLife: '',
-      // 三、生产流程
+    // 三、生产流程
       formula: [{ id: genId(), material: '', dosage: '', func: '' }],
       processSteps: [{ id: genId(), stepName: '', operationMethod: '', parameters: '', controlPoint: '', equipmentName: '' }],
       flowConfirmed: false,
+      flowchartXml: '',
       // 四、危害分析
       hazardBio: [],
       hazardChem: [],
@@ -105,24 +106,24 @@ const Questionnaire15min = (() => {
     const hasFile = !!_uploadedText;
     el.innerHTML = `
       <div class="q15-upload-zone ${hasFile ? 'has-file' : ''}" id="q15UploadZone">
-        <div class="q15-upload-zone-icon">${hasFile ? '📄' : '📁'}</div>
+        <div class="q15-upload-zone-icon">${hasFile ? '\u{1F4C4}' : '\u{1F4C1}'}</div>
         <div class="q15-upload-zone-title">${hasFile ? '文件已解析' : '文件导入（可选）'}</div>
         <div class="q15-upload-zone-hint">${hasFile ? _uploadedFileName : '拖拽文件到此处，或点击选择文件'}</div>
         ${!hasFile ? '<div class="q15-upload-zone-hint" style="margin-top:4px;">支持 Word (.docx) / PDF (.pdf)</div>' : ''}
         <input type="file" id="q15FileInput" accept=".docx,.pdf" ${hasFile ? 'disabled' : ''}>
-        ${!hasFile ? '<button class="q15-upload-btn" id="q15SelectFileBtn">📂 选择文件</button>' : ''}
+        ${!hasFile ? '<button class="q15-upload-btn" id="q15SelectFileBtn">\u{1F4C2} 选择文件</button>' : ''}
       </div>
       ${_uploadedText ? `
         <div class="q15-upload-file-info">
-          <span class="q15-file-icon">📄</span>
+          <span class="q15-file-icon">\u{1F4C4}</span>
           <span class="q15-file-name">${esc(_uploadedFileName)}</span>
           <span class="q15-file-size">${formatFileSize(_uploadedFileSize)}</span>
-          <span class="q15-file-status ok">✓ 解析成功</span>
+          <span class="q15-file-status ok">\u2713 解析成功</span>
           <button class="btn btn-xs btn-secondary" id="q15ClearFileBtn">清除</button>
         </div>
         <div class="q15-upload-preview">${esc(_uploadedText.slice(0, 300))}${_uploadedText.length > 300 ? '...' : ''}</div>
         <div class="q15-upload-actions">
-          <button class="btn btn-primary" id="q15AiFillBtn">🤖 AI识别并填写问卷</button>
+          <button class="btn btn-primary" id="q15AiFillBtn">\u{1F916} AI识别并填写问卷</button>
           <button class="btn btn-secondary" id="q15ClearFileBtn2">重新选择</button>
         </div>
       ` : ''}
@@ -309,7 +310,7 @@ const Questionnaire15min = (() => {
     if (content) collectSectionData(content, data);
 
     aiBtn.disabled = true;
-    aiBtn.textContent = '⏳ AI分析中...';
+    aiBtn.textContent = '\u23F3 AI分析中...';
 
     try {
       // 尝试调用后端 API
@@ -339,11 +340,11 @@ const Questionnaire15min = (() => {
 
   function applyAiFillResult(aiData, aiBtn) {
     applyAiData(aiData);
-    aiBtn.textContent = '✓ AI填充完成，请检查并修改';
+    aiBtn.textContent = '\u2713 AI填充完成，请检查并修改';
     aiBtn.className = 'btn btn-primary';
     setTimeout(() => {
       aiBtn.disabled = false;
-      aiBtn.textContent = '🤖 AI重新填写问卷';
+      aiBtn.textContent = '\u{1F916} AI重新填写问卷';
       aiBtn.className = 'btn btn-primary';
     }, 3000);
     renderSectionNav();
@@ -377,12 +378,12 @@ const Questionnaire15min = (() => {
         { material: '主原料', dosage: '100g/kg', func: '主要成分' },
       ],
       processSteps: [
-        { stepName: '原料验收', operationMethod: '检查供应商报告', parameters: '温度≤25℃', controlPoint: 'CCP-1', equipmentName: '' },
-        { stepName: '杀菌处理', operationMethod: '高温杀菌', parameters: '中心温度≥85℃，时间≥15s', controlPoint: 'CCP-3', equipmentName: '杀菌釜' },
-        { stepName: '金属检测', operationMethod: '在线金属检测', parameters: 'Fe≤1.5mm, SUS≤2.0mm', controlPoint: 'CCP-4', equipmentName: '金属检测仪' },
+        { stepName: '原料验收', operationMethod: '检查供应商报告', parameters: '温度\u226425\u2103', controlPoint: 'CCP-1', equipmentName: '' },
+        { stepName: '杀菌处理', operationMethod: '高温杀菌', parameters: '中心温度\u226585\u2103，时间\u226515s', controlPoint: 'CCP-3', equipmentName: '杀菌釜' },
+        { stepName: '金属检测', operationMethod: '在线金属检测', parameters: 'Fe\u22641.5mm, SUS\u22642.0mm', controlPoint: 'CCP-4', equipmentName: '金属检测仪' },
       ],
       execStandard: 'gb',
-      criticalLimits: '依据GB 14881-2013，杀菌中心温度≥85℃，保持时间≥15秒',
+      criticalLimits: '依据GB 14881-2013，杀菌中心温度\u226585\u2103，保持时间\u226515秒',
       hazardBio: [
         { desc: '沙门氏菌', severity: '高', likelihood: '中', control: '充分加热处理' },
         { desc: '大肠杆菌', severity: '高', likelihood: '中', control: '严格卫生控制' },
@@ -397,7 +398,7 @@ const Questionnaire15min = (() => {
         { ccp: 'CCP-3 杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '品控专员', remark: '依据GB 14881-2013' },
       ],
       correctiveActions: [
-        { ccp: '杀菌工序', cl: '≥85℃', corrective: '温度不足时升温补足', verification: '复测温度', record: '温度纠偏记录表' },
+        { ccp: '杀菌工序', cl: '\u226585\u2103', corrective: '温度不足时升温补足', verification: '复测温度', record: '温度纠偏记录表' },
       ],
       recordPeriod: '2年',
       recordFormat: '电子版+纸质版',
@@ -551,7 +552,7 @@ const Questionnaire15min = (() => {
       const isDone = isStepCompleted(data, i);
       return `
         <div class="q15-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}" data-step="${i}">
-          <div class="q15-step-num">${isDone ? '✓' : i + 1}</div>
+          <div class="q15-step-num">${isDone ? '\u2713' : i + 1}</div>
           <span>${name}</span>
         </div>
       `;
@@ -601,11 +602,11 @@ const Questionnaire15min = (() => {
         ${sectionHTML}
       </div>
       <div class="q15-nav-buttons">
-        <button class="btn btn-secondary" id="q15PrevBtn" ${currentStep === 0 ? 'disabled' : ''}>← 上一步</button>
+        <button class="btn btn-secondary" id="q15PrevBtn" ${currentStep === 0 ? 'disabled' : ''}>\u2190 上一步</button>
         <span class="q15-step-indicator">第 ${currentStep + 1} / ${TOTAL_STEPS} 步</span>
         ${currentStep < TOTAL_STEPS - 1 
-          ? `<button class="btn btn-primary" id="q15NextBtn">下一步 →</button>`
-          : `<button class="btn btn-primary btn-lg" id="q15SubmitBtn">✓ 提交问卷</button>`
+          ? `<button class="btn btn-primary" id="q15NextBtn">下一步 \u2192</button>`
+          : `<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>`
         }
       </div>
     `;
@@ -775,7 +776,7 @@ const Questionnaire15min = (() => {
       <h3>基于产品类型，AI列出常见危害</h3>
       <p class="q15-table-hint">基于产品类型，系统将自动识别该产品常见的生物/化学/物理危害</p>
       <div class="q15-ai-btn-wrapper">
-        <button class="btn btn-secondary btn-sm" id="aiHazardBtn">🤖 AI识别危害</button>
+        <button class="btn btn-secondary btn-sm" id="aiHazardBtn">\u{1F916} AI识别危害</button>
         <span id="aiHazardHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>
       </div>
       <div id="aiHazardResult" style="margin-top:12px;"></div>
@@ -802,7 +803,7 @@ const Questionnaire15min = (() => {
               </div>
               <div class="q15-field-group">
                 <label>工艺参数</label>
-                <input type="text" value="${esc(s.parameters)}" placeholder="如：温度：80℃，时间：30min">
+                <input type="text" value="${esc(s.parameters)}" placeholder="如：温度：80\u2103，时间：30min">
               </div>
               <div class="q15-field-group">
                 <label>控制点</label>
@@ -817,6 +818,14 @@ const Questionnaire15min = (() => {
         `).join('')}
       </div>
       <button class="btn btn-sm btn-secondary" id="addProcessStep">+ 添加步骤</button>
+
+      <hr class="q15-divider">
+
+      <h3>流程图编辑 <span style="font-size:13px;font-weight:400;color:var(--gray-400);">使用 draw.io 绘制生产流程图</span></h3>
+      <p class="q15-table-hint">通过 draw.io 在线编辑器绘制专业的生产工艺流程图，直观展示各生产步骤的顺序关系</p>
+      <div class="q15-flowchart-area" id="flowchartArea">
+        ${renderFlowchartPreview(data)}
+      </div>
 
       <hr class="q15-divider">
 
@@ -924,7 +933,7 @@ const Questionnaire15min = (() => {
       </div>
 
       <div class="q15-ai-btn-wrapper">
-        <button class="btn btn-secondary btn-sm" id="aiCriticalBtn">🤖 AI建议关键限制</button>
+        <button class="btn btn-secondary btn-sm" id="aiCriticalBtn">\u{1F916} AI建议关键限制</button>
         <span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>
       </div>
       <div id="aiCriticalResult" style="margin-top:12px;"></div>
@@ -942,7 +951,7 @@ const Questionnaire15min = (() => {
       <h3>监控程序设置</h3>
       <p class="q15-table-hint">AI根据危害的严重性、发生概率、法规要求、企业历史数据给出建议</p>
       <div class="q15-ai-btn-wrapper" style="margin-bottom:12px;">
-        <button class="btn btn-secondary btn-sm" id="aiMonitorBtn">🤖 AI规划监控方案</button>
+        <button class="btn btn-secondary btn-sm" id="aiMonitorBtn">\u{1F916} AI规划监控方案</button>
         <span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>
       </div>
       <table class="q15-table">
@@ -992,8 +1001,8 @@ const Questionnaire15min = (() => {
           ${data.correctiveActions.map((c, i) => `
             <tr data-ca-idx="${i}">
               <td><input type="text" value="${esc(c.ccp)}" placeholder="如：杀菌工序"></td>
-              <td><input type="text" value="${esc(c.cl)}" placeholder="如：90℃"></td>
-              <td><input type="text" value="${esc(c.corrective)}" placeholder="1.温度86~89℃→升温补足；2.＜85℃→整批隔离"></td>
+              <td><input type="text" value="${esc(c.cl)}" placeholder="如：90\u2103"></td>
+              <td><input type="text" value="${esc(c.corrective)}" placeholder="1.温度86~89\u2103\u2192升温补足；2.\uFF1C85\u2103\u2192整批隔离"></td>
               <td><input type="text" value="${esc(c.verification)}" placeholder="复测温度+抽样微生物"></td>
               <td><input type="text" value="${esc(c.record)}" placeholder="温度纠偏记录表"></td>
               <td><button class="q15-del-row" data-ca-idx="${i}">&times;</button></td>
@@ -1022,28 +1031,28 @@ const Questionnaire15min = (() => {
         <p class="q15-table-hint">AI自动汇总监控数据，纠偏记录，生成标准化的报表，减轻人工记录的负担</p>
         <div class="q15-record-cards">
           <div class="q15-record-card">
-            <div class="q15-record-icon">📋</div>
+            <div class="q15-record-icon">\u{1F4CB}</div>
             <h4>监控记录表</h4>
             <p>记录各项关键控制点的监控数据</p>
           </div>
           <div class="q15-record-card">
-            <div class="q15-record-icon">📊</div>
+            <div class="q15-record-icon">\u{1F4CA}</div>
             <h4>纠偏记录表</h4>
             <p>记录偏差情况及采取的纠偏措施</p>
           </div>
           <div class="q15-record-card">
-            <div class="q15-record-icon">📄</div>
+            <div class="q15-record-icon">\u{1F4C4}</div>
             <h4>验证记录表</h4>
             <p>记录验证活动的执行情况</p>
           </div>
           <div class="q15-record-card">
-            <div class="q15-record-icon">📑</div>
+            <div class="q15-record-icon">\u{1F4D1}</div>
             <h4>综合报表</h4>
             <p>AI生成标准化HACCP综合报表</p>
           </div>
         </div>
         <div class="q15-export-actions">
-          <button class="btn btn-secondary btn-sm" id="exportTableBtn" style="margin-top:10px;">📥 导出空白记录表格</button>
+          <button class="btn btn-secondary btn-sm" id="exportTableBtn" style="margin-top:10px;">\u{1F4E5} 导出空白记录表格</button>
         </div>
       </div>
     `;
@@ -1179,7 +1188,7 @@ const Questionnaire15min = (() => {
             { desc: '玻璃碎片', severity: '高', likelihood: '低', control: '玻璃管理制度' },
           ];
           saveData(data);
-          if (hint) hint.textContent = '✓ AI识别完成，请确认以下危害分析内容';
+          if (hint) hint.textContent = '\u2713 AI识别完成，请确认以下危害分析内容';
           aiBtn.disabled = false;
           renderActiveSection();
         }, 1000);
@@ -1217,20 +1226,20 @@ const Questionnaire15min = (() => {
           const demoResult = `根据${standard === 'gb' ? 'GB 14881-2013 食品安全国家标准 食品生产通用卫生规范' : standard}，建议关键限制如下：
 
 1. 杀菌工序 CCP-3：
-   - 中心温度：≥85℃
-   - 保持时间：≥15秒
+   - 中心温度：\u226585\u2103
+   - 保持时间：\u226515秒
    - 依据：GB 14881-2013 第5.2.1条
 
 2. 金属检测 CCP-4：
-   - Fe：≤1.5mm
-   - SUS：≤2.0mm
+   - Fe：\u22641.5mm
+   - SUS：\u22642.0mm
    - 依据：GB/T 25346-2010
 
 3. 原料验收 CCP-1：
    - 农药残留：符合GB 2763-2021
    - 重金属：符合GB 2762-2022`;
           if (result) result.innerHTML = `<div class="q15-ai-result">${demoResult.replace(/\n/g, '<br>')}</div>`;
-          if (hint) hint.textContent = '✓ AI建议已生成';
+          if (hint) hint.textContent = '\u2713 AI建议已生成';
           aiCriticalBtn.disabled = false;
         }, 800);
       });
@@ -1316,17 +1325,20 @@ const Questionnaire15min = (() => {
         if (hint) hint.textContent = 'AI分析中...';
         setTimeout(() => {
           data.monitoring = [
-            { id: genId(), ccp: 'CCP-3 杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013，温度偏差需≤±1℃' },
+            { id: genId(), ccp: 'CCP-3 杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013，温度偏差需\u2264\u00B11\u2103' },
             { id: genId(), ccp: 'CCP-4 金属检测', object: '金属异物', method: '在线金属检测仪自动检测', frequency: '连续监控', personnel: '设备维护人员+品控专员', remark: '依据GB/T 25346-2010' },
             { id: genId(), ccp: 'CCP-1 原料验收', object: '农药残留、重金属', method: '供应商检测报告+抽检验证', frequency: '每批次审核', personnel: '经培训的采购专员', remark: '依据GB 2763-2021、GB 2762-2022' },
           ];
           saveData(data);
-          if (hint) hint.textContent = '✓ AI规划完成';
+          if (hint) hint.textContent = '\u2713 AI规划完成';
           aiMonitorBtn.disabled = false;
           renderActiveSection();
         }, 1000);
       });
     }
+
+    // ---- 生产流程：流程图编辑（AI生成 + draw.io高级编辑）----
+    bindFlowchartButtons(data);
 
     // ---- 记录：导出表格 ----
     const exportBtn = content.querySelector('#exportTableBtn');
@@ -1364,18 +1376,546 @@ const Questionnaire15min = (() => {
     });
   }
 
+  // ==================== 可视化流程图（纯CSS+HTML，不依赖draw.io）====================
+
+  // 根据步骤生成可视化流程图HTML
+  function renderVisualFlowchart(steps) {
+    if (!steps || steps.length === 0 || !steps.some(s => s.stepName && s.stepName.trim())) {
+      return '<p style="color:var(--gray-400);font-style:italic;text-align:center;padding:20px;">暂无步骤数据</p>';
+    }
+    const validSteps = steps.filter(s => s.stepName && s.stepName.trim());
+    
+    let html = '<div class="q15-visual-flowchart">';
+    
+    // 开始节点
+    html += `
+      <div class="q15-vf-node start-end">
+        <div class="q15-vf-node-shape start">开始</div>
+        <div class="q15-vf-arrow-down"></div>
+      </div>
+    `;
+    
+    // 步骤节点
+    validSteps.forEach((step, i) => {
+      const isCCP = step.controlPoint && step.controlPoint.toLowerCase().indexOf('ccp') !== -1;
+      const ccpLabel = isCCP ? `<span class="q15-vf-ccp-badge">${step.controlPoint}</span>` : '';
+      
+      html += `
+        <div class="q15-vf-node">
+          <div class="q15-vf-node-shape ${isCCP ? 'ccp' : 'step'}">
+            <span class="q15-vf-step-num">${i + 1}</span>
+            <div class="q15-vf-step-content">
+              <strong>${esc(step.stepName)}</strong>
+              ${step.operationMethod ? `<p class="q15-vf-detail">方法：${esc(step.operationMethod)}</p>` : ''}
+              ${step.parameters ? `<p class="q15-vf-detail">参数：${esc(step.parameters)}</p>` : ''}
+              ${step.equipmentName ? `<p class="q15-vf-detail">设备：${esc(step.equipmentName)}</p>` : ''}
+            </div>
+            ${ccpLabel}
+          </div>
+          ${i < validSteps.length - 1 ? '<div class="q15-vf-arrow-down"></div>' : ''}
+        </div>
+      `;
+    });
+    
+    // 结束节点
+    html += `
+      <div class="q15-vf-node start-end">
+        <div class="q15-vf-arrow-down"></div>
+        <div class="q15-vf-node-shape end">结束</div>
+      </div>
+    `;
+    
+    html += '</div>';
+    return html;
+  }
+
+  // 渲染流程图预览区域（问卷中显示）
+  function renderFlowchartPreview(data) {
+    const hasSteps = data.processSteps && data.processSteps.some(s => s.stepName && s.stepName.trim());
+    
+    // 如果有流程图XML（从draw.io导入的），优先展示流程图
+    if (data.flowchartXml) {
+      return `
+        <div class="q15-flowchart-preview">
+          <div class="q15-flowchart-info">
+            <span class="q15-flowchart-icon">\u{1F4CA}</span>
+            <span>流程图已创建</span>
+            <span class="q15-flowchart-size">${(data.flowchartXml.length / 1024).toFixed(1)} KB</span>
+          </div>
+          <div class="q15-flowchart-actions">
+            <button class="btn btn-primary btn-sm" id="editDrawioBtn">\u270F\uFE0F draw.io编辑</button>
+            <button class="btn btn-secondary btn-sm" id="clearFlowchartBtn">\u{1F5D1}\uFE0F 清除</button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // 如果有流程步骤，展示可视化流程图 + AI生成按钮
+    if (hasSteps) {
+      return `
+        <div class="q15-vf-wrapper">
+          <div class="q15-vf-actions">
+            <button class="btn btn-primary" id="aiGenerateFlowchartBtn">\u{1F916} AI 生成流程图</button>
+            <button class="btn btn-primary" id="templateFlowchartBtn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">\u{1F4D0} 模板格式生成</button>
+            <button class="btn btn-secondary btn-sm" id="openDrawioBtn">\u{1F4DD} draw.io高级编辑</button>
+          </div>
+          <div id="q15VfContainer">${renderVisualFlowchart(data.processSteps)}</div>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="q15-flowchart-empty">
+        <div class="q15-flowchart-empty-icon">\u{1F4CA}</div>
+        <p>请先在上方填写操作步骤，AI将自动生成生产流程图</p>
+        <p style="font-size:12px;color:var(--gray-400);margin-top:8px;">支持在线编辑和导出</p>
+      </div>
+    `;
+  }
+
+  // 绑定流程图按钮事件
+  function bindFlowchartButtons(data) {
+    // AI生成流程图 - 调用后端API
+    const aiBtn = document.getElementById('aiGenerateFlowchartBtn');
+    if (aiBtn) {
+      aiBtn.addEventListener('click', async () => {
+        // 先保存当前数据
+        const content = document.getElementById('q15Content');
+        if (content) collectSectionData(content, data);
+        
+        // 从问卷数据收集产品信息
+        const productName = data.productName || '';
+        const rawMaterials = data.rawMaterials || '';
+        const storageCondition = data.storageCondition || '';
+        const processDesc = (data.processSteps || []).map(s => s.stepName).filter(Boolean).join(' → ') || '';
+        const additionalInfo = data.intendedUse || data.packagingMethod || '';
+        
+        if (!productName && !processDesc) {
+          alert('请至少填写产品名称或操作步骤，以便AI生成流程图');
+          return;
+        }
+        
+        aiBtn.disabled = true;
+        aiBtn.innerHTML = '\u23F3 AI生成中...';
+        
+        try {
+          const resp = await fetch('/api/ai/generate-flowchart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_name: productName,
+              raw_materials: rawMaterials,
+              process_description: processDesc,
+              storage_condition: storageCondition,
+              additional_info: additionalInfo,
+            }),
+          });
+          
+          const result = await resp.json();
+          if (!resp.ok) throw new Error(result.detail || '生成失败');
+          
+          if (result.ok && result.data && result.data.steps) {
+            // 把AI生成的步骤填充到processSteps
+            const newSteps = result.data.steps.map(s => ({
+              id: genId(),
+              stepName: s.stepName || '',
+              operationMethod: s.operationMethod || '',
+              parameters: s.parameters || '',
+              controlPoint: s.controlPoint || '',
+              equipmentName: s.equipmentName || '',
+            }));
+            
+            if (newSteps.length > 0) {
+              data.processSteps = newSteps;
+              saveData(data);
+              
+              // 刷新可视化流程图
+              const vfContainer = document.getElementById('q15VfContainer');
+              if (vfContainer) {
+                vfContainer.innerHTML = renderVisualFlowchart(data.processSteps);
+              }
+              
+              // 如果有编辑按钮区域，显示成功提示
+              aiBtn.innerHTML = '\u2713 已生成（' + newSteps.length + '步）';
+              aiBtn.className = 'btn btn-success';
+              setTimeout(() => {
+                aiBtn.innerHTML = '\u{1F916} AI 重新生成';
+                aiBtn.className = 'btn btn-primary';
+                aiBtn.disabled = false;
+              }, 3000);
+            }
+          }
+        } catch (err) {
+          console.error('AI生成流程图失败:', err);
+          aiBtn.innerHTML = '\u274C 生成失败，使用前端生成';
+          setTimeout(() => {
+            // 前端降级：基于已有步骤生成可视化
+            const vfContainer = document.getElementById('q15VfContainer');
+            if (vfContainer) {
+              vfContainer.innerHTML = renderVisualFlowchart(data.processSteps);
+            }
+            aiBtn.innerHTML = '\u{1F916} AI 重新生成';
+            aiBtn.className = 'btn btn-primary';
+            aiBtn.disabled = false;
+          }, 2000);
+        }
+      });
+    }
+    
+    // 模板格式生成按钮 - 按照双栏模板布局直接生成并打开draw.io
+    const templateBtn = document.getElementById('templateFlowchartBtn');
+    if (templateBtn) {
+      templateBtn.addEventListener('click', () => {
+        // 先保存当前表单数据
+        const content = document.getElementById('q15Content');
+        if (content) collectSectionData(content, data);
+        saveData(data);
+        
+        // 检查是否有步骤数据
+        const validSteps = data.processSteps.filter(s => s.stepName && s.stepName.trim());
+        if (validSteps.length === 0) {
+          alert('请先填写至少一个操作步骤');
+          return;
+        }
+        
+        // 使用generateDrawioXml生成双栏模板布局的XML
+        const xml = generateDrawioXml(data.processSteps);
+        if (!xml) {
+          alert('生成流程图失败，请检查步骤数据');
+          return;
+        }
+        
+        // 保存到flowchartXml并打开draw.io编辑器
+        data.flowchartXml = xml;
+        saveData(data);
+        
+        // 刷新预览区域
+        const area = document.getElementById('flowchartArea');
+        if (area) {
+          area.innerHTML = renderFlowchartPreview(data);
+          bindFlowchartButtons(data);
+        }
+        
+        // 自动打开draw.io编辑器
+        openDrawioEditor(data);
+      });
+    }
+    
+    // draw.io编辑按钮
+    const drawioBtn = document.getElementById('openDrawioBtn');
+    if (drawioBtn) {
+      drawioBtn.addEventListener('click', () => {
+        openDrawioEditor(data);
+      });
+    }
+    
+    const editDrawioBtn = document.getElementById('editDrawioBtn');
+    if (editDrawioBtn) {
+      editDrawioBtn.addEventListener('click', () => {
+        openDrawioEditor(data);
+      });
+    }
+    
+    // 清除流程图
+    const clearBtn = document.getElementById('clearFlowchartBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (confirm('确定清除流程图XML？')) {
+          data.flowchartXml = '';
+          saveData(data);
+          const area = document.getElementById('flowchartArea');
+          if (area) {
+            area.innerHTML = renderFlowchartPreview(data);
+            bindFlowchartButtons(data);
+          }
+        }
+      });
+    }
+  }
+
+  // ==================== draw.io 流程图编辑器（保留作为高级选项）====================
+  const DRAWIO_BASE = 'https://embed.diagrams.net/';
+
+  function xesc(s) {
+    if (!s) return '';
+    var amp = '&' + 'a' + 'm' + 'p' + ';';
+    var lt = '&' + 'l' + 't' + ';';
+    var gt = '&' + 'g' + 't' + ';';
+    var quot = '&' + 'q' + 'u' + 'o' + 't' + ';';
+    return String(s).replace(/[&]/g, amp).replace(/[<]/g, lt).replace(/[>]/g, gt).replace(/["]/g, quot);
+  }
+
+  function generateDrawioXml(steps) {
+    if (!steps || steps.length === 0 || !steps.some(s => s.stepName)) return null;
+    const validSteps = steps.filter(s => s.stepName && s.stepName.trim());
+    const totalSteps = validSteps.length;
+    if (totalSteps === 0) return null;
+
+    // 两栏模板布局参数（参考菊粉工艺模板）
+    const COL1_X = 100;
+    const COL2_X = 450;
+    const STEP_W = 160;
+    const STEP_H = 50;
+    const START_Y = 40;
+    const GAP_Y = 100;
+    const BADGE_W = 52;
+    const BADGE_H = 18;
+
+    // 步骤数少时使用单栏，否则分两栏
+    const useSingleCol = totalSteps <= 4;
+    const half = useSingleCol ? totalSteps : Math.ceil(totalSteps / 2);
+    const leftCol = validSteps.slice(0, half);
+    const rightCol = validSteps.slice(half);
+
+    var xml = '<?xml version="1.0" encoding="UTF-8"?><mxfile host="HACCP" modified="' + new Date().toISOString() + '" version="21.3.7"><diagram id="haccp_flow" name="生产流程图"><mxGraphModel dx="0" dy="0" grid="10" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="' + Math.max(900, START_Y + 70 + Math.max(leftCol.length, rightCol.length) * GAP_Y + 120) + '" background="#ffffff"><root><mxCell id="0"/><mxCell id="1" parent="0"/>';
+    var cellIdx = 2, edgeCount = 0;
+    var prevLeftCell = null, prevRightCell = null, lastLeftCell = null;
+
+    // 开始节点（居中于左栏上方）
+    var startX = useSingleCol ? COL1_X + 20 : COL1_X + 20;
+    xml += '<mxCell id="' + cellIdx + '" value="开始" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#43a047;fontStyle=1;fontSize=13;fontColor=#2e7d32;" vertex="1" parent="1"><mxGeometry x="' + startX + '" y="' + START_Y + '" width="120" height="40" as="geometry"/></mxCell>';
+    var startCellId = cellIdx++;
+    prevLeftCell = startCellId;
+
+    // 左栏步骤
+    for (var i = 0; i < leftCol.length; i++) {
+      var s = leftCol[i];
+      var y = START_Y + 70 + i * GAP_Y;
+      var cellId = cellIdx++;
+
+      var label = '<b>' + (i + 1) + '. ' + xesc(s.stepName.trim()) + '</b>';
+      if (s.equipmentName) label += '<br><span style="font-size:9px;color:#666666;">设备: ' + xesc(s.equipmentName.trim()) + '</span>';
+      if (s.parameters) label += '<br><span style="font-size:9px;color:#888888;">参数: ' + xesc(s.parameters.trim()) + '</span>';
+      if (s.operationMethod && !s.equipmentName) label += '<br><span style="font-size:9px;color:#888888;">方法: ' + xesc(s.operationMethod.trim()) + '</span>';
+
+      var isCCP = s.controlPoint && s.controlPoint.toLowerCase().indexOf('ccp') !== -1;
+      var isOPRP = s.controlPoint && s.controlPoint.toLowerCase().indexOf('oprp') !== -1;
+      var fillColor = '#ffffff', strokeColor = '#1976d2';
+      if (isCCP) { fillColor = '#fff3e0'; strokeColor = '#ff9800'; }
+      else if (isOPRP) { fillColor = '#e8f5e9'; strokeColor = '#43a047'; }
+
+      var cellStyle = 'rounded=0;whiteSpace=wrap;html=1;fillColor=' + fillColor + ';strokeColor=' + strokeColor + ';fontSize=11;fontColor=#333333;arcSize=8;verticalAlign=middle;align=left;spacingLeft=8;';
+      xml += '<mxCell id="' + cellId + '" value="' + label + '" style="' + cellStyle + '" vertex="1" parent="1"><mxGeometry x="' + COL1_X + '" y="' + y + '" width="' + STEP_W + '" height="' + STEP_H + '" as="geometry"/></mxCell>';
+
+      // 控制点角标（CCP/OPRP 标签）
+      if (isCCP || isOPRP) {
+        var badgeId = cellIdx++;
+        var badgeColor = isCCP ? '#ff9800' : '#43a047';
+        xml += '<mxCell id="' + badgeId + '" value="' + xesc(s.controlPoint) + '" style="rounded=1;whiteSpace=wrap;html=1;fillColor=' + badgeColor + ';strokeColor=' + badgeColor + ';fontSize=9;fontColor=#ffffff;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="' + (COL1_X + STEP_W - BADGE_W + 2) + '" y="' + (y - 9) + '" width="' + BADGE_W + '" height="' + BADGE_H + '" as="geometry"/></mxCell>';
+      }
+
+      // 箭头：上一节点 -> 当前节点
+      if (prevLeftCell) {
+        xml += '<mxCell id="e' + (edgeCount++) + '" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#90a4ae;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="' + prevLeftCell + '" target="' + cellId + '"><mxGeometry relative="1" as="geometry"/></mxCell>';
+      }
+      prevLeftCell = cellId;
+      lastLeftCell = cellId;
+    }
+
+    // 右栏步骤（仅在双栏模式下）
+    if (!useSingleCol) {
+      for (var i = 0; i < rightCol.length; i++) {
+        var s = rightCol[i];
+        var idx = leftCol.length + i;
+        var y = START_Y + 70 + i * GAP_Y;
+        var cellId = cellIdx++;
+
+        var label = '<b>' + (idx + 1) + '. ' + xesc(s.stepName.trim()) + '</b>';
+        if (s.equipmentName) label += '<br><span style="font-size:9px;color:#666666;">设备: ' + xesc(s.equipmentName.trim()) + '</span>';
+        if (s.parameters) label += '<br><span style="font-size:9px;color:#888888;">参数: ' + xesc(s.parameters.trim()) + '</span>';
+        if (s.operationMethod && !s.equipmentName) label += '<br><span style="font-size:9px;color:#888888;">方法: ' + xesc(s.operationMethod.trim()) + '</span>';
+
+        var isCCP = s.controlPoint && s.controlPoint.toLowerCase().indexOf('ccp') !== -1;
+        var isOPRP = s.controlPoint && s.controlPoint.toLowerCase().indexOf('oprp') !== -1;
+        var fillColor = '#ffffff', strokeColor = '#1976d2';
+        if (isCCP) { fillColor = '#fff3e0'; strokeColor = '#ff9800'; }
+        else if (isOPRP) { fillColor = '#e8f5e9'; strokeColor = '#43a047'; }
+
+        var cellStyle = 'rounded=0;whiteSpace=wrap;html=1;fillColor=' + fillColor + ';strokeColor=' + strokeColor + ';fontSize=11;fontColor=#333333;arcSize=8;verticalAlign=middle;align=left;spacingLeft=8;';
+        xml += '<mxCell id="' + cellId + '" value="' + label + '" style="' + cellStyle + '" vertex="1" parent="1"><mxGeometry x="' + COL2_X + '" y="' + y + '" width="' + STEP_W + '" height="' + STEP_H + '" as="geometry"/></mxCell>';
+
+        // 控制点角标
+        if (isCCP || isOPRP) {
+          var badgeId = cellIdx++;
+          var badgeColor = isCCP ? '#ff9800' : '#43a047';
+          xml += '<mxCell id="' + badgeId + '" value="' + xesc(s.controlPoint) + '" style="rounded=1;whiteSpace=wrap;html=1;fillColor=' + badgeColor + ';strokeColor=' + badgeColor + ';fontSize=9;fontColor=#ffffff;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="' + (COL2_X + STEP_W - BADGE_W + 2) + '" y="' + (y - 9) + '" width="' + BADGE_W + '" height="' + BADGE_H + '" as="geometry"/></mxCell>';
+        }
+
+        // 箭头
+        if (prevRightCell) {
+          xml += '<mxCell id="e' + (edgeCount++) + '" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#90a4ae;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="' + prevRightCell + '" target="' + cellId + '"><mxGeometry relative="1" as="geometry"/></mxCell>';
+        } else if (lastLeftCell) {
+          // 左栏最后一节点 -> 右栏第一节点（跨栏连接线）
+          var leftY = START_Y + 70 + (leftCol.length - 1) * GAP_Y + STEP_H + 5;
+          xml += '<mxCell id="e' + (edgeCount++) + '" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#90a4ae;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="' + lastLeftCell + '" target="' + cellId + '"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="' + (COL1_X + STEP_W / 2) + '" y="' + leftY + '"/><mxPoint x="' + (COL2_X + STEP_W / 2) + '" y="' + (y - 15) + '"/><mxPoint x="' + (COL2_X + STEP_W / 2) + '" y="' + y + '"/></Array></mxGeometry></mxCell>';
+        }
+        prevRightCell = cellId;
+      }
+    }
+
+    // 结束节点
+    var lastCol = useSingleCol ? leftCol : rightCol;
+    var lastColLen = useSingleCol ? leftCol.length : rightCol.length;
+    var endY = lastColLen > 0
+      ? START_Y + 70 + (lastColLen - 1) * GAP_Y + STEP_H + 40
+      : START_Y + 70 + 40;
+    var lastCell = useSingleCol ? prevLeftCell : (prevRightCell || prevLeftCell);
+    var endX = useSingleCol ? COL1_X + 20 : COL2_X + 20;
+    xml += '<mxCell id="' + cellIdx + '" value="结束" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#e53935;fontStyle=1;fontSize=13;fontColor=#c62828;" vertex="1" parent="1"><mxGeometry x="' + endX + '" y="' + endY + '" width="120" height="40" as="geometry"/></mxCell>';
+    if (lastCell) {
+      xml += '<mxCell id="e' + (edgeCount++) + '" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#90a4ae;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="' + lastCell + '" target="' + cellIdx + '"><mxGeometry relative="1" as="geometry"/></mxCell>';
+    }
+    cellIdx++;
+
+    xml += '</root></mxGraphModel></diagram></mxfile>';
+    return xml;
+  }
+
+  function openDrawioEditor(data) {
+    const xml = data.flowchartXml || generateDrawioXml(data.processSteps);
+    if (!xml) { alert('请先填写操作步骤'); return; }
+
+    // 将 XML 通过 data URI 传递给 draw.io（更可靠的方式）
+    // 同时保留 postMessage 作为备选
+    var encodedXml = encodeURIComponent(xml);
+    // draw.io 的新版 embed 接口：通过 #H 哈希参数直接传入 XML
+    var drawioUrl = DRAWIO_BASE + '?embed=1&spin=1&stealth=1&layers=1&ui=min#H' + encodedXml;
+
+    document.body.insertAdjacentHTML('beforeend', [
+      '<div class="q15-drawio-modal-overlay" id="drawioModal">',
+      '<div class="q15-drawio-modal">',
+      '<div class="q15-drawio-toolbar">',
+      '<span class="q15-drawio-title">draw.io 流程图编辑器</span>',
+      '<div class="q15-drawio-toolbar-actions">',
+      '<span id="drawioStatus" style="font-size:12px;color:var(--gray-400);">加载中...</span>',
+      '<button class="btn btn-secondary btn-sm" id="drawioSaveBtn" disabled>\u{1F4BE} 保存</button>',
+      '<button class="btn btn-primary btn-sm" id="drawioDoneBtn">\u2713 完成编辑</button>',
+      '<button class="q15-drawio-close" id="drawioCloseBtn">&times;</button>',
+      '</div></div>',
+      '<iframe class="q15-drawio-iframe" id="drawioIframe" src="' + drawioUrl + '" allowfullscreen></iframe>',
+      '</div></div>'
+    ].join(''));
+
+    const iframe = document.getElementById('drawioIframe');
+    const saveBtn = document.getElementById('drawioSaveBtn');
+    const doneBtn = document.getElementById('drawioDoneBtn');
+    const closeBtn = document.getElementById('drawioCloseBtn');
+    const statusEl = document.getElementById('drawioStatus');
+    var drawioReady = false;
+    var xmlLoaded = false;
+
+    function setStatus(msg) {
+      if (statusEl) statusEl.textContent = msg;
+    }
+
+    // 监听 draw.io 消息
+    function handleMsg(e) {
+      try {
+        var msg = JSON.parse(e.data);
+
+        // draw.io 就绪事件
+        if (msg.event === 'init') {
+          drawioReady = true;
+          setStatus('\u2713 就绪');
+          saveBtn.disabled = false;
+          saveBtn.textContent = '\u{1F4BE} 保存';
+          // 如果 XML 未加载（URL方式可能失败），通过postMessage再发一次
+          if (!xmlLoaded) {
+            setTimeout(function() {
+              iframe.contentWindow.postMessage(JSON.stringify({ action: 'load', xml: xml, autosave: 0 }), '*');
+              xmlLoaded = true;
+            }, 500);
+          }
+          return;
+        }
+
+        // draw.io 保存事件
+        if (msg.event === 'save') {
+          data.flowchartXml = msg.xml;
+          saveData(data);
+          saveBtn.textContent = '\u2713 已保存';
+          saveBtn.className = 'btn btn-success btn-sm';
+          setTimeout(function() {
+            saveBtn.textContent = '\u{1F4BE} 保存';
+            saveBtn.className = 'btn btn-secondary btn-sm';
+          }, 2000);
+          return;
+        }
+
+        // draw.io 导出事件（保存按钮点击后触发）
+        if (msg.event === 'export') {
+          if (msg.xml) {
+            data.flowchartXml = msg.xml;
+            saveData(data);
+          }
+          return;
+        }
+      } catch (err) {}
+    }
+    window.addEventListener('message', handleMsg);
+
+    // 保存按钮
+    saveBtn.onclick = function() {
+      iframe.contentWindow.postMessage(JSON.stringify({ action: 'export' }), '*');
+    };
+
+    // 超时保护：如果 draw.io 10秒内没有响应 init 事件，尝试 postMessage 手动加载
+    var initTimeout = setTimeout(function() {
+      if (!drawioReady) {
+        setStatus('\u26A0\uFE0F 重试加载...');
+        try {
+          iframe.contentWindow.postMessage(JSON.stringify({ action: 'load', xml: xml, autosave: 1 }), '*');
+          xmlLoaded = true;
+          saveBtn.disabled = false;
+          setTimeout(function() { setStatus('\u2713 已加载'); }, 1000);
+        } catch (err) {
+          setStatus('\u274C 加载失败，请检查网络');
+        }
+      }
+    }, 10000);
+
+    // 额外保护：iframe onload 后也尝试发送
+    iframe.onload = function() {
+      if (!drawioReady && !xmlLoaded) {
+        setTimeout(function() {
+          try {
+            iframe.contentWindow.postMessage(JSON.stringify({ action: 'load', xml: xml, autosave: 1 }), '*');
+            xmlLoaded = true;
+            saveBtn.disabled = false;
+          } catch (e) {}
+        }, 2000);
+      }
+    };
+
+    function closeDrawio() {
+      clearTimeout(initTimeout);
+      // 关闭前导出保存
+      try {
+        iframe.contentWindow.postMessage(JSON.stringify({ action: 'export' }), '*');
+      } catch (e) {}
+      setTimeout(function() {
+        window.removeEventListener('message', handleMsg);
+        var modal = document.getElementById('drawioModal');
+        if (modal) modal.remove();
+        var area = document.getElementById('flowchartArea');
+        if (area) { area.innerHTML = renderFlowchartPreview(data); bindFlowchartButtons(data); }
+      }, 500);
+    }
+
+    doneBtn.onclick = closeDrawio;
+    closeBtn.onclick = closeDrawio;
+    document.getElementById('drawioModal').onclick = function(e) { if (e.target === this) closeDrawio(); };
+  }
+
   // ==================== 提交问卷 ====================
   function submitQuestionnaire(data) {
-    // 最终收集所有数据
     const finalData = loadData();
-    // 保存完整数据
     localStorage.setItem('haccp_15min_submitted', JSON.stringify(finalData));
     localStorage.setItem('haccp_submitted', 'true');
     localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
 
     alert('问卷提交成功！\n\n您的HACCP问卷信息已保存，可前往「查看结果」页面查看。');
 
-    // 导航到结果页
     App.navigateTo('results');
   }
 

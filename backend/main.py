@@ -161,6 +161,14 @@ class FillFromTextRequest(BaseModel):
     text: str
 
 
+class GenerateFlowchartRequest(BaseModel):
+    product_name: str = ""
+    raw_materials: str = ""
+    process_description: str = ""
+    storage_condition: str = ""
+    additional_info: str = ""
+
+
 # ===== 用户认证接口 =====
 
 @app.post("/api/auth/register")
@@ -413,6 +421,142 @@ def _mock_fill_from_text(text: str) -> dict:
     if m: data["shelfLife"] = m.group(1).strip()
 
     return {"ok": True, "data": data}
+
+
+FLOWCHART_PROMPT = """你是一位专业的食品生产工艺工程师。请根据用户提供的产品信息，设计一份详细、合理、符合HACCP标准的生产工艺流程图步骤。
+
+请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）：
+
+{
+  "steps": [
+    {
+      "stepName": "步骤名称",
+      "operationMethod": "具体操作方法",
+      "parameters": "工艺参数（如温度、时间、转速等）",
+      "controlPoint": "控制点/关键控制点说明，如果是CCP则标注CCP-X",
+      "equipmentName": "使用的设备名称"
+    }
+  ]
+}
+
+要求：
+1. 步骤应涵盖从原料接收到成品入库/出厂的完整过程
+2. 每个步骤的工艺参数要具体、可操作
+3. 根据HACCP原则标注关键控制点（CCP）
+4. 步骤数量：5-10个
+5. 每一步的操作方法要详细
+6. 返回的JSON中steps数组不能为空"""
+
+
+@app.post("/api/ai/generate-flowchart")
+async def api_ai_generate_flowchart(req: GenerateFlowchartRequest):
+    """根据产品信息AI生成生产流程图步骤"""
+
+    # 构建用户输入信息
+    user_info = f"产品名称：{req.product_name}\n原料：{req.raw_materials}\n工艺描述：{req.process_description}\n储存条件：{req.storage_condition}\n补充信息：{req.additional_info}"
+    if not user_info.strip():
+        raise HTTPException(status_code=400, detail="请输入产品相关信息")
+
+    # 如果 API Key 是默认值，返回 mock 数据
+    if DEEPSEEK_API_KEY == "sk-your-deepseek-api-key-here" or not DEEPSEEK_API_KEY:
+        return _mock_generate_flowchart(req)
+
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": FLOWCHART_PROMPT},
+            {"role": "user", "content": f"请为我设计以下产品的生产工艺流程图步骤：\n\n{user_info}"}
+        ],
+        "temperature": 0.4,
+        "max_tokens": 4096,
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+    }
+
+    try:
+        json_data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        http_req = urllib.request.Request(
+            DEEPSEEK_API_URL,
+            data=json_data,
+            headers=headers,
+            method="POST",
+        )
+        with urllib.request.urlopen(http_req, timeout=60) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            content = result["choices"][0]["message"]["content"]
+
+        # 清理返回内容
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines[-1].strip() == "```":
+                lines = lines[:-1]
+            cleaned = "\n".join(lines)
+
+        parsed = json.loads(cleaned)
+        return {"ok": True, "data": parsed}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+def _mock_generate_flowchart(req: GenerateFlowchartRequest) -> dict:
+    """当未配置真实 API Key 时，根据产品信息生成模拟流程图"""
+    product = req.product_name or "食品"
+    raw_materials = req.raw_materials or "主原料、辅料"
+
+    # 根据产品类型生成不同的流程图
+    product_lower = product.lower()
+
+    if "饮料" in product or "乳" in product or "果汁" in product:
+        steps = [
+            {"stepName": "原料验收", "operationMethod": "检查供应商检测报告，核对原料批次、生产日期，感官检查", "parameters": "温度≤25℃", "controlPoint": "CCP-1 原料接收", "equipmentName": ""},
+            {"stepName": "预处理", "operationMethod": "原料清洗、去皮、去核，按配方称量", "parameters": "清洗水温≤30℃，时间≥2min", "controlPoint": "", "equipmentName": "清洗机、称量设备"},
+            {"stepName": "调配混料", "operationMethod": "按配方将原料、辅料、添加剂投入调配罐，搅拌均匀", "parameters": "转速150-200rpm，搅拌时间15-20min，温度≤10℃", "controlPoint": "", "equipmentName": "调配罐、搅拌器"},
+            {"stepName": "均质", "operationMethod": "将混合液通过均质机处理，使组织均匀细腻", "parameters": "均质压力20-30MPa，温度60-70℃", "controlPoint": "", "equipmentName": "均质机"},
+            {"stepName": "杀菌", "operationMethod": "采用超高温瞬时杀菌（UHT）或巴氏杀菌", "parameters": "UHT:136-140℃，4-6s；巴氏:85-95℃，15-30s", "controlPoint": "CCP-2 杀菌工序", "equipmentName": "板式换热器/UHT杀菌机"},
+            {"stepName": "无菌灌装", "operationMethod": "在无菌环境下灌装至洁净包装容器，封口", "parameters": "灌装温度≤30℃，环境洁净度万级", "controlPoint": "CCP-3 灌装工序", "equipmentName": "无菌灌装机"},
+            {"stepName": "灯检", "operationMethod": "通过灯检设备检查产品外观、密封性、异物", "parameters": "光照强度≥1000lux，传送速度≤10m/min", "controlPoint": "", "equipmentName": "灯检机"},
+            {"stepName": "喷码/包装", "operationMethod": "瓶身喷印生产日期、批号，装盒/装箱", "parameters": "喷码清晰可辨，包装严密", "controlPoint": "", "equipmentName": "喷码机、包装机"},
+            {"stepName": "成品检验", "operationMethod": "按标准抽样进行微生物、理化、感官检验", "parameters": "抽样比例≥3‰，检验标准GB/T 27306", "controlPoint": "", "equipmentName": "实验室设备"},
+            {"stepName": "入库/出厂", "operationMethod": "检验合格品入库，不合格品隔离处理", "parameters": "库温≤25℃，湿度≤65%", "controlPoint": "", "equipmentName": "叉车"},
+        ]
+    elif "肉" in product or "鱼" in product or "水产" in product:
+        steps = [
+            {"stepName": "原料验收", "operationMethod": "检查原料肉/水产的检疫证明、新鲜度、中心温度", "parameters": "中心温度≤4℃，pH值5.8-6.2", "controlPoint": "CCP-1 原料接收", "equipmentName": ""},
+            {"stepName": "解冻/清洗", "operationMethod": "自然解冻或流动水解冻，去除不可食部分，清水漂洗", "parameters": "解冻温度≤15℃（水冷），清洗水温≤10℃", "controlPoint": "", "equipmentName": "解冻槽、清洗槽"},
+            {"stepName": "修割/切分", "operationMethod": "去除筋膜、淤血、碎骨，按规格切分成型", "parameters": "环境温度≤12℃，切分厚度均匀±2mm", "controlPoint": "", "equipmentName": "切肉机、刀具"},
+            {"stepName": "腌制/调味", "operationMethod": "按配方添加腌料、香辛料，真空滚揉或静置腌制", "parameters": "腌制温度0-4℃，滚揉时间30-60min", "controlPoint": "", "equipmentName": "真空滚揉机"},
+            {"stepName": "热处理", "operationMethod": "蒸煮/油炸/烘烤至中心温度达标", "parameters": "中心温度≥75℃，时间≥30s", "controlPoint": "CCP-2 热处理工序", "equipmentName": "蒸煮柜/油炸线/烤箱"},
+            {"stepName": "冷却", "operationMethod": "产品快速冷却至包装温度", "parameters": "中心温度降至≤10℃，冷却时间≤60min", "controlPoint": "", "equipmentName": "速冷装置/冷却间"},
+            {"stepName": "金属检测", "operationMethod": "产品通过金属检测仪，检测金属异物", "parameters": "Fe≥1.5mm，SUS≥2.0mm", "controlPoint": "CCP-3 金属检测", "equipmentName": "金属检测仪"},
+            {"stepName": "气调/真空包装", "operationMethod": "在包装机内充入保护气体或抽真空后封口", "parameters": "残氧量≤1%，封口温度140-160℃", "controlPoint": "", "equipmentName": "气调包装机/真空包装机"},
+            {"stepName": "二次杀菌（可选）", "operationMethod": "包装后巴氏杀菌，延长保质期", "parameters": "中心温度80-85℃，保持10-15min", "controlPoint": "", "equipmentName": "杀菌釜"},
+            {"stepName": "入库冷藏", "operationMethod": "快速入冷库，温度监控记录", "parameters": "库温0-4℃（冷藏）/ -18℃（冷冻）", "controlPoint": "", "equipmentName": "冷库"},
+        ]
+    else:
+        steps = [
+            {"stepName": "原料验收", "operationMethod": f"检查{raw_materials}的供应商检测报告、合格证明及感官质量", "parameters": "温度≤25℃，湿度≤65%", "controlPoint": "CCP-1 原料接收", "equipmentName": ""},
+            {"stepName": "预处理/清洗", "operationMethod": "对原料进行分选、清洗、去皮/去壳等预处理", "parameters": "清洗水温≤30℃，清洗时间≥3min", "controlPoint": "", "equipmentName": "清洗槽/分选机"},
+            {"stepName": "称量/配料", "operationMethod": "按配方精确称量各原料、辅料和添加剂", "parameters": "称量精度±1g，复核检验", "controlPoint": "", "equipmentName": "电子秤、配料罐"},
+            {"stepName": "混合/搅拌", "operationMethod": "将各物料投入混合设备，搅拌均匀", "parameters": "搅拌转速120-180rpm，时间10-20min", "controlPoint": "", "equipmentName": "混合机/搅拌机"},
+            {"stepName": "成型/加工", "operationMethod": "根据产品特性进行成型、挤压、切割等加工", "parameters": "成型温度25-35℃，压力0.2-0.5MPa", "controlPoint": "", "equipmentName": "成型机/模具"},
+            {"stepName": "杀菌/热处理", "operationMethod": "根据产品特性选择杀菌方式，确保微生物安全", "parameters": "中心温度≥85℃，保持时间≥15s", "controlPoint": "CCP-2 杀菌工序", "equipmentName": "杀菌釜/隧道式杀菌机"},
+            {"stepName": "金属检测/异物检测", "operationMethod": "产品通过金属检测仪，检测并剔除含金属异物的产品", "parameters": "Fe≥1.0mm，SUS≥1.5mm", "controlPoint": "CCP-3 金属检测", "equipmentName": "金属检测仪"},
+            {"stepName": "内包装", "operationMethod": "在洁净环境中按规格进行内包装，密封", "parameters": "环境洁净度万级，封口温度130-150℃", "controlPoint": "", "equipmentName": "包装机"},
+            {"stepName": "外包装/喷码", "operationMethod": "装箱、喷印生产日期、批号、追溯码", "parameters": "喷码清晰，标识完整", "controlPoint": "", "equipmentName": "喷码机、封箱机"},
+            {"stepName": "成品检验入库", "operationMethod": "按标准抽样检验，合格品入库，不合格品隔离", "parameters": "抽样比例≥5‰，检验按产品执行标准", "controlPoint": "", "equipmentName": "实验室设备"},
+        ]
+
+    return {"ok": True, "data": {"steps": steps}}
 
 
 # ===== 兼容旧接口（用户端使用）=====
