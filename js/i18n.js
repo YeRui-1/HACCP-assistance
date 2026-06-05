@@ -159,6 +159,16 @@ const I18n = (() => {
     'auth.companyNameError':  ['企业名称不能为空', 'Company name cannot be empty'],
     'auth.cancel':            ['取消', 'Cancel'],
     'auth.loading':           ['处理中...', 'Loading...'],
+
+    // ===== 流程图查看器 =====
+    'fc.title':               ['菊粉生产工艺流程图', 'Inulin Production Process Flowchart'],
+    'fc.subtitle':            ['展示从菊芋验收到成品储存的完整生产工艺流程，包含关键控制点(CCP)与操作性前提方案(OPRP)', 'Complete production process from Jerusalem artichoke receiving to final product storage, including CCPs and OPRPs'],
+    'fc.hint':                ['🖱️ 滚轮缩放 · 拖拽平移', '🖱️ Scroll to zoom · Drag to pan'],
+    'fc.loading':             ['正在加载 Mermaid 渲染引擎...', 'Loading Mermaid render engine...'],
+    'fc.errorTitle':          ['加载失败', 'Load Failed'],
+    'fc.errorDesc':           ['无法加载 Mermaid 渲染库，请检查网络连接', 'Unable to load Mermaid render library, please check network'],
+    'fc.legend':              ['图 例', 'Legend'],
+    'nav.flowchart':          ['工艺流程图', 'Flowchart'],
   };
 
   let currentLang = 'zh';

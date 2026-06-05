@@ -60,6 +60,11 @@ const App = (() => {
     } else if (page === 'admin') {
       translatePage();
       Admin.init();
+    } else if (page === 'flowchart') {
+      translatePage();
+      if (typeof FlowchartViewer !== 'undefined') {
+        FlowchartViewer.init();
+      }
     }
   }
 
@@ -336,6 +341,14 @@ const App = (() => {
 
   function init() {
     translatePage();
+
+    // 工艺流程图
+    var btnFlowchart = getEl('btnFlowchart');
+    if (btnFlowchart) {
+      btnFlowchart.addEventListener('click', function() {
+        navigateTo('flowchart');
+      });
+    }
 
     // 管理员
     getEl('btnAdmin').addEventListener('click', handleAdminClick);

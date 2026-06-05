@@ -18,6 +18,7 @@
       <div class="header-actions">
         <button class="btn-lang" id="btnLang" title="Switch Language">EN</button>
         <button class="btn-header" id="btnAuth" style="display:none;"></button>
+        <button class="btn-flowchart" id="btnFlowchart"><span class="fc-nav-icon">📊</span> <span data-i18n="nav.flowchart">工艺流程图</span></button>
         <button class="btn-admin" id="btnAdmin" data-i18n="nav.admin">管理</button>
       </div>
     </div>
@@ -87,6 +88,19 @@
     <!-- 管理页 -->
     <section id="admin" class="page">
       <div id="adminContainer"></div>
+    </section>
+
+    <!-- 工艺流程图页 -->
+    <section id="flowchart" class="page">
+      <div class="fc-page">
+        <div class="fc-header">
+          <h1 data-i18n="fc.title">菊粉生产工艺流程图</h1>
+          <p data-i18n="fc.subtitle">展示从菊芋验收到成品储存的完整生产工艺流程，包含关键控制点(CCP)与操作性前提方案(OPRP)</p>
+        </div>
+        <div class="fc-viewer-wrapper">
+          <div id="flowchartContainer"></div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -168,6 +182,15 @@
   <script>
     // 需要加载的库列表
     var _libsToLoad = [
+      {
+        name: 'mermaid',
+        check: function() { return typeof mermaid !== 'undefined' && typeof mermaid.run === 'function'; },
+        urls: [
+          'https://cdn.bootcdn.net/ajax/libs/mermaid/10.9.1/mermaid.min.js',
+          'https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js'
+        ]
+      },
       {
         name: 'mammoth',
         check: function() { return typeof mammoth !== 'undefined'; },
@@ -256,10 +279,12 @@
       var scripts = [
         'js/i18n.js',
         'js/mock-data.js',
+        'js/flowchart-data.js',
         'js/admin.js',
         'js/questionnaire.js',
         'js/questionnaire-15min.js',
         'js/results.js',
+        'js/flowchart-viewer.js',
         'js/app.js'
       ];
       function loadNextScript() {

@@ -1071,3 +1071,174 @@ body {
   border: 6px solid transparent;
   border-top-color: #78909c;
 }
+
+/* ===== Mermaid 工艺流程图查看器 ===== */
+.fc-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.fc-page .fc-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.fc-page .fc-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+.fc-page .fc-header p {
+  font-size: 14px;
+  color: var(--gray-400);
+  line-height: 1.6;
+}
+.fc-viewer-wrapper {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-100);
+  overflow: auto;
+  position: relative;
+  min-height: 600px;
+  height: calc(100vh - 200px);
+  padding: 24px;
+}
+#flowchartContainer {
+  min-height: 500px;
+  position: relative;
+}
+#flowchartContainer .mermaid {
+  text-align: center;
+  margin: 20px 0;
+}
+#flowchartContainer .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+.fc-legend {
+  margin: 20px auto;
+  padding: 16px 20px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  display: inline-block;
+  width: auto;
+}
+.fc-legend-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-600);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fc-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+.fc-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gray-600);
+}
+.fc-legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+.fc-legend-dot.ccp { background: #fff3e0; border-color: #ff9800; }
+.fc-legend-dot.oprp { background: #e3f2fd; border-color: #1976d2; }
+.fc-legend-dot.cqp { background: #e8f5e9; border-color: #43a047; }
+.fc-legend-dot.io { background: #f3e5f5; border-color: #8e24aa; }
+.fc-viewer-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-400);
+  padding: 8px 0 4px;
+  margin-top: 8px;
+}
+.fc-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  color: var(--gray-400);
+}
+.fc-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-bottom: 16px;
+}
+.fc-error {
+  text-align: center;
+  padding: 80px 24px;
+}
+.fc-error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.fc-error h3 {
+  font-size: 18px;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.fc-error p {
+  font-size: 14px;
+  color: var(--gray-400);
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+.fc-error-detail {
+  font-size: 12px !important;
+  color: var(--gray-400) !important;
+  margin-top: 12px !important;
+}
+.btn-flowchart {
+  padding: 8px 18px;
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  color: var(--gray-600);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-flowchart:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-100);
+  color: var(--primary);
+}
+.btn-flowchart .fc-nav-icon {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .fc-viewer-wrapper {
+    min-height: 400px;
+    height: calc(100vh - 180px);
+    padding: 12px;
+  }
+  .fc-page .fc-header h1 {
+    font-size: 20px;
+  }
+  .fc-legend-items {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
