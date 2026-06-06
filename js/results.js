@@ -157,10 +157,16 @@ const Results = (() => {
     html += `<div class="results-section" id="section-q15-company"><h2>一、企业信息</h2>
       <div class="result-item"><span class="ri-label">企业名称</span><span class="ri-value">${fieldValue(data.companyName)}</span></div>
       <div class="result-item"><span class="ri-label">制定部门</span><span class="ri-value">${fieldValue(data.deptName)}</span></div>
-      <div class="result-item"><span class="ri-label">审核人员</span><span class="ri-value">${fieldValue(data.auditor)}</span></div>
-      <h3>HACCP小组成员</h3>
-      <table><thead><tr><th>姓名</th><th>部门</th><th>职位</th><th>职责</th></tr></thead><tbody>
-        ${(data.haccpTeam || []).map(m => `<tr><td>${fieldValue(m.name)}</td><td>${fieldValue(m.dept)}</td><td>${fieldValue(m.position)}</td><td>${fieldValue(m.role)}</td></tr>`).join('')}
+      <div class="result-item"><span class="ri-label">审核人员</span><span class="ri-value">${fieldValue(data.auditor)}</span></div>`;
+    // 其他项目 - 以内联形式展示（放在审核人员下方，HACCP小组成员上方）
+    if (data.extraItems && data.extraItems.length > 0) {
+      data.extraItems.filter(e => e.key || e.value).forEach(e => {
+        html += `<div class="result-item"><span class="ri-label">${fieldValue(e.key)}</span><span class="ri-value">${fieldValue(e.value)}</span></div>`;
+      });
+    }
+    html += `<h3>HACCP小组成员</h3>
+      <table><thead><tr><th>姓名</th><th>部门</th><th>职位</th><th>职责</th><th>备注</th></tr></thead><tbody>
+        ${(data.haccpTeam || []).map(m => `<tr><td>${fieldValue(m.name)}</td><td>${fieldValue(m.dept)}</td><td>${fieldValue(m.position)}</td><td>${fieldValue(m.role)}</td><td>${fieldValue(m.remark)}</td></tr>`).join('')}
       </tbody></table></div>`;
 
     // 二、产品信息
@@ -174,7 +180,14 @@ const Results = (() => {
       <div class="result-item"><span class="ri-label">储存条件</span><span class="ri-value">${fieldValue(data.storageCondition)}</span></div>
       <div class="result-item"><span class="ri-label">包装方式</span><span class="ri-value">${fieldValue(data.packagingMethod)}</span></div>
       <div class="result-item"><span class="ri-label">目标消费者</span><span class="ri-value">${fieldValue(data.targetConsumer)}</span></div>
-      <div class="result-item"><span class="ri-label">保质期</span><span class="ri-value">${fieldValue(data.shelfLife)}</span></div></div>`;
+      <div class="result-item"><span class="ri-label">保质期</span><span class="ri-value">${fieldValue(data.shelfLife)}</span></div>`;
+    // 其他项目（产品信息中手动添加的补充信息）
+    if (data.productExtraItems && data.productExtraItems.length > 0) {
+      data.productExtraItems.filter(e => e.key || e.value).forEach(e => {
+        html += `<div class="result-item"><span class="ri-label">${fieldValue(e.key)}</span><span class="ri-value">${fieldValue(e.value)}</span></div>`;
+      });
+    }
+    html += `</div>`;
 
     // 三、生产流程
     html += `<div class="results-section" id="section-q15-process"><h2>三、生产流程</h2>

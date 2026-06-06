@@ -1339,6 +1339,61 @@ body {
 .fc-node-badge.step { background: var(--gray-100); color: var(--gray-600); }
 .fc-node-badge.io { background: #f3e5f5; color: #6a1b9a; }
 
+/* ===== 编辑器 Tab 面板 ===== */
+.fc-editor-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--gray-200);
+  padding-bottom: 0;
+}
+.fc-editor-tab {
+  padding: 8px 20px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all var(--transition);
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.fc-editor-tab:hover { color: var(--gray-700); background: var(--gray-50); }
+.fc-editor-tab.active {
+  color: var(--primary);
+  background: #fff;
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+.fc-editor-panel {
+  display: none;
+}
+.fc-editor-panel.active {
+  display: block;
+}
+.fc-btn-del {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all var(--transition);
+}
+.fc-btn-del:hover { color: var(--red); background: var(--red-100); }
+select.fc-input-type {
+  padding: 6px 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+}
+
 @media (max-width: 768px) {
   .fc-viewer-wrapper {
     min-height: 400px;
