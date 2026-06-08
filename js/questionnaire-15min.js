@@ -475,7 +475,7 @@ const Questionnaire15min = (() => {
 
   function renderHazardAnalysis(data) {
     var bio = Array.isArray(data.hazardBio) ? data.hazardBio : [], chem = Array.isArray(data.hazardChem) ? data.hazardChem : [], phys = Array.isArray(data.hazardPhys) ? data.hazardPhys : [];
-    return '<p class="q15-table-hint">根据CCP判断树结合危害的严重性、发生可能性、控制措施的有效性进行多维度判断，且需要团队的集体确认</p><h3>生物危害</h3><table class="q15-table"><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody id="hazardBioBody">' + (bio.length > 0 ? bio.map(function(h, i) { return '<tr data-hb-idx="' + i + '"><td><input type="text" value="' + esc(h.desc || '') + '" placeholder="如：沙门氏菌"></td><td><select><option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option></select></td><td><select><option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option></select></td><td><input type="text" value="' + esc(h.control || '') + '" placeholder="控制措施"></td></tr>'; }).join('') : '<tr class="q15-empty-row"><td colspan="4" style="text-align:center;color:var(--gray-400);padding:20px;">点击上方AI识别后自动填充</td></tr>') + '</tbody></table><h3>化学危害</h3><table class="q15-table"><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody id="hazardChemBody">' + (chem.length > 0 ? chem.map(function(h, i) { return '<tr data-hc-idx="' + i + '"><td><input type="text" value="' + esc(h.desc || '') + '" placeholder="如：农药残留"></td><td><select><option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option></select></td><td><select><option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option></select></td><td><input type="text" value="' + esc(h.control || '') + '" placeholder="控制措施"></td></tr>'; }).join('') : '<tr class="q15-empty-row"><td colspan="4" style="text-align:center;color:var(--gray-400);padding:20px;">点击上方AI识别后自动填充</td></tr>') + '</tbody></table><h3>物理危害</h3><table class="q15-table"><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody id="hazardPhysBody">' + (phys.length > 0 ? phys.map(function(h, i) { return '<tr data-hp-idx="' + i + '"><td><input type="text" value="' + esc(h.desc || '') + '" placeholder="如：金属异物"></td><td><select><option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option></select></td><td><select><option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option></select></td><td><input type="text" value="' + esc(h.control || '') + '" placeholder="控制措施"></td></tr>'; }).join('') : '<tr class="q15-empty-row"><td colspan="4" style="text-align:center;color:var(--gray-400);padding:20px;">点击上方AI识别后自动填充</td></tr>') + '</tbody></table><div class="q15-confirm-box" style="margin-top:20px;"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="hazardConfirmed"' + (data.hazardConfirmed ? ' checked' : '') + '> 团队已对以上危害分析进行集体确认，无问题</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">如有问题，可返回上一步重新编辑</p></div>';
+    return '<p class="q15-table-hint">根据CCP判断树结合危害的严重性、发生可能性、控制措施的有效性进行多维度判断，且需要团队的集体确认</p><h3>生物危害</h3><table class="q15-table"><thead><tr><th>原料</th><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody id="hazardBioBody">' + (bio.length > 0 ? bio.map(function(h, i) { return '<tr data-hb-idx="' + i + '"><td><strong>' + esc(h.material || '') + '</strong></td><td><input type="text" value="' + esc(h.desc || '') + '" placeholder="如：沙门氏菌"></td><td><select><option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option></select></td><td><select><option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option></select></td><td><input type="text" value="' + esc(h.control || '') + '" placeholder="控制措施"></td></tr>'; }).join('') : '<tr class="q15-empty-row"><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px;">点击上方AI识别后自动填充</td></tr>') + '</tbody></table><h3>化学危害</h3><table class="q15-table"><thead><tr><th>原料</th><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody id="hazardChemBody">' + (chem.length > 0 ? chem.map(function(h, i) { return '<tr data-hc-idx="' + i + '"><td><strong>' + esc(h.material || '') + '</strong></td><td><input type="text" value="' + esc(h.desc || '') + '" placeholder="如：农药残留"></td><td><select><option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option></select></td><td><select><option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option></select></td><td><input type="text" value="' + esc(h.control || '') + '" placeholder="控制措施"></td></tr>'; }).join('') : '<tr class="q15-empty-row"><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px;">点击上方AI识别后自动填充</td></tr>') + '</tbody></table><h3>物理危害</h3><table class="q15-table"><thead><tr><th>原料</th><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody id="hazardPhysBody">' + (phys.length > 0 ? phys.map(function(h, i) { return '<tr data-hp-idx="' + i + '"><td><strong>' + esc(h.material || '') + '</strong></td><td><input type="text" value="' + esc(h.desc || '') + '" placeholder="如：金属异物"></td><td><select><option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option></select></td><td><select><option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option><option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option><option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option></select></td><td><input type="text" value="' + esc(h.control || '') + '" placeholder="控制措施"></td></tr>'; }).join('') : '<tr class="q15-empty-row"><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px;">点击上方AI识别后自动填充</td></tr>') + '</tbody></table><div class="q15-confirm-box" style="margin-top:20px;"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="hazardConfirmed"' + (data.hazardConfirmed ? ' checked' : '') + '> 团队已对以上危害分析进行集体确认，无问题</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">如有问题，可返回上一步重新编辑</p></div>';
   }
 
   function renderCriticalLimits(data) {
@@ -518,7 +518,134 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('.q15-process-card input').forEach(function(el) { el.addEventListener('input', function() { var card = this.closest('.q15-process-card'), idx = parseInt(card.dataset.psIdx), inputs = card.querySelectorAll('input'); if (data.processSteps[idx]) { data.processSteps[idx].stepName = inputs[0].value; data.processSteps[idx].operationMethod = inputs[1].value; data.processSteps[idx].parameters = inputs[2].value; data.processSteps[idx].controlPoint = inputs[3].value; data.processSteps[idx].equipmentName = inputs[4].value; saveData(data); } }); });
 
     const aiBtn = content.querySelector('#aiHazardBtn');
-    if (aiBtn) { aiBtn.addEventListener('click', function() { aiBtn.disabled = true; var hint = content.querySelector('#aiHazardHint'); if (hint) hint.textContent = 'AI分析中...'; setTimeout(function() { data.hazardBio = [{ desc: '沙门氏菌', severity: '高', likelihood: '中', control: '充分加热处理' }, { desc: '大肠杆菌', severity: '高', likelihood: '中', control: '严格卫生控制' }, { desc: '金黄色葡萄球菌', severity: '中', likelihood: '低', control: '温度控制' }]; data.hazardChem = [{ desc: '农药残留', severity: '高', likelihood: '低', control: '原料验收检测' }, { desc: '重金属污染', severity: '高', likelihood: '低', control: '供应商审核' }]; data.hazardPhys = [{ desc: '金属异物', severity: '中', likelihood: '中', control: '金属检测器' }, { desc: '玻璃碎片', severity: '高', likelihood: '低', control: '玻璃管理制度' }]; saveData(data); if (hint) hint.textContent = '\u2713 AI识别完成，请确认以下危害分析内容'; aiBtn.disabled = false; renderActiveSection(); }, 1000); }); }
+    if (aiBtn) {
+      aiBtn.addEventListener('click', async function() {
+        aiBtn.disabled = true;
+        var hint = content.querySelector('#aiHazardHint');
+        if (hint) hint.textContent = 'AI分析中...';
+        // 收集产品信息
+        collectSectionData(content, data);
+        saveData(data);
+        // 收集原料列表（从配方表和原料字段）
+        var materials = [];
+        if (data.formula && data.formula.length > 0) {
+          data.formula.forEach(function(f) { if (f.material && f.material.trim()) materials.push(f.material.trim()); });
+        }
+        if (data.rawMaterials) {
+          var rawParts = data.rawMaterials.split(/[,，、\s]+/).filter(Boolean);
+          rawParts.forEach(function(p) { if (materials.indexOf(p) === -1) materials.push(p); });
+        }
+        if (data.additives) {
+          var addParts = data.additives.split(/[,，、\s]+/).filter(Boolean);
+          addParts.forEach(function(p) { if (materials.indexOf(p) === -1) materials.push(p); });
+        }
+        // 如果没有原料数据，直接提示
+        if (materials.length === 0) {
+          if (hint) hint.textContent = '请先在第2步填写原料或在配方表中添加原料';
+          var emptyEl = document.getElementById('aiHazardResult');
+          if (emptyEl) emptyEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">请先在配方表或原料字段中填写原料名称，然后点击此按钮查询危害数据</div>';
+          aiBtn.disabled = false;
+          return;
+        }
+        // 调用后端原料危害数据库API
+        try {
+          var hazardBio = [], hazardChem = [], hazardPhys = [], matchedMaterials = [];
+          const resp = await fetch('/api/ai/raw-material-hazards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ materials: materials })
+          });
+          if (!resp.ok) {
+            throw new Error('API响应异常: ' + resp.status);
+          }
+          const result = await resp.json();
+          if (result.ok && result.data && result.data.matched) {
+            matchedMaterials = result.data.matched;
+            result.data.matched.forEach(function(entry) {
+              var m = entry.material;
+              var h = entry.hazards;
+              if (h.bio && h.bio.risk) {
+                hazardBio.push({
+                  material: m,
+                  hazardType: '生物危害',
+                  desc: h.bio.risk,
+                  q1: h.bio.q1 || '',
+                  q2: h.bio.q2 || '',
+                  q3: h.bio.q3 || '',
+                  isCCP: h.bio.isCCP,
+                  ccpResult: h.bio.isCCP ? '是' : '否',
+                  severity: h.bio.isCCP ? '高' : '中',
+                  likelihood: '中',
+                  control: h.bio.control || '',
+                  detail: h.bio.detail || ''
+                });
+              }
+              if (h.chem && h.chem.risk) {
+                hazardChem.push({
+                  material: m,
+                  hazardType: '化学危害',
+                  desc: h.chem.risk,
+                  q1: h.chem.q1 || '',
+                  q2: h.chem.q2 || '',
+                  q3: h.chem.q3 || '',
+                  isCCP: h.chem.isCCP,
+                  ccpResult: h.chem.isCCP ? '是' : '否',
+                  severity: h.chem.isCCP ? '高' : '中',
+                  likelihood: '中',
+                  control: h.chem.control || '',
+                  detail: h.chem.detail || ''
+                });
+              }
+              if (h.phys && h.phys.risk) {
+                hazardPhys.push({
+                  material: m,
+                  hazardType: '物理危害',
+                  desc: h.phys.risk,
+                  q1: h.phys.q1 || '',
+                  q2: h.phys.q2 || '',
+                  q3: h.phys.q3 || '',
+                  isCCP: h.phys.isCCP,
+                  ccpResult: h.phys.isCCP ? '是' : '否',
+                  severity: '中',
+                  likelihood: '中',
+                  control: h.phys.control || '',
+                  detail: h.phys.detail || ''
+                });
+              }
+            });
+          }
+          // 判断匹配结果
+          if (hazardBio.length > 0 || hazardChem.length > 0 || hazardPhys.length > 0) {
+            data.hazardBio = hazardBio;
+            data.hazardChem = hazardChem;
+            data.hazardPhys = hazardPhys;
+            saveData(data);
+            if (hint) hint.textContent = '\u2713 原料危害分析完成，已匹配 ' + matchedMaterials.length + ' 种原料';
+            renderAiHazardResult(hazardBio, hazardChem, hazardPhys, matchedMaterials);
+          } else {
+            // 没有匹配到任何原料：显示未匹配信息，不填充数据
+            var unmatchedList = materials.join('、');
+            data.hazardBio = [];
+            data.hazardChem = [];
+            data.hazardPhys = [];
+            saveData(data);
+            if (hint) hint.textContent = '\u2716 未匹配到危害数据';
+            var resultEl = document.getElementById('aiHazardResult');
+            if (resultEl) resultEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">未在数据库中找到以下原料的危害数据：<strong>' + unmatchedList + '</strong><br><span style="font-size:12px;">如需添加请联系管理员更新原料危害数据库</span></div>';
+          }
+        } catch (err) {
+          console.warn('原料危害数据库查询失败:', err.message);
+          data.hazardBio = [];
+          data.hazardChem = [];
+          data.hazardPhys = [];
+          saveData(data);
+          if (hint) hint.textContent = '\u2716 后端接口不可用';
+          var resultEl = document.getElementById('aiHazardResult');
+          if (resultEl) resultEl.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626;">后端接口不可用，无法查询原料危害数据。请确认后端已启动（运行 python -m uvicorn backend.main:app）</div>';
+        }
+        aiBtn.disabled = false;
+      });
+    }
     ['Bio', 'Chem', 'Phys'].forEach(function(type) { var body = content.querySelector('#hazard' + type + 'Body'); if (body) { body.querySelectorAll('input, select').forEach(function(el) { el.addEventListener('change', function() { collectHazardTableData(content, data); saveData(data); }); el.addEventListener('input', function() { collectHazardTableData(content, data); saveData(data); }); }); } });
 
     const aiCriticalBtn = content.querySelector('#aiCriticalBtn');
@@ -544,6 +671,38 @@ const Questionnaire15min = (() => {
 
   function collectHazardTableData(content, data) {
     [{ bodyId: 'hazardBioBody', key: 'hazardBio' }, { bodyId: 'hazardChemBody', key: 'hazardChem' }, { bodyId: 'hazardPhysBody', key: 'hazardPhys' }].forEach(function(_a) { var body = content.querySelector('#' + _a.bodyId); if (!body) return; var rows = body.querySelectorAll('tr:not(.q15-empty-row)'); data[_a.key] = []; rows.forEach(function(row) { var inputs = row.querySelectorAll('input'), selects = row.querySelectorAll('select'); if (inputs.length > 0) data[_a.key].push({ desc: inputs[0]?.value || '', severity: selects[0]?.value || '中', likelihood: selects[1]?.value || '中', control: inputs[1]?.value || '' }); }); });
+  }
+
+  // ==================== 渲染AI危害结果到按钮下方 ====================
+  function renderAiHazardResult(bio, chem, phys, matchedMaterials) {
+    var resultEl = document.getElementById('aiHazardResult');
+    if (!resultEl) return;
+    
+    // 合并所有危害数据到一个统一表格
+    var allHazards = [];
+    bio.forEach(function(h) { allHazards.push(h); });
+    chem.forEach(function(h) { allHazards.push(h); });
+    phys.forEach(function(h) { allHazards.push(h); });
+    
+    var html = '';
+    if (matchedMaterials && matchedMaterials.length > 0) {
+      html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
+      html += '匹配到 ' + matchedMaterials.length + ' 种原料的危害数据：';
+      html += matchedMaterials.map(function(e) { return '<strong>' + e.material + '</strong>'; }).join('、');
+      html += '</div>';
+    }
+    if (allHazards.length > 0) {
+      html += '<div class="q15-hazard-preview" style="overflow-x:auto;"><table class="q15-table" style="min-width:900px;"><thead><tr><th style="min-width:70px;">原材料</th><th style="min-width:70px;">风险</th><th style="width:50px;">Q1</th><th style="width:50px;">Q2</th><th style="width:50px;">Q3</th><th style="width:70px;">CCP判断</th><th style="min-width:300px;">风险说明</th></tr></thead><tbody>';
+      allHazards.forEach(function(h) {
+        var riskColor = h.hazardType === '生物危害' ? '#dc2626' : (h.hazardType === '化学危害' ? '#d97706' : '#6b7280');
+        html += '<tr><td><strong>' + esc(h.material || '') + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + esc(h.hazardType || '') + '</td><td>' + esc(h.q1 || '') + '</td><td>' + esc(h.q2 || '') + '</td><td>' + esc(h.q3 || '') + '</td><td>' + esc(h.ccpResult || '') + '</td><td style="font-size:13px;line-height:1.5;">' + esc(h.detail || h.desc || '') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      html += '<div style="margin-top:10px;font-size:12px;color:var(--gray-400);text-align:right;">已同步到第4步「危害分析」表中</div>';
+    } else {
+      html = '<div class="q15-ai-result-empty" style="padding:20px;text-align:center;color:var(--gray-400);">未匹配到危害数据</div>';
+    }
+    resultEl.innerHTML = html;
   }
 
   // ==================== 可视化流程图 ====================

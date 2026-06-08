@@ -207,24 +207,35 @@ const Results = (() => {
     });
     html += `<div class="result-item"><span class="ri-label">流程图现场确认</span><span class="ri-value">${boolYes(data.flowConfirmed)}</span></div></div>`;
 
-    // 四、危害分析
+    // 四、危害分析 - 合并所有危害到统一表格，按文档格式展示
     html += `<div class="results-section" id="section-q15-hazard"><h2>四、危害分析</h2>`;
-    const hazardTypes = [
-      { key: 'hazardBio', label: '生物危害' },
-      { key: 'hazardChem', label: '化学危害' },
-      { key: 'hazardPhys', label: '物理危害' },
-    ];
-    hazardTypes.forEach(({ key, label }) => {
-      const items = data[key] || [];
-      html += `<h3>${label}</h3>`;
-      if (items.length > 0) {
-        html += `<table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>
-          ${items.map(h => `<tr><td>${fieldValue(h.desc)}</td><td>${fieldValue(h.severity)}</td><td>${fieldValue(h.likelihood)}</td><td>${fieldValue(h.control)}</td></tr>`).join('')}
+    var allHazards = [];
+    ['hazardBio', 'hazardChem', 'hazardPhys'].forEach(function(key) {
+      var items = data[key] || [];
+      items.forEach(function(h) { allHazards.push(h); });
+    });
+    if (allHazards.length > 0) {
+      html += `<div style="overflow-x:auto;"><table style="min-width:850px;"><thead><tr><th>原材料</th><th>风险</th><th>Q1</th><th>Q2</th><th>Q3</th><th>CCP判断</th><th style="min-width:250px;">风险说明</th></tr></thead><tbody>`;
+      allHazards.forEach(function(h) {
+        var riskColor = h.hazardType === '生物危害' ? '#dc2626' : (h.hazardType === '化学危害' ? '#d97706' : '#6b7280');
+        html += `<tr><td><strong>${fieldValue(h.material)}</strong></td><td style="color:${riskColor};font-weight:500;">${fieldValue(h.hazardType)}</td><td>${fieldValue(h.q1)}</td><td>${fieldValue(h.q2)}</td><td>${fieldValue(h.q3)}</td><td>${fieldValue(h.ccpResult)}</td><td style="font-size:13px;line-height:1.5;">${fieldValue(h.detail || h.desc)}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    } else {
+      var hasAnyHazard = (data.hazardBio || []).length > 0 || (data.hazardChem || []).length > 0 || (data.hazardPhys || []).length > 0;
+      if (hasAnyHazard) {
+        // 兼容旧数据格式
+        html += `<h3>生物危害</h3><table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>
+          ${(data.hazardBio || []).map(h => `<tr><td>${fieldValue(h.desc)}</td><td>${fieldValue(h.severity)}</td><td>${fieldValue(h.likelihood)}</td><td>${fieldValue(h.control)}</td></tr>`).join('')}
+        </tbody></table><h3>化学危害</h3><table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>
+          ${(data.hazardChem || []).map(h => `<tr><td>${fieldValue(h.desc)}</td><td>${fieldValue(h.severity)}</td><td>${fieldValue(h.likelihood)}</td><td>${fieldValue(h.control)}</td></tr>`).join('')}
+        </tbody></table><h3>物理危害</h3><table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>
+          ${(data.hazardPhys || []).map(h => `<tr><td>${fieldValue(h.desc)}</td><td>${fieldValue(h.severity)}</td><td>${fieldValue(h.likelihood)}</td><td>${fieldValue(h.control)}</td></tr>`).join('')}
         </tbody></table>`;
       } else {
         html += `<p style="color:var(--gray-400);font-style:italic;">未填写</p>`;
       }
-    });
+    }
     html += `<div class="result-item"><span class="ri-label">团队确认</span><span class="ri-value">${boolYes(data.hazardConfirmed)}</span></div></div>`;
 
     // 五、关键限制

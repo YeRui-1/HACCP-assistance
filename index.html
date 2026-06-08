@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="zh-CN" id="htmlRoot">
 <head>
   <meta charset="UTF-8">
@@ -261,17 +260,18 @@
     }
 
     function _startApp() {
-      // 加载项目自己的脚本
+      // 加载项目自己的脚本（添加版本号防止缓存）
+      var ver = '?v=' + Date.now();
       var scripts = [
-        'js/i18n.js',
-        'js/mock-data.js',
-        'js/flowchart-data.js',
-        'js/admin.js',
-        'js/questionnaire.js',
-        'js/questionnaire-15min.js',
-        'js/results.js',
-        'js/flowchart-viewer.js',
-        'js/app.js'
+        'js/i18n.js' + ver,
+        'js/mock-data.js' + ver,
+        'js/flowchart-data.js' + ver,
+        'js/admin.js' + ver,
+        'js/questionnaire.js' + ver,
+        'js/questionnaire-15min.js' + ver,
+        'js/results.js' + ver,
+        'js/flowchart-viewer.js' + ver,
+        'js/app.js' + ver
       ];
       function loadNextScript() {
         if (scripts.length === 0) {
