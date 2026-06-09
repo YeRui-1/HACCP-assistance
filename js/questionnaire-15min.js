@@ -1,6 +1,12 @@
 // 15分钟问卷 - 完整HACCP问卷填写模块
 const Questionnaire15min = (() => {
   const STORAGE_KEY = 'haccp_15min_data';
+
+  // 如果是通过 file:// 打开的，自动补全后端地址
+  var API_HOST = '';
+  if (window.location.protocol === 'file:') {
+    API_HOST = 'http://localhost:8000';
+  }
   const SECTION_COMPLETED_KEY = 'haccp_15min_completed';
 
   function genId() { return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
@@ -550,7 +556,7 @@ const Questionnaire15min = (() => {
         // 调用后端原料危害数据库API
         try {
           var hazardBio = [], hazardChem = [], hazardPhys = [], matchedMaterials = [];
-          const resp = await fetch('/api/ai/raw-material-hazards', {
+          const resp = await fetch(API_HOST + '/api/ai/raw-material-hazards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ materials: materials })
@@ -754,9 +760,160 @@ const Questionnaire15min = (() => {
   }
 
   const DRAWIO_BASE = 'https://embed.diagrams.net/';
-  function xesc(s) { if (!s) return ''; return String(s).replace(/[&]/g, '&').replace(/[<]/g, '<').replace(/[>]/g, '>').replace(/["]/g, '"'); }
-  function generateDrawioXml(steps) { return null; }
-  function openDrawioEditor(data) { alert('draw.io 编辑器将在完整版中启用'); }
+  function xesc(s) { if (!s) return ''; return String(s).replace(/[&]/g, '&amp;').replace(/[<]/g, '&lt;').replace(/[>]/g, '&gt;').replace(/["]/g, '&quot;'); }
+
+  // 根据操作步骤生成 draw.io XML
+  function generateDrawioXml(steps) {
+    var validSteps = (steps || []).filter(function(s) { return s.stepName && s.stepName.trim(); });
+    var cells = [];
+    var NODE_W = 160, NODE_H = 60, ARROW_H = 40;
+    var cx = 300; // 中心x
+
+    // 起始节点
+    var startY = 40;
+    cells.push('<mxCell id="0" /><mxCell id="1" parent="0" />');
+    cells.push('<mxCell id="start" value="开始" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="' + (cx - 50) + '" y="' + startY + '" width="100" height="50" as="geometry" /></mxCell>');
+
+    var prevId = 'start';
+    var curY = startY + 50 + ARROW_H;
+
+    for (var i = 0; i < validSteps.length; i++) {
+      var step = validSteps[i];
+      var nodeId = 'step_' + i;
+      var isCCP = step.controlPoint && step.controlPoint.toLowerCase().indexOf('ccp') !== -1;
+      var fillColor = isCCP ? '#f8cecc' : '#dae8fc';
+      var strokeColor = isCCP ? '#b85450' : '#6c8ebf';
+      var labelLines = [xesc(step.stepName)];
+      if (step.parameters) labelLines.push('<font style="font-size:10px;color:#555;">' + xesc(step.parameters) + '</font>');
+      if (isCCP && step.controlPoint) labelLines.push('<b style="color:#b85450;">' + xesc(step.controlPoint) + '</b>');
+      var label = '<html>' + labelLines.join('<br>') + '</html>';
+
+      cells.push('<mxCell id="' + nodeId + '" value="' + label + '" style="rounded=1;whiteSpace=wrap;html=1;fillColor=' + fillColor + ';strokeColor=' + strokeColor + ';fontSize=12;" vertex="1" parent="1"><mxGeometry x="' + (cx - NODE_W / 2) + '" y="' + curY + '" width="' + NODE_W + '" height="' + NODE_H + '" as="geometry" /></mxCell>');
+
+      // 箭头
+      var arrowId = 'arrow_' + i;
+      cells.push('<mxCell id="' + arrowId + '" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="' + prevId + '" target="' + nodeId + '" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>');
+
+      prevId = nodeId;
+      curY += NODE_H + ARROW_H;
+    }
+
+    // 结束节点
+    cells.push('<mxCell id="end" value="结束" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="' + (cx - 50) + '" y="' + curY + '" width="100" height="50" as="geometry" /></mxCell>');
+    cells.push('<mxCell id="arrow_end" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="' + prevId + '" target="end" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>');
+
+    var totalH = curY + 50 + 40;
+    return '<?xml version="1.0" encoding="UTF-8"?><mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0"><root>' + cells.join('') + '</root></mxGraphModel>';
+  }
+
+  // 打开 draw.io 嵌入式编辑器
+  function openDrawioEditor(data) {
+    // 准备初始 XML
+    var initXml = data.flowchartXml || '';
+    if (!initXml) {
+      var validSteps = (data.processSteps || []).filter(function(s) { return s.stepName && s.stepName.trim(); });
+      initXml = generateDrawioXml(validSteps);
+    }
+
+    // 创建遮罩
+    var overlay = document.createElement('div');
+    overlay.className = 'q15-drawio-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+    overlay.innerHTML = [
+      '<div style="background:#fff;border-radius:10px;width:95vw;height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">',
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#1e293b;color:#fff;border-radius:10px 10px 0 0;">',
+          '<span style="font-size:15px;font-weight:600;">✏️ Draw.io 流程图编辑器</span>',
+          '<div style="display:flex;align-items:center;gap:10px;">',
+            '<span id="drawioStatus" style="font-size:12px;color:#94a3b8;"></span>',
+            '<button id="drawioSaveBtn" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;">💾 保存</button>',
+            '<button id="drawioCloseBtn" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;">✕ 关闭</button>',
+          '</div>',
+        '</div>',
+        '<div style="flex:1;position:relative;background:#f1f5f9;">',
+          '<div id="drawioLoadingMask" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9;z-index:5;font-size:14px;color:#64748b;">',
+            '<div style="text-align:center;"><div class="fc-spinner" style="width:36px;height:36px;border-width:4px;margin:0 auto 12px;"></div><p>正在加载 Draw.io 编辑器...</p><p style="font-size:12px;margin-top:4px;">如长时间未响应，请检查网络连接</p></div>',
+          '</div>',
+          '<iframe id="drawioFrame" src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&stealth=1&lang=zh" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>',
+        '</div>',
+      '</div>'
+    ].join('');
+
+    document.body.appendChild(overlay);
+
+    var frame = document.getElementById('drawioFrame');
+    var statusEl = document.getElementById('drawioStatus');
+    var loadingMask = document.getElementById('drawioLoadingMask');
+    var iframeReady = false;
+    var pendingXml = initXml;
+    var currentXml = initXml;
+
+    function setStatus(msg) { if (statusEl) statusEl.textContent = msg; }
+
+    // 与 draw.io iframe 的 postMessage 通信
+    function sendToFrame(msg) {
+      try { frame.contentWindow.postMessage(JSON.stringify(msg), '*'); } catch(e) {}
+    }
+
+    function handleMessage(evt) {
+      var msg;
+      try { msg = JSON.parse(evt.data); } catch(e) { return; }
+      if (!msg || !msg.event) return;
+
+      if (msg.event === 'init') {
+        // draw.io 已就绪，发送加载指令
+        if (loadingMask) loadingMask.style.display = 'none';
+        iframeReady = true;
+        sendToFrame({ action: 'load', autosave: 1, xml: pendingXml || '' });
+        setStatus('编辑中（修改后点击保存）');
+      } else if (msg.event === 'autosave') {
+        currentXml = msg.xml || currentXml;
+        setStatus('自动保存中...');
+        setTimeout(function() { setStatus('编辑中'); }, 1500);
+      } else if (msg.event === 'save') {
+        currentXml = msg.xml || currentXml;
+        doSave();
+      } else if (msg.event === 'export') {
+        currentXml = msg.xml || currentXml;
+        doSave();
+      } else if (msg.event === 'close') {
+        closeEditor();
+      }
+    }
+
+    function doSave() {
+      data.flowchartXml = currentXml;
+      saveData(data);
+      setStatus('✅ 已保存');
+      // 刷新预览区域
+      var area = document.getElementById('flowchartArea');
+      if (area) {
+        area.innerHTML = renderFlowchartPreview(data);
+        bindFlowchartButtons(data);
+      }
+    }
+
+    function closeEditor() {
+      window.removeEventListener('message', handleMessage);
+      overlay.remove();
+    }
+
+    window.addEventListener('message', handleMessage);
+
+    document.getElementById('drawioSaveBtn').onclick = function() {
+      // 请求 draw.io 导出当前 XML
+      sendToFrame({ action: 'export', format: 'xml' });
+    };
+    document.getElementById('drawioCloseBtn').onclick = closeEditor;
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeEditor(); });
+
+    // 超时提示
+    setTimeout(function() {
+      if (!iframeReady && loadingMask && loadingMask.style.display !== 'none') {
+        loadingMask.innerHTML = '<div style="text-align:center;color:#dc2626;"><p style="font-size:16px;margin-bottom:8px;">⚠️ 加载超时</p><p style="font-size:13px;">无法连接到 Draw.io 服务器<br>请检查网络连接或稍后重试</p></div>';
+      }
+    }, 15000);
+  }
 
   // ==================== 提交问卷 ====================
   function submitQuestionnaire(data) {
