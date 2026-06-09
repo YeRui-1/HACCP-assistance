@@ -102,10 +102,9 @@ const Questionnaire = (() => {
       `;
     }).join('');
 
-    // 流程图模块
-    if (fcTemplate.enabled) {
-      html += renderFlowchartHTML(fcData);
-    }
+    // 流程图模块（draw.io 编辑器，始终显示）
+    html += renderFlowchartHTML(fcData);
+
 
     const btnLabel = isTest ? I18n.t('q.submitTest') : I18n.t('q.submit');
     html += `
@@ -117,10 +116,16 @@ const Questionnaire = (() => {
 
     container.innerHTML = html;
 
-    // 流程图事件绑定
+    // 初始化 draw.io 流程图编辑器
+    if (window.FlowchartViewer && document.getElementById('flowchartContainer')) {
+      FlowchartViewer.init();
+    }
+
+    // 流程图事件绑定（旧版步骤卡片，仅当模板启用时）
     if (fcTemplate.enabled) {
       bindFlowchartEvents(container, fcData, isTest);
     }
+
 
     const btnSubmit = container.querySelector('#btnSubmit');
     if (btnSubmit) {
@@ -157,54 +162,17 @@ const Questionnaire = (() => {
     }
   }
 
-  // ===== 流程图 HTML =====
+  // ===== 流程图 HTML（draw.io 嵌入式编辑器）=====
   function renderFlowchartHTML(fcData) {
-    let steps = '';
-    fcData.forEach((step, si) => {
-      steps += `
-        <div class="fc-step-card" data-fc-idx="${si}">
-          <div class="fc-step-header">
-            <span class="fc-step-num">${si + 1}</span>
-            <input type="text" class="fc-input" data-fc-idx="${si}" data-fc-field="name" value="${esc(step.name)}" placeholder="${I18n.t('fc.stepNamePh')}">
-            <div class="fc-step-move">
-              <button class="fc-move-up" data-fc-idx="${si}" title="${I18n.t('fc.moveUp')}">▲</button>
-              <button class="fc-move-down" data-fc-idx="${si}" title="${I18n.t('fc.moveDown')}">▼</button>
-            </div>
-            <button class="btn-delete-q fc-del-step" data-fc-idx="${si}" title="${I18n.t('fc.delStep')}">&times;</button>
-          </div>
-          <div class="fc-step-desc">
-            <textarea class="fc-textarea" data-fc-idx="${si}" data-fc-field="description" placeholder="${I18n.t('fc.stepDescPh')}">${esc(step.description || '')}</textarea>
-          </div>
-          <div class="fc-params">
-            <div class="fc-params-label">
-              <span>${I18n.t('fc.paramHeader')}</span>
-            </div>
-            ${(step.parameters || []).map((p, pi) => `
-              <div class="fc-param-row">
-                <input type="text" class="fc-input param-name" data-fc-idx="${si}" data-fc-pi="${pi}" data-fc-pfield="name" value="${esc(p.name || '')}" placeholder="${I18n.t('fc.paramNamePh')}">
-                <input type="text" class="fc-input param-value" data-fc-idx="${si}" data-fc-pi="${pi}" data-fc-pfield="value" value="${esc(p.value || '')}" placeholder="${I18n.t('fc.paramValuePh')}">
-                <input type="text" class="fc-input param-unit" data-fc-idx="${si}" data-fc-pi="${pi}" data-fc-pfield="unit" value="${esc(p.unit || '')}" placeholder="${I18n.t('fc.paramUnitPh')}">
-                <button class="fc-param-del" data-fc-idx="${si}" data-fc-pi="${pi}">&times;</button>
-              </div>
-            `).join('')}
-            <button class="fc-add-param" data-fc-idx="${si}">${I18n.t('fc.addParam')}</button>
-          </div>
-        </div>
-      `;
-    });
-
     return `
-      <div class="fc-section" id="fcSection">
-        <h2>${I18n.t('fc.title')}</h2>
-        <p class="fc-desc">${I18n.t('fc.desc')}</p>
-        <div id="fcSteps">${steps}</div>
-        <div class="fc-global-actions">
-          <button class="btn btn-secondary btn-sm" id="fcAddStep">${I18n.t('fc.addStep')}</button>
-          <span class="error-msg" id="fcError" style="margin-left:10px;"></span>
-        </div>
+      <div class="fc-section" id="fcSection" style="margin-top:32px;">
+        <h2 style="margin-bottom:4px;">🗺️ 生产工艺流程图</h2>
+        <p class="fc-desc" style="margin-bottom:16px;">在下方 draw.io 编辑器中绘制您的生产工艺流程图，完成后按 <strong>Ctrl+S</strong> 保存，将自动同步到报告中。</p>
+        <div id="flowchartContainer"></div>
       </div>
     `;
   }
+
 
   // ===== 流程图事件 =====
   function bindFlowchartEvents(container, fcData, isTest) {

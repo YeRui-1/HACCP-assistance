@@ -48,45 +48,11 @@ const Results = (() => {
     catch (e) { return []; }
   }
 
-  /** 获取 Mermaid 流程图源码（优先取用户编辑过的版本） */
-  function getFlowchartMermaidSource() {
-    try {
-      const saved = localStorage.getItem('haccp_flowchart_mermaid');
-      if (saved) return saved;
-    } catch(e) {}
-    if (window.INULIN_FLOWCHART && window.INULIN_FLOWCHART.mermaid) {
-      return window.INULIN_FLOWCHART.mermaid;
-    }
-    return null;
+  /** 获取 draw.io 导出的 SVG 数据（base64 或 SVG 字符串） */
+  function getDrawioSvg() {
+    try { return localStorage.getItem('haccp_drawio_svg') || null; } catch(e) { return null; }
   }
 
-  /** 在容器元素上渲染所有 .mermaid 元素，与 flowchart-viewer 保持一致的渲染方式 */
-  function renderMermaidInContainer(container) {
-    if (typeof mermaid === 'undefined') return;
-    var mermaidDivs = container.querySelectorAll('.mermaid');
-    if (mermaidDivs.length === 0) return;
-    try {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        themeVariables: { fontFamily: 'sans-serif', fontSize: '14px' },
-        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis', padding: 16 }
-      });
-      setTimeout(function() {
-        mermaid.run({ nodes: Array.from(mermaidDivs) }).catch(function(err) {
-          console.warn('Mermaid 渲染流程图失败:', err);
-          mermaidDivs.forEach(function(div) {
-            var parent = div.parentNode;
-            if (parent) {
-              div.outerHTML = '<div class="fc-error" style="text-align:center;padding:20px;color:#ef4444;">' + String.fromCharCode(9888, 65039) + ' 流程图渲染失败: ' + (err.message || err) + '</div>';
-            }
-          });
-        });
-      }, 100);
-    } catch(err) {
-      console.warn('Mermaid 初始化失败:', err);
-    }
-  }
 
   function load15minData() {
     try {
@@ -150,9 +116,9 @@ const Results = (() => {
     const items = [
       { key: 'aiReport', label: { zh: 'AI 分析报告', en: 'AI Analysis Report' } },
     ];
-    if (fcTemplate.enabled) {
-      items.push({ key: 'flowchart', label: { zh: '生产流程图', en: 'Process Flow Chart' } });
-    }
+    // 流程图始终显示（使用 draw.io SVG）
+    items.push({ key: 'flowchart', label: { zh: '生产流程图', en: 'Process Flow Chart' } });
+
     items.push({ key: 'productDescription', label: mockHaccpPlan.productDescription.title });
     sectionOrder.forEach(key => {
       if (key !== 'productDescription') {
@@ -311,16 +277,18 @@ const Results = (() => {
 
     container.innerHTML = html;
 
-    // 用 textContent 设置 Mermaid 源码（不能用 esc()，否则破坏 --> 语法）
-    var mermaidContainer = container.querySelector('#section-q15-flowchart .mermaid');
-    if (mermaidContainer) {
-      var src = build15minMermaidSource(steps);
-      if (src) mermaidContainer.textContent = src;
+    // 15min 模式：用 Mermaid 渲染生产步骤流程图（若可用）
+    var mermaidDiv = container.querySelector('#section-q15-flowchart .mermaid');
+    if (mermaidDiv && typeof mermaid !== 'undefined') {
+      var src15 = build15minMermaidSource(steps);
+      if (src15) {
+        mermaidDiv.textContent = src15;
+        mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true } });
+        setTimeout(function() { mermaid.run({ nodes: [mermaidDiv] }).catch(function(){}); }, 100);
+      }
     }
-
-    // 渲染 15min 模式的 Mermaid 流程图
-    renderMermaidInContainer(container);
   }
+
 
   // ===== 主内容 =====
   function renderContent() {
@@ -368,15 +336,13 @@ const Results = (() => {
       '</div>'
     ].join('');
 
-    // 生产流程图
-    const fcTemplate = loadFcTemplate();
-    if (fcTemplate.enabled) {
-      const fcTitle = lang === 'en' ? 'Process Flow Chart' : '\u751f\u4ea7\u6d41\u7a0b\u56fe';
-      html += '<div class="results-section" id="section-flowchart">' +
-        '<h2>' + fcTitle + '</h2>' +
-        buildFlowchartDisplay(lang) +
-        '</div>';
-    }
+    // 生产流程图（始终显示 draw.io SVG）
+    const fcTitle = lang === 'en' ? 'Process Flow Chart' : '\u751f\u4ea7\u6d41\u7a0b\u56fe';
+    html += '<div class="results-section" id="section-flowchart">' +
+      '<h2>' + fcTitle + '</h2>' +
+      buildFlowchartDisplay(lang) +
+      '</div>';
+
 
     // 产品描述（用户答案）
     const pdTitle = mockHaccpPlan.productDescription.title[lang] || mockHaccpPlan.productDescription.title.zh;
@@ -398,17 +364,9 @@ const Results = (() => {
     });
 
     container.innerHTML = html;
-
-    // 用 textContent 设置 Mermaid 源码（不能用 esc()，否则破坏 --> 语法）
-    var mermaidContainer = container.querySelector('#section-flowchart .mermaid');
-    if (mermaidContainer) {
-      var src = getFlowchartMermaidSource();
-      if (src) mermaidContainer.textContent = src;
-    }
-
-    // Mermaid 渲染：将 .mermaid 元素渲染为 SVG 流程图
-    renderMermaidInContainer(container);
+    // draw.io SVG 已经直接用 <img> 标签插入，无需额外渲染步骤
   }
+
 
   // ===== 调用后端 API 生成 AI 报告 =====
   async function fetchAiReport() {
@@ -481,53 +439,44 @@ const Results = (() => {
       '<tbody>' + rows + '</tbody></table>';
   }
 
+  /**
+   * 在报告中展示 draw.io 流程图（优先使用 SVG，降级为提示）
+   */
   function buildFlowchartDisplay(lang) {
-    const fcData = loadFcData();
-    var zh = { overview: '以下为产品生产流程及各步骤的工艺参数：', noData: '未填写生产流程', step: '步骤', param: '参数名称', value: '参数值', unit: '单位' };
-    var en = { overview: 'Below is the production process flow and parameters for each step:', noData: 'No process flow data', step: 'Step', param: 'Parameter', value: 'Value', unit: 'Unit' };
+    var svgData = getDrawioSvg();
+    var zh = { title: '以下为在 draw.io 编辑器中绘制并保存的生产流程图：', noData: '暂无流程图。请先在「生产流程图」步骤中用 draw.io 编辑并保存。', hint: '📌 如需修改，请返回流程图编辑页面，按 Ctrl+S 保存后重新查看报告。' };
+    var en = { title: 'Process flow diagram saved from draw.io editor:', noData: 'No flowchart found. Please edit and save in the Process Flowchart step first.', hint: '📌 To update, return to the flowchart editor and press Ctrl+S to save.' };
     var t = lang === 'en' ? en : zh;
 
-    if (!fcData || fcData.length === 0) {
-      return '<p style="color:var(--gray-400);font-style:italic;">' + t.noData + '</p>';
+    if (!svgData) {
+      return '<div style="padding:24px;text-align:center;background:#fffbeb;border:1px dashed #fbbf24;border-radius:8px;">' +
+        '<div style="font-size:32px;margin-bottom:8px;">🗺️</div>' +
+        '<p style="color:#92400e;font-size:14px;margin:0;">' + t.noData + '</p>' +
+        '</div>';
     }
 
-    var html = '';
+    // SVG 可能是 base64 data URI 或纯 SVG 字符串
+    var imgSrc = svgData;
+    if (!svgData.startsWith('data:') && !svgData.trim().startsWith('<svg')) {
+      imgSrc = 'data:image/svg+xml;base64,' + svgData;
+    }
 
-    // 插入 Mermaid 流程图容器（源码由 textContent 在 renderContent 中设置，保证不被 esc 破坏）
-    html += '<div class="fc-mermaid-wrapper" style="margin-bottom:24px;padding:16px;background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;overflow-x:auto;">' +
-      '<div class="mermaid" style="min-height:100px;"></div>' +
+    // 如果是纯 SVG 字符串，用 img 内嵌（base64 encoded）
+    if (svgData.trim().startsWith('<svg') || svgData.trim().startsWith('<?xml')) {
+      try {
+        imgSrc = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+      } catch(e2) {
+        imgSrc = 'data:image/svg+xml,' + encodeURIComponent(svgData);
+      }
+    }
+
+    return '<p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">' + t.title + '</p>' +
+      '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;background:#fafafa;overflow:auto;text-align:center;">' +
+      '<img src="' + imgSrc + '" style="max-width:100%;height:auto;" alt="工艺流程图" />' +
       '</div>' +
-      '<div class="fc-legend" style="margin-top:-16px;margin-bottom:20px;">' +
-      '<div class="fc-legend-title">图 例</div>' +
-      '<div class="fc-legend-items">' +
-      '<div class="fc-legend-item"><span class="fc-legend-dot ccp"></span>CCP - 关键控制点</div>' +
-      '<div class="fc-legend-item"><span class="fc-legend-dot oprp"></span>OPRP - 操作性前提方案</div>' +
-      '<div class="fc-legend-item"><span class="fc-legend-dot cqp"></span>CQP - 关键质量点</div>' +
-      '<div class="fc-legend-item"><span class="fc-legend-dot io"></span>输入/输出/副产物</div>' +
-      '</div></div>';
-
-    html += '<p>' + t.overview + '</p>';
-    fcData.forEach(function(step, si) {
-      html += '<div class="fc-step-card fc-result">' +
-        '<div class="fc-step-header">' +
-        '<span class="fc-step-num">' + (si + 1) + '</span>' +
-        '<strong style="font-size:15px;color:var(--gray-800);">' + esc(step.name || '(未命名)') + '</strong>' +
-        '</div>';
-      if (step.description) {
-        html += '<p style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">' + esc(step.description) + '</p>';
-      }
-      if (step.parameters && step.parameters.some(function(p) { return p.name; })) {
-        html += '<table class="fc-result-params">' +
-          '<thead><tr><th>' + t.param + '</th><th>' + t.value + '</th><th>' + t.unit + '</th></tr></thead><tbody>' +
-          step.parameters.filter(function(p) { return p.name; }).map(function(p) {
-            return '<tr><td>' + esc(p.name || '') + '</td><td>' + esc(p.value || '') + '</td><td>' + esc(p.unit || '') + '</td></tr>';
-          }).join('') +
-          '</tbody></table>';
-      }
-      html += '</div>';
-    });
-    return html;
+      '<p style="font-size:12px;color:#6b7280;margin-top:8px;">' + t.hint + '</p>';
   }
+
 
   function setActive(key) {
     activeSection = key;

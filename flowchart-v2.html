@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>工艺流程图预览 - HACCP 菊粉生产工艺</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f0f2f5; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  .header { background: #1e3a8a; color: #fff; padding: 14px 28px; font-size: 16px; font-weight: bold;
+    display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+  .sync-btn { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 12px; }
+  .sync-btn:hover { background: rgba(255,255,255,.25); }
+  .container { display: flex; gap: 20px; padding: 24px; max-width: 100%; margin: 0 auto; flex-wrap: wrap; }
+  .panel { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.1); padding: 20px; }
+  .viewer-panel { flex: 1; min-width: 420px; }
+  .side-panel { width: 360px; flex-shrink: 0; }
+  h2 { font-size: 14px; color: #1e3a8a; margin: 0 0 14px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+  #svgWrap { overflow-x: auto; overflow-y: auto; background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; justify-content: center; min-height: 520px; max-height: 750px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; color: #374151; }
+  .lbox { width: 24px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+  .lline { width: 24px; height: 3px; flex-shrink: 0; border-radius: 1px; }
+  .lline-dash { width: 24px; height: 0; border-top: 3px dashed #e53935; flex-shrink: 0; }
+  .step-edit-list { list-style: none; padding: 0; margin: 0 0 12px 0; max-height: 500px; overflow-y: auto; }
+  .step-edit-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px dashed #e5e7eb; }
+  .step-edit-item .snum { width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold; min-width: 20px; }
+  .step-edit-item .snum.blue { background: #1e88e5; }
+  .step-edit-item .snum.gray { background: #9ca3af; }
+  .step-edit-item input { flex: 1; border: 1px solid #d1d5db; border-radius: 4px; padding: 3px 6px; font-size: 12px; outline: none; }
+  .step-edit-item input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+  .step-edit-item .del-btn { color: #dc2626; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 4px; opacity: 0.5; }
+  .step-edit-item .del-btn:hover { opacity: 1; }
+  .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-sm { padding: 5px 12px; font-size: 11px; }
+  .add-step-row { display: flex; gap: 6px; margin-top: 8px; }
+  .add-step-row input { flex: 1; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 12px; outline: none; }
+  .add-step-row input:focus { border-color: #2563eb; }
+  .open-btn { display: block; padding: 10px 16px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; width: 100%; margin-top: 12px; }
+  .open-btn:hover { background: #1d4ed8; }
+  .edit-hint { font-size: 11px; color: #9ca3af; margin-top: 8px; text-align: center; }
+  .step-status { font-size: 12px; color: #6b7280; padding: 4px 0; display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+<div class="header">
+  <span>📊 HACCP 工艺流程图 — 菊粉生产工艺</span>
+  <div class="header-actions">
+    <span style="font-size:12px;font-weight:normal;opacity:.7;">编辑步骤名称，流程图实时更新</span>
+    <button class="sync-btn" onclick="resetToDefault()">↩️ 恢复默认</button>
+  </div>
+</div>
+<div class="container">
+  <div class="panel side-panel" style="order:1;">
+    <h2>✏️ 编辑流程步骤 <span style="font-size:11px;font-weight:400;color:#9ca3af;">共 <strong id="stepCount">22</strong> 步</span></h2>
+    <p class="step-status"><span>🔵 蓝色=核心节点</span><span style="font-size:11px;">点击×可删除</span></p>
+    <ul class="step-edit-list" id="stepEditList"></ul>
+    <div class="add-step-row">
+      <input type="text" id="newStepInput" placeholder="新步骤名称">
+      <button class="btn btn-primary btn-sm" onclick="addStep()">+ 添加</button>
+    </div>
+    <div class="edit-hint">💡 修改/增加/删除步骤，右侧流程图将实时更新</div>
+  </div>
+  <div class="panel viewer-panel" style="order:2;">
+    <h2>📊 工艺流程图（实时SVG渲染）</h2>
+    <div id="svgWrap"><svg id="mainSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  </div>
+  <div class="panel side-panel" style="order:3;">
+    <h2>🎨 图例</h2>
+    <div class="legend-item"><div class="lbox" style="background:#f5f5f5;border:1.5px solid #666;"></div>普通工序</div>
+    <div class="legend-item"><div class="lbox" style="background:#1e88e5;border:1.5px solid #0d47a1;"></div>🔵 核心节点</div>
+    <div class="legend-item"><div class="lline" style="background:#222;"></div>流程方向</div>
+    <div class="legend-item"><div class="lline" style="background:#059669;"></div>🟢 输入/输出（绿色箭头）</div>
+    <div class="legend-item"><div class="lline-dash"></div><span style="color:#e53935;">不合格返工</span></div>
+    <h2 style="margin-top:20px;">📂 在 draw.io 中打开</h2>
+    <p class="note">点击按钮在 draw.io 中打开当前流程图进行二次编辑。</p>
+    <button id="openBtn" class="open-btn">🔗 用 draw.io 打开编辑</button>
+  </div>
+</div>
+<script>
+var DEFAULT_STEPS = [
+  '新鲜菊芋','超声波清洗去皮','粉碎预处理','精细破碎','清水匀浆','超声波破壁','沉淀提液','制菊芋粗提取液','减压浓缩','膜滤除杂',
+  '絮凝反应','离心除杂','活性炭脱色','离心除炭','树脂脱离子','二次膜过滤','醇降处理','烘干干燥','菊粉成品','金属检测','灌装打包','入库储存'
+];
+var CORE_NAMES = ['膜滤除杂','二次膜过滤','烘干干燥','金属检测'];
+var LEFT_NOTES = [
+  [1,'地下水','40℃水温、清洗30分钟'],[2,'三级粉碎机粉碎至15mm',null],[4,'1.5~3倍纯净水','搅拌'],
+  [5,'功率50~100W、频率40kHz','12min'],[10,'温度35℃','搅拌转速80r/min'],[12,'活性炭',null],[14,'交换树脂',null],[16,'乙醇',null],[17,'温度120~180℃',null]
+];
+var RIGHT_NOTES = [
+  [1,'废水',null],[6,'加热加压、静置沉淀5min','废渣'],[8,'废渣',null],[9,'去除蛋白质、纤维素杂质',null],[13,'废活性炭',null],[14,'饱和树脂',null],[16,'沉淀',null]
+];
+var REWORK_PAIRS = [[9,8,'不合格，返工'],[15,14,'粗菊粉溶液'],[17,16,'不合格，返工'],[19,18,'不合格，返工']];
+
+var NODE_W = 240, NODE_H = 60, NODE_RX = 12, START_Y = 50, Y_GAP = 100, CX = 650, CANVAS_W = 1600, ARROW_LEN = 90;
+var currentSteps = [];
+
+function init() {
+  currentSteps = DEFAULT_STEPS.slice();
+  renderAll();
+}
+function isCore(idx) { return CORE_NAMES.indexOf(currentSteps[idx]) !== -1; }
+function renderAll() { renderEditor(); renderSvg(); updateXml(); }
+
+function renderEditor() {
+  var list = document.getElementById('stepEditList');
+  list.innerHTML = currentSteps.map(function(name, i) {
+    var cls = isCore(i) ? 'blue' : 'gray';
+    return '<li class="step-edit-item"><span class="snum ' + cls + '">' + (i + 1) + '</span><input type="text" value="' + escAttr(name) + '" data-idx="' + i + '" oninput="onStepEdit(this)">' + (isCore(i) ? '<span style="font-size:9px;color:#1e88e5;font-weight:bold;">★</span>' : '') + '<span class="del-btn" onclick="deleteStep(' + i + ')">×</span></li>';
+  }).join('');
+  document.getElementById('stepCount').textContent = currentSteps.length;
+}
+function onStepEdit(input) { currentSteps[parseInt(input.dataset.idx)] = input.value.trim() || '步骤' + (parseInt(input.dataset.idx) + 1); renderAll(); }
+function addStep() { var v = document.getElementById('newStepInput').value.trim(); if (!v) return; currentSteps.push(v); document.getElementById('newStepInput').value = ''; renderAll(); }
+function deleteStep(idx) { if (currentSteps.length <= 1) return; currentSteps.splice(idx, 1); renderAll(); }
+function nY(idx) { return START_Y + idx * Y_GAP; }
+function nCY(idx) { return nY(idx) + NODE_H / 2; }
+
+function renderSvg() {
+  var svg = document.getElementById('mainSvg');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  var d = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  d.innerHTML = '<marker id="ab" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#222"/></marker><marker id="ar" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#e53935"/></marker><marker id="ag" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#059669"/></marker>';
+  svg.appendChild(d);
+
+  var count = currentSteps.length;
+  var totalH = 2350;
+  svg.setAttribute('width', CANVAS_W);
+  svg.setAttribute('height', totalH);
+  svg.setAttribute('viewBox', '0 0 ' + CANVAS_W + ' ' + totalH);
+
+  // 入料箭头
+  var ix = CX - NODE_W/2 - ARROW_LEN;
+  addLine(svg, ix, nCY(0), CX - NODE_W/2, nCY(0), '#222', 2, 'url(#ab)');
+  addText(svg, ix - 15, nCY(0) + 8, '#333', 24, 'bold', 'end', '入料');
+
+  // 节点
+  for (var i = 0; i < count; i++) {
+    var y = nY(i), core = isCore(i);
+    addRect(svg, CX - NODE_W/2, y, NODE_W, NODE_H, NODE_RX, core ? '#1e88e5' : '#f5f5f5', core ? '#0d47a1' : '#666', core ? 2.5 : 1.5);
+    addText(svg, CX, y + NODE_H/2 + 10, core ? '#fff' : '#333', 24, 'bold', 'middle', (i+1) + '. ' + currentSteps[i]);
+  }
+
+  // 垂直箭头
+  for (var i = 0; i < count - 1; i++) {
+    addLine(svg, CX, nY(i) + NODE_H, CX, nY(i+1), '#222', 2, 'url(#ab)');
+  }
+
+  // 左侧绿色箭头
+  var LX1 = CX - NODE_W/2 - 5 - ARROW_LEN, LX2 = CX - NODE_W/2 - 5;
+  for (var li = 0; li < LEFT_NOTES.length; li++) {
+    var idx = LEFT_NOTES[li][0], above = LEFT_NOTES[li][1], below = LEFT_NOTES[li][2];
+    if (idx >= count) continue;
+    var cy = nCY(idx);
+    if (above) addText(svg, LX1 - 15, cy - 28, '#059669', 18, 'bold', 'end', above);
+    if (below) addText(svg, LX1 - 15, cy + 40, '#059669', 18, 'normal', 'end', below);
+    addLine(svg, LX1, cy, LX2, cy, '#059669', 1.5, 'url(#ag)');
+  }
+
+  // 右侧绿色箭头
+  var RX1 = CX + NODE_W/2 + 5, RX2 = RX1 + ARROW_LEN;
+  for (var ri = 0; ri < RIGHT_NOTES.length; ri++) {
+    var idx = RIGHT_NOTES[ri][0], above = RIGHT_NOTES[ri][1], below = RIGHT_NOTES[ri][2];
+    if (idx >= count) continue;
+    var cy = nCY(idx);
+    if (above) addText(svg, RX2 + 15, cy - 28, '#059669', 18, 'bold', 'start', above);
+    if (below) addText(svg, RX2 + 15, cy + 40, '#059669', 18, 'normal', 'start', below);
+    addLine(svg, RX1, cy, RX2, cy, '#059669', 1.5, 'url(#ag)');
+  }
+
+  // 红色返工箭头
+  for (var r = 0; r < REWORK_PAIRS.length; r++) {
+    var si = REWORK_PAIRS[r][0], ti = REWORK_PAIRS[r][1], label = REWORK_PAIRS[r][2];
+    if (si >= count || ti >= count) continue;
+    var fy = nCY(si), ty = nCY(ti), rx = CX + NODE_W/2, mx = rx + 140;
+    addPolyline(svg, rx+','+fy+' '+mx+','+fy+' '+mx+','+ty+' '+(rx+3)+','+ty, 'none', '#e53935', 2, '8,4', 'url(#ar)');
+    var el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    el.setAttribute('x', mx + 15); el.setAttribute('y', (fy+ty)/2); el.setAttribute('fill', '#e53935');
+    el.setAttribute('font-size', '18'); el.setAttribute('font-weight', 'bold'); el.setAttribute('writing-mode', 'tb'); el.setAttribute('text-anchor', 'middle');
+    el.textContent = label; svg.appendChild(el);
+  }
+}
+
+function addRect(svg, x, y, w, h, r, fill, stroke, sw) {
+  var el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  el.setAttribute('x', x); el.setAttribute('y', y); el.setAttribute('width', w); el.setAttribute('height', h);
+  el.setAttribute('rx', r); el.setAttribute('ry', r); el.setAttribute('fill', fill); el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', sw);
+  svg.appendChild(el);
+}
+function addLine(svg, x1, y1, x2, y2, stroke, sw, marker) {
+  var el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  el.setAttribute('x1', x1); el.setAttribute('y1', y1); el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+  el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', sw);
+  if (marker) el.setAttribute('marker-end', marker);
+  svg.appendChild(el);
+}
+function addText(svg, x, y, fill, fs, fw, anchor, text) {
+  var el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  el.setAttribute('x', x); el.setAttribute('y', y); el.setAttribute('fill', fill);
+  el.setAttribute('font-size', fs); el.setAttribute('font-weight', fw); el.setAttribute('text-anchor', anchor);
+  el.textContent = text; svg.appendChild(el);
+}
+function addPolyline(svg, points, fill, stroke, sw, dash, marker) {
+  var el = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  el.setAttribute('points', points); el.setAttribute('fill', fill); el.setAttribute('stroke', stroke);
+  el.setAttribute('stroke-width', sw); el.setAttribute('stroke-dasharray', dash); el.setAttribute('marker-end', marker);
+  svg.appendChild(el);
+}
+
+function generateXml() {
+  var lines = ['<mxfile host="app.diagrams.net" version="21.0.0">','  <diagram id="haccp-process-flow" name="菊粉生产工艺流程图">'];
+  var totalH = START_Y + currentSteps.length * Y_GAP + 30;
+  lines.push('    <mxGraphModel pageWidth="' + CANVAS_W + '" pageHeight="' + totalH + '"><root><mxCell id="0" /><mxCell id="1" parent="0" />');
+  var yPos = START_Y;
+  for (var i = 0; i < currentSteps.length; i++) {
+    var core = isCore(i), fc = core ? '#1e88e5' : '#f5f5f5', sc = core ? '#0d47a1' : '#666666', fnt = core ? '#ffffff' : '#333333';
+    lines.push('        <mxCell id="n' + (i+1) + '" value="' + escXml(currentSteps[i]) + '" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=' + fc + ';strokeColor=' + sc + ';fontColor=' + fnt + ';fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="' + (CX - NODE_W/2) + '" y="' + yPos + '" width="' + NODE_W + '" height="' + NODE_H + '" as="geometry" /></mxCell>');
+    yPos += Y_GAP;
+  }
+  for (var i = 0; i < currentSteps.length - 1; i++) lines.push('        <mxCell id="e' + (i+1) + '" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#000000;strokeWidth=2;" edge="1" source="n' + (i+1) + '" target="n' + (i+2) + '" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>');
+  for (var r = 0; r < REWORK_PAIRS.length; r++) {
+    var src = REWORK_PAIRS[r][0]+1, tgt = REWORK_PAIRS[r][1]+1;
+    var fY2 = nCY(REWORK_PAIRS[r][0]), tY2 = nCY(REWORK_PAIRS[r][1]), mx = CX + NODE_W/2 + 140;
+    lines.push('        <mxCell id="rw' + (r+1) + '" value="' + escXml(REWORK_PAIRS[r][2]) + '" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#e53935;strokeWidth=2;dashed=1;dashPattern=8 4;fillColor=#e53935;fontColor=#e53935;fontStyle=1;fontSize=11;" edge="1" source="n' + src + '" target="n' + tgt + '" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="' + mx + '" y="' + fY2 + '" /><mxPoint x="' + mx + '" y="' + tY2 + '" /></Array></mxGeometry></mxCell>');
+  }
+  lines.push('      </root></mxGraphModel></diagram></mxfile>');
+  return lines.join('\n');
+}
+
+function updateXml() {
+  var xml = generateXml();
+  try { localStorage.setItem('haccp_fc_preview_steps', JSON.stringify(currentSteps)); localStorage.setItem('haccp_drawio_xml', xml); } catch(e) {}
+}
+document.getElementById('openBtn').addEventListener('click', function() { window.open('https://app.diagrams.net/#xml=' + encodeURIComponent(generateXml())); });
+function resetToDefault() { currentSteps = DEFAULT_STEPS.slice(); renderAll(); }
+function escAttr(s) { if (!s) return ''; return String(s).replace(/"/g,'"').replace(/</g,'<').replace(/>/g,'>'); }
+function escXml(s) { if (!s) return ''; return String(s).replace(/&/g,'&').replace(/"/g,'"').replace(/</g,'<').replace(/>/g,'>'); }
+init();
+</script>
+</body>
+</html>
