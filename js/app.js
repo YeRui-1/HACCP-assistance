@@ -48,9 +48,14 @@ const App = (() => {
       translatePage();
       const btnStart = getEl('btnStart');
       const btnResults = getEl('btnGoResults');
+      const btnProfile = getEl('btnGoProfile');
       if (btnStart) btnStart.onclick = () => navigateTo('questionnaire');
       if (btnResults) btnResults.onclick = () => navigateTo('results');
+      if (btnProfile) btnProfile.onclick = () => navigateTo('profile');
       updateLobbyStatus();
+    } else if (page === 'profile') {
+      translatePage();
+      Profile.init();
     } else if (page === 'questionnaire') {
       translatePage();
       Questionnaire15min.init();

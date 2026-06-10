@@ -723,6 +723,8 @@ body {
   cursor: pointer;
   margin-bottom: 24px;
   position: relative;
+  max-width: none;
+  width: 100%;
 }
 .q15-upload-zone:hover,
 .q15-upload-zone.drag-over {
@@ -1407,4 +1409,167 @@ select.fc-input-type {
     flex-direction: column;
     gap: 6px;
   }
+}
+
+/* ===== CCP Unified Table (只追加，不修改已有样式) ===== */
+.ccp-unified-wrapper {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+.ccp-unified-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 1100px;
+}
+.ccp-unified-table th,
+.ccp-unified-table td {
+  padding: 6px 8px;
+  border: 1px solid var(--gray-200);
+  text-align: center;
+  vertical-align: middle;
+}
+.ccp-unified-table thead th {
+  background: var(--gray-100);
+  font-weight: 600;
+  color: var(--gray-600);
+  font-size: 11px;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.ccp-unified-table .ccp-ut-step {
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: 12px;
+  white-space: nowrap;
+  text-align: left;
+  min-width: 90px;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ccp-unified-table .ccp-ut-hazard-badge {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  line-height: 22px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+}
+.ccp-unified-table .ccp-ut-hazard-badge.bio { background: #dc2626; }
+.ccp-unified-table .ccp-ut-hazard-badge.chem { background: #d97706; }
+.ccp-unified-table .ccp-ut-hazard-badge.phys { background: #6b7280; }
+.ccp-unified-table .ccp-ut-hazard-label { font-size: 11px; color: var(--gray-500); display: block; margin-top: 2px; }
+.ccp-unified-table .ccp-ut-desc-input {
+  width: 140px;
+  min-width: 100px;
+  padding: 4px 6px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 28px;
+  background: #fff;
+  transition: border-color var(--transition);
+}
+.ccp-unified-table .ccp-ut-desc-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.1);
+}
+.ccp-unified-table .ccp-ut-yn {
+  display: inline-flex;
+  gap: 2px;
+}
+.ccp-unified-table .ccp-ut-yn label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px 8px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: #fff;
+  color: var(--gray-500);
+  user-select: none;
+}
+.ccp-unified-table .ccp-ut-yn label:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.ccp-unified-table .ccp-ut-yn label input { display: none; }
+.ccp-unified-table .ccp-ut-yn label.selected-yes {
+  border-color: #16a34a;
+  background: var(--green-light);
+  color: #16a34a;
+  font-weight: 600;
+}
+.ccp-unified-table .ccp-ut-yn label.selected-no {
+  border-color: #dc2626;
+  background: var(--red-light);
+  color: #dc2626;
+  font-weight: 600;
+}
+.ccp-unified-table .ccp-ut-result {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 10px;
+  display: inline-block;
+  white-space: nowrap;
+}
+.ccp-unified-table .ccp-ut-result.is-ccp {
+  background: var(--red-100);
+  color: #dc2626;
+}
+.ccp-unified-table .ccp-ut-result.no-ccp {
+  background: var(--green-100);
+  color: #16a34a;
+}
+.ccp-unified-table .ccp-ut-result.pending {
+  background: var(--gray-100);
+  color: var(--gray-400);
+}
+.ccp-unified-table .ccp-ut-result.modify {
+  background: var(--amber-light);
+  color: #d97706;
+}
+.ccp-unified-table tr:hover td {
+  background: var(--gray-50);
+}
+.ccp-unified-table .step-group-header td {
+  background: var(--gray-50);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--gray-600);
+  text-align: left;
+  padding: 4px 8px;
+  border-top: 2px solid var(--gray-300);
+}
+.ccp-unified-table .step-group-header:first-child td {
+  border-top: none;
+}
+.ccp-unified-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-200);
+}
+.ccp-unified-info {
+  font-size: 12px;
+  color: var(--gray-400);
+  text-align: center;
+  margin-bottom: 12px;
+  line-height: 1.6;
 }
