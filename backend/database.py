@@ -24,6 +24,16 @@ def init_db():
             updated_at TEXT NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            company_name TEXT NOT NULL DEFAULT '',
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
 
     # 迁移：补齐旧表缺少的列
@@ -174,6 +184,58 @@ def get_published_template() -> dict | None:
     if row is None:
         return None
     return _row_to_dict(row)
+
+
+# ===== 用户操作 =====
+
+def create_user(username: str, company_name: str, password_hash: str, role: str = "user") -> dict | None:
+    """创建用户，返回用户信息（不含密码）"""
+    now = _now()
+    conn = get_conn()
+    try:
+        cur = conn.execute(
+            "INSERT INTO users (username, company_name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
+            (username, company_name, password_hash, role, now),
+        )
+        conn.commit()
+        user_id = cur.lastrowid
+        conn.close()
+        return get_user_by_id(user_id)
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None
+
+
+def get_user_by_username(username: str) -> dict | None:
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "username": row["username"],
+        "company_name": row["company_name"],
+        "password_hash": row["password_hash"],
+        "role": row["role"],
+        "created_at": row["created_at"],
+    }
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    """返回用户信息（不含 password_hash）"""
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "username": row["username"],
+        "company_name": row["company_name"],
+        "role": row["role"],
+        "created_at": row["created_at"],
+    }
 
 
 # ===== 工具函数 =====

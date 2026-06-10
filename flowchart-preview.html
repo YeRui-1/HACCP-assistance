@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>HACCP 工艺流程图</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f0f2f5;font-family:'PingFang SC','Microsoft YaHei',sans-serif}
+.header{background:#1e3a8a;color:#fff;padding:14px 28px;font-size:16px;font-weight:bold;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.header-actions{display:flex;align-items:center;gap:10px}
+.sync-btn{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px}
+.container{display:flex;gap:20px;padding:24px;max-width:100%;margin:0 auto;flex-wrap:wrap}
+.panel{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:20px}
+.viewer-panel{flex:1;min-width:420px}
+.side-panel{width:440px;flex-shrink:0}
+h2{font-size:14px;color:#1e3a8a;margin:0 0 14px;border-bottom:2px solid #e5e7eb;padding-bottom:8px}
+#svgWrap{overflow:auto;background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:16px;display:flex;justify-content:center;min-height:500px;max-height:750px}
+.legend-item{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px;color:#374151}
+.lbox{width:24px;height:16px;border-radius:3px;flex-shrink:0}
+.lline{width:24px;height:3px;flex-shrink:0}
+.lline-dash{width:24px;height:0;border-top:3px dashed #e53935;flex-shrink:0}
+.step-list{list-style:none;padding:0;margin:0 0 8px;max-height:300px;overflow-y:auto}
+.step-item{display:flex;align-items:center;gap:4px;padding:3px 0;border-bottom:1px dashed #e5e7eb}
+.step-item .num{width:22px;height:22px;border-radius:50%;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:bold;min-width:22px}
+.nr{background:#dc2626}
+.ng{background:#9ca3af}
+.step-item .sinput{flex:1;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;font-size:12px;outline:none;min-width:0}
+.step-item .sinput:focus{border-color:#2563eb}
+.step-item .mv{color:#6b7280;cursor:pointer;font-size:12px;padding:0 3px;opacity:0.6;flex-shrink:0}
+.step-item .mv:hover{opacity:1}
+.ccp-btn{font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid #dc2626;cursor:pointer;flex-shrink:0;background:transparent;color:#dc2626;font-weight:bold}
+.ccp-on{background:#dc2626;color:#fff}
+.anno-item{display:flex;align-items:center;gap:4px;padding:2px 0;border-bottom:1px dashed #f3f4f6;font-size:11px}
+.anno-item input{border:1px solid #e5e7eb;border-radius:3px;padding:2px 4px;font-size:11px;outline:none;min-width:0;flex:1}
+.anno-item input:focus{border-color:#2563eb}
+.anno-item .ref{font-size:10px;color:#6b7280;min-width:30px;text-align:center;flex-shrink:0}
+.tag{font-size:9px;padding:1px 4px;border-radius:3px;color:#fff;margin-right:4px;flex-shrink:0}
+.tg{background:#059669}
+.tr{background:#dc2626}
+.sbox{max-height:130px;overflow-y:auto}
+.del{color:#dc2626;cursor:pointer;font-size:14px;font-weight:bold;padding:0 4px;opacity:0.5;flex-shrink:0}
+.del:hover{opacity:1}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:bold}
+.bp{background:#2563eb;color:#fff}
+.bs{padding:2px 10px;font-size:11px}
+.ar{display:flex;gap:6px;margin-top:4px}
+.ar input{border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;font-size:11px;outline:none}
+.ar input:focus{border-color:#2563eb}
+.sl{font-size:12px;font-weight:bold;color:#374151;margin:8px 0 4px;padding:4px 8px;background:#f3f4f6;border-radius:4px}
+.ob{display:block;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;width:100%;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="header"><span>HACCP 工艺流程图 — 菊粉生产工艺</span>
+<div class="header-actions"><span style="font-size:12px;opacity:.7;">点击CCP按钮切换标识，点击▲▼移动步骤</span>
+<button class="sync-btn" onclick="rt()">恢复默认</button></div></div>
+<div class="container">
+<div class="panel side-panel" style="order:1;">
+<h2>编辑区</h2>
+<div class="sl">步骤列表 <span style="font-weight:normal;color:#9ca3af;">点击CCP切换</span></div>
+<ul class="step-list" id="sl"></ul>
+<div class="ar"><input id="ns" placeholder="新步骤名称"><button class="btn bp bs" onclick="as()">+ 添加</button></div>
+<div class="sl">左侧输入箭头</div>
+<div class="sbox" id="ll"></div>
+<div class="ar"><input id="nls" placeholder="步号" style="width:34px;flex:none"><input id="nla" placeholder="上方文字"><input id="nlb" placeholder="下方" style="width:70px;flex:none"><button class="btn bp bs" onclick="aln()">+</button></div>
+<div class="sl">右侧输出箭头</div>
+<div class="sbox" id="rl"></div>
+<div class="ar"><input id="nrs" placeholder="步号" style="width:34px;flex:none"><input id="nra" placeholder="上方文字"><input id="nrb" placeholder="下方" style="width:70px;flex:none"><button class="btn bp bs" onclick="arn()">+</button></div>
+<div class="sl">返工箭头</div>
+<div class="sbox" id="rwl"></div>
+<div class="ar"><input id="nrsrc" placeholder="源" style="width:34px;flex:none"><input id="nrtgt" placeholder="目标" style="width:34px;flex:none"><input id="nrlb" placeholder="标签"><button class="btn bp bs" onclick="arnw()">+</button></div>
+</div>
+<div class="panel viewer-panel" style="order:2;">
+<h2>工艺流程图</h2>
+<div id="svgWrap"><svg id="mSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+</div>
+<div class="panel side-panel" style="order:3;">
+<h2>图例</h2>
+<div class="legend-item"><div class="lbox" style="background:#f5f5f5;border:1.5px solid #666"></div>普通工序</div>
+<div class="legend-item"><div class="lbox" style="background:#dc2626;border:1.5px solid #991b1b"></div>CCP</div>
+<div class="legend-item"><div class="lline" style="background:#222"></div>流程</div>
+<div class="legend-item"><div class="lline" style="background:#059669"></div>输入/输出</div>
+<div class="legend-item"><div class="lline-dash"></div>返工</div>
+<button id="ob" class="ob">用 draw.io 打开</button>
+<button id="saveBtn" class="ob" style="background:#059669;margin-top:6px;">💾 保存到报告</button>
+</div></div>
+<script>
+// ===== 核心数据 =====
+var DS=['新鲜菊芋','超声波清洗去皮','粉碎预处理','精细破碎','清水匀浆','超声波破壁','沉淀提液','制菊芋粗提取液','减压浓缩','膜滤除杂','絮凝反应','离心除杂','活性炭脱色','离心除炭','树脂脱离子','二次膜过滤','醇降处理','烘干干燥','菊粉成品','金属检测','灌装打包','入库储存'];
+var DC=[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,1,0,0]; // CCP标志 1=是 0=否
+var LN=[[1,'地下水','40℃水温、清洗30分钟'],[2,'三级粉碎机粉碎至15mm',null],[4,'1.5~3倍纯净水','搅拌'],[5,'功率50~100W、频率40kHz','12min'],[10,'温度35℃','搅拌转速80r/min'],[12,'活性炭',null],[14,'交换树脂',null],[16,'乙醇',null],[17,'温度120~180℃',null]];
+var RN=[[1,'废水',null],[6,'加热加压、静置沉淀5min','废渣'],[8,'废渣',null],[9,null,'去除蛋白质、纤维素杂质'],[13,'废活性炭',null],[14,'饱和树脂',null],[16,'沉淀',null]];
+var RW=[[9,8,'不合格，返工'],[15,14,'粗菊粉溶液'],[17,16,'不合格，返工'],[19,18,'不合格，返工']];
+var NW=240,NH=60,NX=12,SY=50,YG=100,CX=650,TH=2350,AL=90;
+
+// ===== HTML实体转义（避免被格式化破坏）=====
+function esc(s){
+  if(!s)return '';
+  return s.replace(/\x22/g,String.fromCharCode(38,34,59))
+          .replace(/</g,String.fromCharCode(38,108,116,59))
+          .replace(/>/g,String.fromCharCode(38,103,116,59))
+          .replace(/\x26/g,String.fromCharCode(38,97,109,112,59));
+}
+function esx(s){return esc(s)}
+
+var cur=[];
+
+function init(){
+  cur=DS.slice();
+  renderAll();
+}
+
+function isCCP(i){return DC[i]===1}
+
+function renderAll(){
+  renderSteps();
+  renderNotes('ll',LN,'el','dl');
+  renderNotes('rl',RN,'er','dr');
+  renderRework();
+  renderSvg();
+  updateXml();
+}
+
+// ===== 步骤列表 =====
+function renderSteps(){
+  var e=document.getElementById('sl');
+  e.innerHTML=cur.map(function(n,i){
+    var cc=isCCP(i);
+    var nc=cc?'nr':'ng';
+    var ccpBtn='<button class="ccp-btn'+(cc?' ccp-on':'')+'" onclick="toggleCCP('+i+')">CCP</button>';
+    var upBtn=i>0?'<span class="mv" onclick="moveUp('+i+')">▲</span>':'<span class="mv" style="opacity:0.2">▲</span>';
+    var dnBtn=i<cur.length-1?'<span class="mv" onclick="moveDn('+i+')">▼</span>':'<span class="mv" style="opacity:0.2">▼</span>';
+    return '<li class="step-item"><span class="num '+nc+'">'+(i+1)+'</span>'+upBtn+dnBtn+'<input class="sinput" value="'+esc(n)+'" data-i="'+i+'" oninput="se(this)">'+ccpBtn+'<span class="del" onclick="ds('+i+')">x</span></li>';
+  }).join('');
+}
+
+function toggleCCP(i){
+  DC[i]=DC[i]?0:1;
+  renderAll();
+}
+
+function moveUp(i){
+  if(i<=0)return;
+  var tmp=cur[i];cur[i]=cur[i-1];cur[i-1]=tmp;
+  var td=DC[i];DC[i]=DC[i-1];DC[i-1]=td;
+  renderAll();
+}
+
+function moveDn(i){
+  if(i>=cur.length-1)return;
+  var tmp=cur[i];cur[i]=cur[i+1];cur[i+1]=tmp;
+  var td=DC[i];DC[i]=DC[i+1];DC[i+1]=td;
+  renderAll();
+}
+
+// ===== 标注列表 =====
+function renderNotes(eid,data,efn,dfn){
+  var e=document.getElementById(eid);
+  e.innerHTML=data.map(function(a,i){
+    var ab=a[1]||'',be=a[2]||'';
+    return '<div class="anno-item"><span class="tag tg">S'+(a[0]+1)+'</span><input value="'+esc(ab)+'" data-i="'+i+'" data-f="1" oninput="'+efn+'(this)" placeholder="上"><input value="'+esc(be)+'" data-i="'+i+'" data-f="2" oninput="'+efn+'(this)" placeholder="下"><span class="del" onclick="'+dfn+'('+i+')">x</span></div>';
+  }).join('');
+  if(!data.length)e.innerHTML='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px;">(无)</div>';
+}
+function renderRework(){
+  var e=document.getElementById('rwl');
+  e.innerHTML=RW.map(function(r,i){
+    return '<div class="anno-item"><span class="tag tr">S'+(r[0]+1)+'->S'+(r[1]+1)+'</span><input value="'+esc(r[2])+'" data-i="'+i+'" oninput="ew(this)" placeholder="标签"><span class="del" onclick="dw('+i+')">x</span></div>';
+  }).join('');
+  if(!RW.length)e.innerHTML='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px;">(无)</div>';
+}
+
+// ===== 操作函数 =====
+function se(inp){cur[parseInt(inp.dataset.i)]=inp.value.trim()||'步骤'+(parseInt(inp.dataset.i)+1);renderAll()}
+function as(){var v=document.getElementById('ns').value.trim();if(!v)return;cur.push(v);DC.push(0);document.getElementById('ns').value='';renderAll()}
+function ds(i){if(cur.length<=1)return;cur.splice(i,1);DC.splice(i,1);renderAll()}
+
+function aln(){var s=parseInt(document.getElementById('nls').value)-1,a=document.getElementById('nla').value.trim(),b=document.getElementById('nlb').value.trim();if(isNaN(s)||s<0)return;LN.push([s,a||null,b||null]);document.getElementById('nls').value='';document.getElementById('nla').value='';document.getElementById('nlb').value='';renderAll()}
+function el(inp){var i=parseInt(inp.dataset.i),f=parseInt(inp.dataset.f);LN[i][f]=inp.value.trim()||null;renderAll()}
+function dl(i){LN.splice(i,1);renderAll()}
+
+function arn(){var s=parseInt(document.getElementById('nrs').value)-1,a=document.getElementById('nra').value.trim(),b=document.getElementById('nrb').value.trim();if(isNaN(s)||s<0)return;RN.push([s,a||null,b||null]);document.getElementById('nrs').value='';document.getElementById('nra').value='';document.getElementById('nrb').value='';renderAll()}
+function er(inp){var i=parseInt(inp.dataset.i),f=parseInt(inp.dataset.f);RN[i][f]=inp.value.trim()||null;renderAll()}
+function dr(i){RN.splice(i,1);renderAll()}
+
+function arnw(){var s=parseInt(document.getElementById('nrsrc').value)-1,t=parseInt(document.getElementById('nrtgt').value)-1,l=document.getElementById('nrlb').value.trim();if(isNaN(s)||isNaN(t)||s<0||t<0)return;RW.push([s,t,l||'']);document.getElementById('nrsrc').value='';document.getElementById('nrtgt').value='';document.getElementById('nrlb').value='';renderAll()}
+function ew(inp){var i=parseInt(inp.dataset.i);RW[i][2]=inp.value.trim()||'';renderAll()}
+function dw(i){RW.splice(i,1);renderAll()}
+
+// ===== SVG渲染 =====
+function ny(i){return SY+i*YG}
+function ncy(i){return ny(i)+NH/2}
+
+function renderSvg(){
+  var svg=document.getElementById('mSvg');
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  var d=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  d.innerHTML='<marker id="m1" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#222"/></marker><marker id="m2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#e53935"/></marker><marker id="m3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#059669"/></marker>';
+  svg.appendChild(d);
+  var cnt=cur.length;
+  svg.setAttribute('width',1600);svg.setAttribute('height',TH);
+  svg.setAttribute('viewBox','0 0 1600 '+TH);
+  var ix=CX-NW/2-AL;
+  GL(svg,ix,ncy(0),CX-NW/2,ncy(0),'#222',2,'url(#m1)');
+  GT(svg,ix-15,ncy(0)+8,'#333',24,'bold','end','入料');
+  for(var i=0;i<cnt;i++){var y=ny(i),co=isCCP(i);GR(svg,CX-NW/2,y,NW,NH,NX,co?'#dc2626':'#f5f5f5',co?'#991b1b':'#666',co?3:1.5);GT(svg,CX,y+NH/2+10,co?'#fff':'#333',24,'bold','middle',(i+1)+'. '+cur[i])}
+  for(var i=0;i<cnt-1;i++)GL(svg,CX,ny(i)+NH,CX,ny(i+1),'#222',2,'url(#m1)');
+  var LX1=CX-NW/2-5-AL,LX2=CX-NW/2-5;
+  for(var li=0;li<LN.length;li++){var idx=LN[li][0],ab=LN[li][1],be=LN[li][2];if(idx>=cnt)continue;var cy=ncy(idx);if(ab)GT(svg,LX1-15,cy-28,'#059669',18,'bold','end',ab);if(be)GT(svg,LX1-15,cy+40,'#059669',18,'normal','end',be);GL(svg,LX1,cy,LX2,cy,'#059669',1.5,'url(#m3)')}
+  var RX1=CX+NW/2+5,RX2=RX1+AL;
+  for(var ri=0;ri<RN.length;ri++){var idx=RN[ri][0],ab=RN[ri][1],be=RN[ri][2];if(idx>=cnt)continue;var cy=ncy(idx);if(ab)GT(svg,RX2+15,cy-28,'#059669',18,'bold','start',ab);if(be)GT(svg,RX2+15,cy+40,'#059669',18,'normal','start',be);GL(svg,RX1,cy,RX2,cy,'#059669',1.5,'url(#m3)')}
+  for(var r=0;r<RW.length;r++){var si=RW[r][0],ti=RW[r][1],label=RW[r][2];if(si>=cnt||ti>=cnt)continue;var fy=ncy(si),ty=ncy(ti),rx=CX+NW/2,mx=rx+140;GP(svg,rx+','+fy+' '+mx+','+fy+' '+mx+','+ty+' '+(rx+3)+','+ty,'none','#e53935',2,'8,4','url(#m2)');if(label){var el=document.createElementNS('http://www.w3.org/2000/svg','text');el.setAttribute('x',mx+15);el.setAttribute('y',(fy+ty)/2);el.setAttribute('fill','#e53935');el.setAttribute('font-size','18');el.setAttribute('font-weight','bold');el.setAttribute('writing-mode','tb');el.setAttribute('text-anchor','middle');el.textContent=label;svg.appendChild(el)}}
+}
+
+function GR(s,x,y,w,h,r,f,st,sw){var e=document.createElementNS('http://www.w3.org/2000/svg','rect');e.setAttribute('x',x);e.setAttribute('y',y);e.setAttribute('width',w);e.setAttribute('height',h);e.setAttribute('rx',r);e.setAttribute('ry',r);e.setAttribute('fill',f);e.setAttribute('stroke',st);e.setAttribute('stroke-width',sw);s.appendChild(e)}
+function GL(s,x1,y1,x2,y2,st,sw,m){var e=document.createElementNS('http://www.w3.org/2000/svg','line');e.setAttribute('x1',x1);e.setAttribute('y1',y1);e.setAttribute('x2',x2);e.setAttribute('y2',y2);e.setAttribute('stroke',st);e.setAttribute('stroke-width',sw);if(m)e.setAttribute('marker-end',m);s.appendChild(e)}
+function GT(s,x,y,f,fs,fw,a,t){var e=document.createElementNS('http://www.w3.org/2000/svg','text');e.setAttribute('x',x);e.setAttribute('y',y);e.setAttribute('fill',f);e.setAttribute('font-size',fs);e.setAttribute('font-weight',fw);e.setAttribute('text-anchor',a);e.textContent=t;s.appendChild(e)}
+function GP(s,p,f,st,sw,d,m){var e=document.createElementNS('http://www.w3.org/2000/svg','polyline');e.setAttribute('points',p);e.setAttribute('fill',f);e.setAttribute('stroke',st);e.setAttribute('stroke-width',sw);e.setAttribute('stroke-dasharray',d);e.setAttribute('marker-end',m);s.appendChild(e)}
+
+// ===== draw.io XML =====
+function gx(){
+  var l=['<mxfile host="app.diagrams.net" version="21.0.0">','  <diagram id="haccp-process-flow" name="\u83ca\u7c89\u751f\u4ea7\u5de5\u827a\u6d41\u7a0b\u56fe">'];
+  var th=SY+cur.length*YG+30;
+  l.push('    <mxGraphModel pageWidth="1600" pageHeight="'+th+'"><root><mxCell id="0"/><mxCell id="1" parent="0"/>');
+  var yp=SY;
+  for(var i=0;i<cur.length;i++){var co=isCCP(i),fc=co?'#dc2626':'#f5f5f5',sc=co?'#991b1b':'#666666',fn=co?'#ffffff':'#333333';l.push('        <mxCell id="n'+(i+1)+'" value="'+esx(cur[i])+'" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor='+fc+';strokeColor='+sc+';fontColor='+fn+';fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="'+(CX-NW/2)+'" y="'+yp+'" width="'+NW+'" height="'+NH+'" as="geometry"/></mxCell>');yp+=YG}
+  for(var i=0;i<cur.length-1;i++)l.push('        <mxCell id="e'+(i+1)+'" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#000000;strokeWidth=2;" edge="1" source="n'+(i+1)+'" target="n'+(i+2)+'" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>');
+  for(var r=0;r<RW.length;r++){var s=RW[r][0]+1,t=RW[r][1]+1;var fY=ncy(RW[r][0]),tY=ncy(RW[r][1]),mx=CX+NW/2+140;if(RW[r][2])l.push('        <mxCell id="rw'+(r+1)+'" value="'+esx(RW[r][2])+'" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#e53935;strokeWidth=2;dashed=1;dashPattern=8 4;fillColor=#e53935;fontColor=#e53935;fontStyle=1;fontSize=11;" edge="1" source="n'+s+'" target="n'+t+'" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="'+mx+'" y="'+fY+'"/><mxPoint x="'+mx+'" y="'+tY+'"/></Array></mxGeometry></mxCell>')}
+  l.push('      </root></mxGraphModel></diagram></mxfile>');return l.join('\n');
+}
+
+function updateXml(){var x=gx();try{localStorage.setItem('steps',JSON.stringify(cur));localStorage.setItem('ccp',JSON.stringify(DC));localStorage.setItem('xml',x)}catch(e){}}
+document.getElementById('ob').addEventListener('click',function(){window.open('https://app.diagrams.net/#xml='+encodeURIComponent(gx()))});
+
+// 保存流程图到 localStorage（供HACCP报告读取）
+document.getElementById('saveBtn').addEventListener('click',function(){
+  var svg=document.getElementById('mSvg');
+  var svgStr=new XMLSerializer().serializeToString(svg);
+  var svgBase64='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr)));
+  try{
+    localStorage.setItem('haccp_drawio_svg',svgBase64);
+    var btn=document.getElementById('saveBtn');
+    btn.textContent='✅ 已保存！';
+    setTimeout(function(){btn.textContent='💾 保存到报告';},2000);
+  }catch(e){alert('保存失败:'+e.message);}
+});
+
+function rt(){
+  cur=DS.slice();
+  DC=[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,1,0,0];
+  LN.splice(0,LN.length,[1,'地下水','40℃水温、清洗30分钟'],[2,'三级粉碎机粉碎至15mm',null],[4,'1.5~3倍纯净水','搅拌'],[5,'功率50~100W、频率40kHz','12min'],[10,'温度35℃','搅拌转速80r/min'],[12,'活性炭',null],[14,'交换树脂',null],[16,'乙醇',null],[17,'温度120~180℃',null]);
+  RN.splice(0,RN.length,[1,'废水',null],[6,'加热加压、静置沉淀5min','废渣'],[8,'废渣',null],[9,null,'去除蛋白质、纤维素杂质'],[13,'废活性炭',null],[14,'饱和树脂',null],[16,'沉淀',null]);
+  RW.splice(0,RW.length,[9,8,'不合格，返工'],[15,14,'粗菊粉溶液'],[17,16,'不合格，返工'],[19,18,'不合格，返工']);
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
