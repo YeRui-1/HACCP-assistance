@@ -82,6 +82,7 @@ const Results = (() => {
       { key: 'q15-company', label: '一、企业信息' },
       { key: 'q15-product', label: '二、产品信息' },
       { key: 'q15-process', label: '三、生产流程' },
+      { key: 'q15-ccp', label: 'CCP判定结果' },
       { key: 'q15-hazard', label: '四、危害分析' },
       { key: 'q15-limits', label: '五、关键限制' },
       { key: 'q15-verification', label: '六、验证程序' },
@@ -221,6 +222,51 @@ const Results = (() => {
         '</tbody></table></div>';
     });
     html += '<div class="result-item"><span class="ri-label">流程图现场确认</span><span class="ri-value">' + boolYes(data.flowConfirmed) + '</span></div></div>';
+
+    // 3.5 - CCP判定结果
+    if (data.ccpSteps && data.ccpSteps.length > 0) {
+      html += '<div class="results-section" id="section-q15-ccp"><h2>CCP关键控制点判定结果</h2>';
+      html += '<p style="font-size:13px;color:var(--gray-400);margin-bottom:12px;">基于Codex CCP决策树（Q1-Q5）对每个加工步骤的生物、化学、物理危害进行系统判定</p>';
+      html += '<div style="overflow-x:auto;"><table style="min-width:900px;"><thead><tr>';
+      html += '<th>加工步骤</th><th>危害类型</th><th>危害描述</th>';
+      html += '<th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th>';
+      html += '<th>判定结果</th><th>判定依据</th>';
+      html += '</tr></thead><tbody>';
+      var hazardTypes = ['bio', 'chem', 'phys'];
+      var hazardTypeNames = { bio: '生物危害(B)', chem: '化学危害(C)', phys: '物理危害(P)' };
+      data.ccpSteps.forEach(function(s, si) {
+        if (!s.hazards) return;
+        hazardTypes.forEach(function(ht, hi) {
+          var h = s.hazards[ht] || {};
+          var isCCP = h.isCCP;
+          var resultText = '';
+          var resultColor = '';
+          if (isCCP === true) { resultText = '✓ CCP'; resultColor = '#dc2626'; }
+          else if (isCCP === false) { resultText = '非CCP'; resultColor = '#16a34a'; }
+          else if (isCCP === 'modify') { resultText = '需修改'; resultColor = '#d97706'; }
+          else { resultText = '未判定'; resultColor = '#6b7280'; }
+          var reasoningHtml = '';
+          if (h.aiReasoning) {
+            reasoningHtml = '<span style="font-size:11px;color:#6b7280;" title="' + esc(h.aiReasoning) + '">' + esc(h.aiReasoning.substring(0, 60) + (h.aiReasoning.length > 60 ? '...' : '')) + '</span>';
+            if (h.aiOverridden) reasoningHtml += ' <span style="color:#d97706;font-size:9px;font-weight:500;">(用户已修改)</span>';
+            else reasoningHtml += ' <span style="color:#7c3aed;font-size:9px;">(AI)</span>';
+          }
+          html += '<tr>';
+          if (hi === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:500;">' + esc(s.stepName || '步骤' + (si+1)) + '</td>';
+          html += '<td style="white-space:nowrap;">' + hazardTypeNames[ht] + '</td>';
+          html += '<td style="font-size:12px;">' + esc(h.hazardDesc || '') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q1 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q2 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q3 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q4 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q5 || '—') + '</td>';
+          html += '<td style="color:' + resultColor + ';font-weight:bold;text-align:center;">' + resultText + '</td>';
+          html += '<td>' + reasoningHtml + '</td>';
+          html += '</tr>';
+        });
+      });
+      html += '</tbody></table></div></div>';
+    }
 
     // 四、危害分析 - 合并所有危害到统一表格，按文档格式展示
     html += '<div class="results-section" id="section-q15-hazard"><h2>四、危害分析</h2>';

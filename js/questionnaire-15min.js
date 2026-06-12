@@ -624,6 +624,10 @@ const Questionnaire15min = (() => {
       summaryHtml += renderCcpFooter(data);
       return summaryHtml;
     } else {
+      // form 模式：如果AI已完成判定，显示审核视图；否则显示步骤填写表单
+      if (data.ccpCompleted && data.ccpSteps && data.ccpSteps.length > 0) {
+        return renderCcpReviewView(data);
+      }
       return renderStepFormPage(data);
     }
   }
@@ -660,7 +664,8 @@ const Questionnaire15min = (() => {
     }
     
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpJudgeBtn">CCP判断</button>';
+    html += '<button class="btn btn-sm" id="aiCcpJudgeBtn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;">\u{1F916} AI自动判定CCP</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpJudgeBtn">手动逐步判定</button>';
     html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn">完成</button>';
     html += '</div>';
     
@@ -932,8 +937,19 @@ const Questionnaire15min = (() => {
         html += '<td>' + (q1Val === '是' && q2Val === '是' && q3Val === '否' ? renderYesNoBtns(si, ht, 'q4', q4Val) : '<span style="color:var(--gray-300);font-size:11px;">—</span>') + '</td>';
         // Q5: 后续消除
         html += '<td>' + (q1Val === '是' && q2Val === '是' && q3Val === '否' && q4Val === '是' ? renderYesNoBtns(si, ht, 'q5', q5Val) : '<span style="color:var(--gray-300);font-size:11px;">—</span>') + '</td>';
-        // 判定结果
-        html += '<td><span class="ccp-ut-result ' + resultClass + '">' + resultText + '</span></td>';
+        // 判定结果（含AI推理tooltip）
+        var reasoning = hData.aiReasoning || '';
+        var overridden = hData.aiOverridden;
+        var reasoningIcon = '';
+        if (reasoning) {
+          var tipId = 'ccpTip_' + si + '_' + ht;
+          var shortReason = reasoning.length > 80 ? reasoning.substring(0, 80) + '...' : reasoning;
+          reasoningIcon = ' <span class="ccp-reasoning-icon" data-tooltip-id="' + tipId + '" title="' + esc(reasoning) + '" style="cursor:help;display:inline-block;width:16px;height:16px;background:' + (overridden ? '#fbbf24' : '#e2e8f0') + ';border-radius:50%;text-align:center;line-height:16px;font-size:10px;color:' + (overridden ? '#92400e' : '#475569') + ';">?</span>';
+          if (overridden) {
+            reasoningIcon += ' <span style="font-size:10px;color:#d97706;">已修改</span>';
+          }
+        }
+        html += '<td><span class="ccp-ut-result ' + resultClass + '">' + resultText + '</span>' + reasoningIcon + '</td>';
         html += '</tr>';
       });
     });
@@ -1211,6 +1227,40 @@ const Questionnaire15min = (() => {
     return results;
   }
 
+  // ===== AI CCP 审核视图 =====
+  function renderCcpReviewView(data) {
+    var steps = data.processSteps || [];
+    var ccpCount = countCCPs(data);
+    var modifyCount = countModifies(data);
+    var totalJudgments = steps.length * 3;
+    var nonCCPCount = totalJudgments - ccpCount - modifyCount;
+
+    var html = '<div class="ccp-review-header">';
+    html += '<div class="ccp-review-stats">';
+    html += '<div class="ccp-stat-card ccp-stat-ai"><span class="ccp-stat-num">🤖</span><span class="ccp-stat-label">AI智能判定完成</span></div>';
+    html += '<div class="ccp-stat-card ccp-stat-yes"><span class="ccp-stat-num">' + ccpCount + '</span><span class="ccp-stat-label">确认为CCP</span></div>';
+    html += '<div class="ccp-stat-card ccp-stat-no"><span class="ccp-stat-num">' + nonCCPCount + '</span><span class="ccp-stat-label">非CCP</span></div>';
+    if (modifyCount > 0) {
+      html += '<div class="ccp-stat-card ccp-stat-modify"><span class="ccp-stat-num">' + modifyCount + '</span><span class="ccp-stat-label">需修改</span></div>';
+    }
+    html += '</div>';
+    html += '<p class="ccp-review-desc">AI已完成所有CCP判定（共' + totalJudgments + '项），您可以在下方表格中查看AI的判定依据并手动修改。每个判定结果旁的 <span style="cursor:help;display:inline-block;width:16px;height:16px;background:#e2e8f0;border-radius:50%;text-align:center;line-height:16px;font-size:10px;color:#475569;">?</span> 图标可查看AI推理过程。</p>';
+    html += '</div>';
+
+    // 渲染统一表格
+    html += renderUnifiedCcpTable(data, steps);
+
+    // AI Reasoning 提示（hover tooltip已通过统一表格渲染）
+    html += '<div class="ccp-review-actions" style="margin-top:16px;display:flex;gap:10px;">';
+    html += '<button class="btn btn-primary btn-sm" id="ccpConfirmAiBtn">✅ 确认AI判定，继续</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpRedoManualBtn">🔄 重新手动判定</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpViewSummaryBtn">📊 查看判定汇总表</button>';
+    html += '</div>';
+    html += '<p style="font-size:11px;color:var(--gray-400);margin-top:8px;">提示：点击表格中的"是/否"按钮即可修改AI的判定答案，修改后会自动重新计算CCP结果。</p>';
+
+    return html;
+  }
+
   function renderCcpSummary(data) {
     var steps = data.ccpSteps || [];
     if (steps.length === 0) return '<p style="color:var(--gray-400);text-align:center;padding:20px;">暂无CCP判定数据</p>';
@@ -1462,6 +1512,108 @@ const Questionnaire15min = (() => {
     if (exportBtn) { exportBtn.addEventListener('click', function() { alert('导出功能：将生成空白记录表格供打印使用（此功能为占位，后续可实现为PDF/Excel导出）'); }); }
   }
 
+  // ===== AI CCP 判定函数 =====
+  async function callAICcpJudgment(data) {
+    var steps = (data.processSteps || []).map(function(s) {
+      return {
+        stepName: s.stepName || '',
+        equipmentName: s.equipmentName || '',
+        operationMethod: s.operationMethod || '',
+        parameters: s.parameters || ''
+      };
+    });
+    var payload = {
+      product_name: data.productName || '',
+      raw_materials: data.rawMaterials || '',
+      process_description: data.intendedUse || '',
+      steps: steps
+    };
+    var resp = await fetch(API_HOST + '/api/ai/ccp-judgment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      var errData = null;
+      try { errData = await resp.json(); } catch (e) {}
+      throw new Error((errData && errData.detail) || 'HTTP ' + resp.status);
+    }
+    var result = await resp.json();
+    if (result.ok && result.data && result.data.judgments) {
+      return result.data.judgments;
+    }
+    throw new Error('AI返回数据格式异常');
+  }
+
+  function normalizeHazardFromAI(h) {
+    // 将AI返回的hazard数据标准化，确保所有字段存在
+    var normalized = {
+      hazardDesc: h.hazardDesc || '',
+      q1: (h.q1 === '是' || h.q1 === '否') ? h.q1 : undefined,
+      q2: (h.q2 === '是' || h.q2 === '否') ? h.q2 : undefined,
+      q2_need: (h.q2_need === '是' || h.q2_need === '否') ? h.q2_need : undefined,
+      q3: (h.q3 === '是' || h.q3 === '否') ? h.q3 : undefined,
+      q4: (h.q4 === '是' || h.q4 === '否') ? h.q4 : undefined,
+      q5: (h.q5 === '是' || h.q5 === '否') ? h.q5 : undefined,
+      isCCP: undefined,
+      aiReasoning: h.reasoning || '',
+      aiOverridden: false
+    };
+    // 使用前端决策树计算最终结果
+    normalized.isCCP = evaluateCCPFromQA(normalized);
+    // 如果AI明确返回了modify状态（q2_need='是'），覆盖为modify
+    if (h.isCCP === 'modify' || normalized.q2_need === '是') {
+      if (normalized.q2 === '否') {
+        normalized.isCCP = 'modify';
+      }
+    }
+    return normalized;
+  }
+
+  function populateCcpStepsFromAI(data, judgments) {
+    if (!data.ccpSteps) data.ccpSteps = [];
+    judgments.forEach(function(j) {
+      var si = j.stepIndex;
+      if (si < 0 || si >= (data.processSteps || []).length) return;
+      var stepName = data.processSteps[si] ? data.processSteps[si].stepName : j.stepName;
+      data.ccpSteps[si] = {
+        stepName: stepName || '',
+        completed: true,
+        hazards: {
+          bio: normalizeHazardFromAI(j.hazards && j.hazards.bio ? j.hazards.bio : {}),
+          chem: normalizeHazardFromAI(j.hazards && j.hazards.chem ? j.hazards.chem : {}),
+          phys: normalizeHazardFromAI(j.hazards && j.hazards.phys ? j.hazards.phys : {})
+        }
+      };
+    });
+    data.ccpCompleted = true;
+    data.ccpStepIndex = 0;
+    data.ccpHazardType = 'bio';
+    data.ccpCurrentQ = 1;
+  }
+
+  function countCCPs(data) {
+    var count = 0;
+    (data.ccpSteps || []).forEach(function(s) {
+      if (!s.hazards) return;
+      ['bio', 'chem', 'phys'].forEach(function(ht) {
+        if (s.hazards[ht] && s.hazards[ht].isCCP === true) count++;
+      });
+    });
+    return count;
+  }
+
+  function countModifies(data) {
+    var count = 0;
+    (data.ccpSteps || []).forEach(function(s) {
+      if (!s.hazards) return;
+      ['bio', 'chem', 'phys'].forEach(function(ht) {
+        if (s.hazards[ht] && s.hazards[ht].isCCP === 'modify') count++;
+      });
+    });
+    return count;
+  }
+
   // ===== CCP决策树辅助函数 (5问题版本) =====
   // 决策树逻辑：
   // Q1: 该加工步骤是否存在危害？ 
@@ -1595,6 +1747,49 @@ const Questionnaire15min = (() => {
         renderSectionNav();
       });
     });
+
+    // AI CCP 判定按钮
+    var aiCcpBtn = content.querySelector('#aiCcpJudgeBtn');
+    if (aiCcpBtn) {
+      aiCcpBtn.addEventListener('click', async function() {
+        var steps = data.processSteps || [];
+        if (steps.length === 0) { alert('请先添加至少一个步骤'); return; }
+        // 如果已有判定数据，确认覆盖
+        if (data.ccpSteps && data.ccpSteps.length > 0 && data.ccpCompleted) {
+          if (!confirm('已存在CCP判定结果，AI判定将覆盖现有数据。是否继续？')) return;
+        }
+        aiCcpBtn.disabled = true;
+        aiCcpBtn.textContent = '⏳ AI分析中...';
+        try {
+          var judgments = await callAICcpJudgment(data);
+          populateCcpStepsFromAI(data, judgments);
+          var ccpCount = countCCPs(data);
+          var modifyCount = countModifies(data);
+          var totalJudgments = (data.processSteps || []).length * 3;
+          var nonCCPCount = totalJudgments - ccpCount - modifyCount;
+          saveData(data);
+          renderActiveSection();
+          renderSectionNav();
+          // 显示简短反馈
+          setTimeout(function() {
+            var resultEl = document.getElementById('q15Content');
+            if (resultEl) {
+              var flashEl = document.createElement('div');
+              flashEl.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.3s;';
+              flashEl.textContent = '✓ AI判定完成：' + ccpCount + '个CCP，' + nonCCPCount + '个非CCP' + (modifyCount > 0 ? '，' + modifyCount + '个需修改' : '');
+              document.body.appendChild(flashEl);
+              setTimeout(function() { flashEl.style.opacity = '0'; flashEl.style.transition = 'opacity 0.5s'; setTimeout(function() { if (flashEl.parentNode) flashEl.parentNode.removeChild(flashEl); }, 500); }, 2500);
+            }
+          }, 300);
+        } catch (err) {
+          console.error('AI CCP判定失败:', err);
+          alert('AI判定失败: ' + (err.message || '未知错误') + '\n\n请确认后端已启动（运行 python -m uvicorn backend.main:app），或使用"手动逐步判定"按钮。');
+        } finally {
+          aiCcpBtn.disabled = false;
+          aiCcpBtn.textContent = '\u{1F916} AI自动判定CCP';
+        }
+      });
+    }
 
     // CCP判断按钮
     var judgeBtn = content.querySelector('#ccpJudgeBtn');
@@ -1780,6 +1975,70 @@ const Questionnaire15min = (() => {
       });
     }
 
+    // AI审核视图 - 确认按钮
+    var confirmAiBtn = content.querySelector('#ccpConfirmAiBtn');
+    if (confirmAiBtn) {
+      confirmAiBtn.addEventListener('click', function() {
+        // 收集统一表格的最新数据
+        collectUnifiedTableData(content, data);
+        // 确保所有步骤的ccpSteps已完成
+        if (!data.ccpSteps) data.ccpSteps = [];
+        var steps = data.processSteps || [];
+        steps.forEach(function(s, si) {
+          if (!data.ccpSteps[si]) {
+            data.ccpSteps[si] = { stepName: s.stepName || '', hazards: { bio: {}, chem: {}, phys: {} }, completed: false };
+          }
+          ['bio', 'chem', 'phys'].forEach(function(ht) {
+            var h = data.ccpSteps[si].hazards[ht] || {};
+            if (h.isCCP === undefined) {
+              h.isCCP = evaluateCCPFromQA(h);
+              data.ccpSteps[si].hazards[ht] = h;
+            }
+          });
+          data.ccpSteps[si].completed = true;
+        });
+        data.ccpCompleted = true;
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+        // flash通知
+        var flashEl = document.createElement('div');
+        flashEl.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+        flashEl.textContent = '✓ CCP判定已保存！点击"下一步"继续';
+        document.body.appendChild(flashEl);
+        setTimeout(function() { flashEl.style.opacity = '0'; flashEl.style.transition = 'opacity 0.5s'; setTimeout(function() { if (flashEl.parentNode) flashEl.parentNode.removeChild(flashEl); }, 500); }, 2000);
+      });
+    }
+
+    // AI审核视图 - 重新手动判定按钮
+    var redoBtn = content.querySelector('#ccpRedoManualBtn');
+    if (redoBtn) {
+      redoBtn.addEventListener('click', function() {
+        if (!confirm('重新手动判定将清除AI的判定结果，是否继续？')) return;
+        data.ccpSteps = [];
+        data.ccpCompleted = false;
+        data.ccpPageMode = 'form';
+        data.ccpStepIndex = 0;
+        data.ccpHazardType = 'bio';
+        data.ccpCurrentQ = 1;
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+      });
+    }
+
+    // AI审核视图 - 查看判定汇总表按钮
+    var viewSummaryBtn = content.querySelector('#ccpViewSummaryBtn');
+    if (viewSummaryBtn) {
+      viewSummaryBtn.addEventListener('click', function() {
+        collectUnifiedTableData(content, data);
+        data.ccpPageMode = 'summary';
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+      });
+    }
+
     // 汇总表 - 返回按钮
     var summaryBackBtn = content.querySelector('#summaryBackBtn');
     if (summaryBackBtn) {
@@ -1790,6 +2049,50 @@ const Questionnaire15min = (() => {
         renderSectionNav();
       });
     }
+  }
+
+  // 收集统一CCP表格数据
+  function collectUnifiedTableData(content, data) {
+    if (!data.ccpSteps) data.ccpSteps = [];
+    var steps = data.processSteps || [];
+    var hazardTypes = ['bio', 'chem', 'phys'];
+    steps.forEach(function(step, si) {
+      if (!data.ccpSteps[si]) {
+        data.ccpSteps[si] = { stepName: step.stepName || '', hazards: {}, completed: false };
+      }
+      if (!data.ccpSteps[si].hazards) data.ccpSteps[si].hazards = {};
+      hazardTypes.forEach(function(ht) {
+        if (!data.ccpSteps[si].hazards[ht]) data.ccpSteps[si].hazards[ht] = {};
+      });
+    });
+    // 从统一表格的单选按钮收集数据
+    content.querySelectorAll('[data-ut-si]').forEach(function(radio) {
+      if (!radio.checked) return;
+      var si = parseInt(radio.dataset.utSi);
+      var ht = radio.dataset.utHt;
+      var field = radio.dataset.utField;
+      var value = radio.value;
+      if (!isNaN(si) && ht && field && data.ccpSteps[si] && data.ccpSteps[si].hazards[ht]) {
+        var h = data.ccpSteps[si].hazards[ht];
+        if (h[field] !== value) {
+          h[field] = value;
+          h.aiOverridden = true;
+          if (h.aiReasoning && h.aiReasoning.indexOf('(用户已修改)') === -1) {
+            h.aiReasoning = h.aiReasoning + ' (用户已修改)';
+          }
+        }
+      }
+    });
+    // 重新评估所有hazard的isCCP
+    steps.forEach(function(step, si) {
+      if (!data.ccpSteps[si]) return;
+      hazardTypes.forEach(function(ht) {
+        var h = data.ccpSteps[si].hazards[ht];
+        if (!h) return;
+        h.isCCP = evaluateCCPFromQA(h);
+      });
+    });
+    saveData(data);
   }
 
   function bindCcpStepButtons(content, data) {

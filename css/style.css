@@ -1573,3 +1573,84 @@ select.fc-input-type {
   margin-bottom: 12px;
   line-height: 1.6;
 }
+
+/* ===== AI CCP 审核视图 ===== */
+.ccp-review-header {
+  margin-bottom: 16px;
+}
+.ccp-review-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.ccp-stat-card {
+  flex: 1;
+  min-width: 100px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  text-align: center;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+}
+.ccp-stat-card .ccp-stat-num {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.ccp-stat-card .ccp-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+.ccp-stat-ai {
+  border-color: #c4b5fd;
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+}
+.ccp-stat-ai .ccp-stat-num {
+  font-size: 22px;
+}
+.ccp-stat-yes {
+  border-color: #fecaca;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+}
+.ccp-stat-yes .ccp-stat-num {
+  color: #dc2626;
+}
+.ccp-stat-no {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+.ccp-stat-no .ccp-stat-num {
+  color: #16a34a;
+}
+.ccp-stat-modify {
+  border-color: #fde68a;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+.ccp-stat-modify .ccp-stat-num {
+  color: #d97706;
+}
+.ccp-review-desc {
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.ccp-review-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* AI reasoning tooltip */
+.ccp-reasoning-icon {
+  position: relative;
+  transition: background 0.2s;
+}
+.ccp-reasoning-icon:hover {
+  background: #7c3aed !important;
+  color: #fff !important;
+}
