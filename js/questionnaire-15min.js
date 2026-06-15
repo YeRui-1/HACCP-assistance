@@ -1397,6 +1397,8 @@ const Questionnaire15min = (() => {
             result.data.matched.forEach(function(entry) {
               var m = entry.material;
               var h = entry.hazards;
+              var isAiMatched = entry._ai_matched;
+              var userInput = entry._user_input || '';
               if (h.bio && h.bio.risk) {
                 hazardBio.push({
                   material: m,
@@ -1410,7 +1412,9 @@ const Questionnaire15min = (() => {
                   severity: h.bio.isCCP ? '高' : '中',
                   likelihood: '中',
                   control: h.bio.control || '',
-                  detail: h.bio.detail || ''
+                  detail: h.bio.detail || '',
+                  _aiMatched: isAiMatched,
+                  _userInput: userInput
                 });
               }
               if (h.chem && h.chem.risk) {
@@ -1426,7 +1430,9 @@ const Questionnaire15min = (() => {
                   severity: h.chem.isCCP ? '高' : '中',
                   likelihood: '中',
                   control: h.chem.control || '',
-                  detail: h.chem.detail || ''
+                  detail: h.chem.detail || '',
+                  _aiMatched: isAiMatched,
+                  _userInput: userInput
                 });
               }
               if (h.phys && h.phys.risk) {
@@ -1442,7 +1448,9 @@ const Questionnaire15min = (() => {
                   severity: '中',
                   likelihood: '中',
                   control: h.phys.control || '',
-                  detail: h.phys.detail || ''
+                  detail: h.phys.detail || '',
+                  _aiMatched: isAiMatched,
+                  _userInput: userInput
                 });
               }
             });
@@ -2580,18 +2588,28 @@ const Questionnaire15min = (() => {
   function renderAiHazardResult(bio, chem, phys, matchedMaterials) {
     var resultEl = document.getElementById('aiHazardResult');
     if (!resultEl) return;
-    
+
     // 合并所有危害数据到一个统一表格
     var allHazards = [];
     bio.forEach(function(h) { allHazards.push(h); });
     chem.forEach(function(h) { allHazards.push(h); });
     phys.forEach(function(h) { allHazards.push(h); });
-    
+
+    // 统计AI匹配数量
+    var aiCount = matchedMaterials ? matchedMaterials.filter(function(e) { return e._ai_matched; }).length : 0;
+    var exactCount = (matchedMaterials ? matchedMaterials.length : 0) - aiCount;
+
     var html = '';
     if (matchedMaterials && matchedMaterials.length > 0) {
       html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
-      html += '匹配到 ' + matchedMaterials.length + ' 种原料的危害数据：';
-      html += matchedMaterials.map(function(e) { return '<strong>' + e.material + '</strong>'; }).join('、');
+      html += '匹配到 <strong>' + matchedMaterials.length + '</strong> 种原料的危害数据（精确匹配 ' + exactCount + ' 种，AI语义匹配 ' + aiCount + ' 种）：';
+      html += matchedMaterials.map(function(e) {
+        var label = e.material;
+        if (e._ai_matched && e._user_input) {
+          label += ' <span style="font-size:10px;color:#7c3aed;font-weight:500;">(AI: ' + esc(e._user_input) + ' → ' + esc(e.material) + ')</span>';
+        }
+        return '<strong>' + label + '</strong>';
+      }).join('、');
       html += '</div>';
     }
     if (allHazards.length > 0) {

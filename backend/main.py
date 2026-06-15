@@ -9,6 +9,10 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
 
+# 加载 .env 文件
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 # DeepSeek 配置（请将下面的密钥替换为你自己的 DeepSeek API Key）
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-your-deepseek-api-key-here")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
@@ -541,9 +545,120 @@ def _load_raw_material_hazards() -> list:
         return []
 
 
+def _ai_match_materials(user_materials: list, db: list) -> list:
+    """使用 DeepSeek AI 将用户输入的原料名语义匹配到数据库中的原料名（批量处理）"""
+    db_names = [entry["material"] for entry in db]
+    db_names_str = "\n".join(f"- {name}" for name in db_names)
+    user_materials_str = "\n".join(f"- {m}" for m in user_materials)
+
+    # 如果未配置 API Key，用简单的关键词模糊匹配
+    if DEEPSEEK_API_KEY == "sk-your-deepseek-api-key-here" or not DEEPSEEK_API_KEY:
+        return _fuzzy_match_materials(user_materials, db_names)
+
+    prompt = MATERIAL_MATCH_PROMPT.replace("__DATABASE_MATERIALS__", db_names_str).replace("__USER_MATERIALS__", user_materials_str)
+
+    # 先尝试 AI 批量匹配
+    try:
+        payload = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"请匹配以下 {len(user_materials)} 种原料"}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 512,
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        }
+        json_data_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        http_req = urllib.request.Request(
+            DEEPSEEK_API_URL,
+            data=json_data_bytes,
+            headers=headers,
+            method="POST",
+        )
+        with urllib.request.urlopen(http_req, timeout=30) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            content = result["choices"][0]["message"]["content"].strip()
+
+        # 清理返回内容
+        if content.startswith("```"):
+            lines = content.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines[-1].strip() == "```":
+                lines = lines[:-1]
+            content = "\n".join(lines)
+
+        ai_result = json.loads(content)
+        matches = ai_result.get("matches", [])
+        # 验证并返回
+        valid_results = []
+        for match in matches:
+            matched_name = match.get("matched_name", "").strip()
+            user_input = match.get("user_input", "")
+            if matched_name and matched_name in db_names:
+                valid_results.append({"user_input": user_input, "matched_name": matched_name})
+            else:
+                # AI返回无效值，降级到模糊匹配
+                fuzzy = _fuzzy_match_one(user_input, db_names)
+                valid_results.append({"user_input": user_input, "matched_name": fuzzy or ""})
+        return valid_results
+    except Exception:
+        # API 异常时降级到模糊匹配
+        return _fuzzy_match_materials(user_materials, db_names)
+
+
+def _fuzzy_match_materials(user_materials: list, db_names: list) -> list:
+    """无 AI 时的简单关键词匹配"""
+    results = []
+    for m in user_materials:
+        matched = _fuzzy_match_one(m, db_names)
+        results.append({"user_input": m, "matched_name": matched or ""})
+    return results
+
+
+def _fuzzy_match_one(user_name: str, db_names: list) -> str | None:
+    """对单个原料做简单模糊匹配：纯汉字子串包含、去除后缀匹配"""
+    un = user_name.strip().lower()
+    if not un:
+        return None
+
+    # 1. 纯汉字部分子串匹配（"菊芋粉"的字串"菊芋"能匹配数据库中的"菊芋"）
+    import re
+    chinese_chars = re.findall(r'[一-鿿]+', user_name)
+    chinese_core = ''.join(chinese_chars) if chinese_chars else un
+
+    for db_name in db_names:
+        db_lower = db_name.strip().lower()
+        if db_lower == un:
+            return db_name
+        # 子串包含
+        if len(chinese_core) >= 2 and chinese_core in db_lower:
+            return db_name
+        if len(db_lower) >= 2 and db_lower in chinese_core:
+            return db_name
+
+    # 2. 去掉常见后缀再试（"粉"、"汁"、"提取物"等）
+    suffixes = ["粉", "汁", "液", "油", "提取物", "浓缩物", "干", "鲜", "冻"]
+    stripped = chinese_core
+    for suffix in suffixes:
+        if stripped.endswith(suffix) and len(stripped) - len(suffix) >= 1:
+            stripped = stripped[:-len(suffix)]
+    if stripped != chinese_core and len(stripped) >= 1:
+        for db_name in db_names:
+            db_lower = db_name.strip().lower()
+            if stripped in db_lower or db_lower in stripped:
+                return db_name
+
+    return None
+
+
 @app.post("/api/ai/raw-material-hazards")
 async def api_raw_material_hazards(req: RawMaterialHazardsRequest):
-    """根据原料名称列表查询对应的危害分析数据"""
+    """根据原料名称列表查询对应的危害分析数据，精确匹配失败时用AI语义匹配"""
     if not req.materials:
         raise HTTPException(status_code=400, detail="原料列表不能为空")
 
@@ -551,6 +666,7 @@ async def api_raw_material_hazards(req: RawMaterialHazardsRequest):
     if not db:
         raise HTTPException(status_code=500, detail="原料危害数据库加载失败")
 
+    # 第一步：精确匹配
     results = []
     unmatched = []
     for material in req.materials:
@@ -566,12 +682,41 @@ async def api_raw_material_hazards(req: RawMaterialHazardsRequest):
         if not found:
             unmatched.append(m)
 
+    # 第二步：对未匹配的原料用 AI 做语义匹配
+    ai_matched = []   # 记录哪些是AI匹配的
+    if unmatched:
+        ai_matches = _ai_match_materials(unmatched, db)
+        for item in ai_matches:
+            user_input = item["user_input"]
+            matched_name = item["matched_name"]
+            if matched_name:
+                # 从数据库中取对应数据
+                for entry in db:
+                    if entry["material"] == matched_name:
+                        entry_copy = dict(entry)
+                        entry_copy["_ai_matched"] = True
+                        entry_copy["_user_input"] = user_input
+                        results.append(entry_copy)
+                        ai_matched.append({"user_input": user_input, "matched_name": matched_name})
+                        break
+            else:
+                # AI也找不到匹配，保留在unmatched但标记AI已尝试
+                pass
+
+        # 重新计算unmatched：原来的unmatched中AI也没匹配到的
+        still_unmatched = []
+        for m in unmatched:
+            if not any(am["user_input"] == m for am in ai_matched):
+                still_unmatched.append(m)
+        unmatched = still_unmatched
+
     return {
         "ok": True,
         "data": {
             "matched": results,
             "unmatched": unmatched,
-            "summary": f"匹配到 {len(results)} 种原料的危害数据，{len(unmatched)} 种原料未匹配"
+            "ai_matched": ai_matched,
+            "summary": f"匹配到 {len(results)} 种原料的危害数据（其中AI匹配 {len(ai_matched)} 种），{len(unmatched)} 种原料未匹配"
         }
     }
 
@@ -785,6 +930,28 @@ Q5: 后续步骤或操作是否会消除该危害，或将其降低至可接受�
 8. 返回的judgments数组长度必须等于步骤数，stepIndex从0开始递增
 9. 杀菌/热处理/灭菌/蒸煮类步骤通常Q3=是（专门设计消除生物危害），应判定为CCP
 10. 金属检测/X光/异物检测类步骤通常Q3=是（专门设计消除物理危害），应判定为CCP"""
+
+
+MATERIAL_MATCH_PROMPT = """你是一位食品原料数据库管理专家。用户输入了一些食品原料名称，你需要从数据库的原料列表中找到每个输入名称的语义最接近匹配项。
+
+规则：
+1. 考虑同义词、简称、别名、学名、俗名等（例："菊芋粉"→"菊芋"，"酒精"→"乙醇"，"碳粉"→"活性炭"，"洋姜"→"菊芋"）
+2. 如果某个输入名称确实在数据库中找不到合理匹配，对应值留空字符串 ""
+3. 返回JSON格式，不要任何额外文字
+
+数据库中的原料列表：
+__DATABASE_MATERIALS__
+
+请严格按照以下JSON格式返回：
+{
+  "matches": [
+    {"user_input": "用户输入的原料名1", "matched_name": "数据库中的原料名或空字符串"},
+    {"user_input": "用户输入的原料名2", "matched_name": "数据库中的原料名或空字符串"}
+  ]
+}
+
+用户输入的原料列表：
+__USER_MATERIALS__"""
 
 
 @app.post("/api/ai/generate-flowchart")
