@@ -430,13 +430,13 @@ const Questionnaire15min = (() => {
 
   let currentStep = 0;
   const TOTAL_STEPS = 7;
-  const SECTION_NAMES = ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立纠正措施', '建立验证程序', '建立记录保持程序'];
+  function getSectionNames() { return [I18n.t('q15.step0'), I18n.t('q15.step1'), I18n.t('q15.step2'), I18n.t('q15.step3'), I18n.t('q15.step4'), I18n.t('q15.step5'), I18n.t('q15.step6')]; }
 
   function renderSectionNav() {
     const data = loadData();
     const nav = document.getElementById('q15Progress');
     if (!nav) return;
-    nav.innerHTML = SECTION_NAMES.map((name, i) => { const isActive = i === currentStep; const isDone = isStepCompleted(data, i); return '<div class="q15-step ' + (isActive ? 'active' : '') + ' ' + (isDone ? 'done' : '') + '" data-step="' + i + '"><div class="q15-step-num">' + (isDone ? '\u2713' : i + 1) + '</div><span>' + name + '</span></div>'; }).join('');
+    nav.innerHTML = getSectionNames().map((name, i) => { const isActive = i === currentStep; const isDone = isStepCompleted(data, i); return '<div class="q15-step ' + (isActive ? 'active' : '') + ' ' + (isDone ? 'done' : '') + '" data-step="' + i + '"><div class="q15-step-num">' + (isDone ? '\u2713' : i + 1) + '</div><span>' + name + '</span></div>'; }).join('');
     nav.querySelectorAll('.q15-step').forEach(el => { el.addEventListener('click', () => { currentStep = parseInt(el.dataset.step); renderActiveSection(); renderSectionNav(); }); });
   }
 
@@ -459,7 +459,10 @@ const Questionnaire15min = (() => {
     const data = loadData();
     const sections = [renderProcessFlow, renderHazardAnalysis, renderCriticalLimits, renderMonitoring, renderCorrective, renderVerification, renderRecordKeeping];
     const sectionHTML = sections[currentStep](data);
-    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + (currentStep < TOTAL_STEPS - 1 ? '<button class="btn btn-primary" id="q15NextBtn">下一步 \u2192</button>' : '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>') + '</div>';
+    var pn2 = I18n.t('q15.prevBtn');
+    var nn2 = I18n.t('q15.nextBtn');
+    var sn2 = I18n.t('q15.submitBtn');
+    content.innerHTML = '<div class="q15-section"><h2>' + getSectionNames()[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>' + pn2 + '</button>' + '<span class="q15-step-indicator">' + I18n.t('q15.step') + (currentStep + 1) + I18n.t('q15.of') + TOTAL_STEPS + I18n.t('q15.stepLabel') + '</span>' + (currentStep < TOTAL_STEPS - 1 ? '<button class="btn btn-primary" id="q15NextBtn">' + nn2 + '</button>' : '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">' + sn2 + '</button>') + '</div>';
     bindSectionEvents(content, data);
     document.getElementById('q15PrevBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep > 0) { currentStep--; renderActiveSection(); renderSectionNav(); } });
     document.getElementById('q15NextBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep < TOTAL_STEPS - 1) { currentStep++; renderActiveSection(); renderSectionNav(); } });
@@ -650,7 +653,7 @@ const Questionnaire15min = (() => {
       html += '<div style="margin-top:20px;"><h3>已添加步骤</h3><ul style="list-style:none;padding:0;margin:8px 0;">';
       savedSteps.forEach(function(s, i) {
         html += '<li style="padding:6px 10px;margin:4px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" data-step-edit="' + i + '">';
-        html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || '未命名') + '</strong>';
+        html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || I18n.t('step.unnamed')) + '</strong>';
         if (s.equipmentName) html += ' | 设备: ' + esc(s.equipmentName);
         if (s.operationMethod) html += ' | 方法: ' + esc(s.operationMethod);
         if (s.parameters) html += ' | 参数: ' + esc(s.parameters);
@@ -664,9 +667,9 @@ const Questionnaire15min = (() => {
     }
     
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">';
-    html += '<button class="btn btn-sm" id="aiCcpJudgeBtn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;">\u{1F916} AI自动判定CCP</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpJudgeBtn">手动逐步判定</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn">完成</button>';
+    html += '<button class="btn btn-sm" id="aiCcpJudgeBtn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;">' + I18n.t('ccp.aiBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpJudgeBtn">' + I18n.t('ccp.manualBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn">' + I18n.t('ccp.doneBtn') + '</button>';
     html += '</div>';
     
     return html;
@@ -895,7 +898,7 @@ const Questionnaire15min = (() => {
         var hData = data.ccpSteps[si].hazards[ht] || {};
         var rowClass = (hi === 0) ? '' : '';
         if (hi === 0) {
-          html += '<tr class="step-group-header"><td colspan="10">步骤 ' + (si + 1) + '：' + esc(step.stepName || '未命名') + '</td></tr>';
+          html += '<tr class="step-group-header"><td colspan="10">步骤 ' + (si + 1) + '：' + esc(step.stepName || I18n.t('step.unnamed')) + '</td></tr>';
         }
         
         // 危害描述 
@@ -946,7 +949,7 @@ const Questionnaire15min = (() => {
           var shortReason = reasoning.length > 80 ? reasoning.substring(0, 80) + '...' : reasoning;
           reasoningIcon = ' <span class="ccp-reasoning-icon" data-tooltip-id="' + tipId + '" title="' + esc(reasoning) + '" style="cursor:help;display:inline-block;width:16px;height:16px;background:' + (overridden ? '#fbbf24' : '#e2e8f0') + ';border-radius:50%;text-align:center;line-height:16px;font-size:10px;color:' + (overridden ? '#92400e' : '#475569') + ';">?</span>';
           if (overridden) {
-            reasoningIcon += ' <span style="font-size:10px;color:#d97706;">已修改</span>';
+            reasoningIcon += ' <span style="font-size:10px;color:#d97706;">' + I18n.t('ccp.modified') + '</span>';
           }
         }
         html += '<td><span class="ccp-ut-result ' + resultClass + '">' + resultText + '</span>' + reasoningIcon + '</td>';
@@ -1061,7 +1064,7 @@ const Questionnaire15min = (() => {
 
     var qHtml = '<div class="ccp-decision-tree">';
     qHtml += '<div class="ccp-dt-header">';
-    qHtml += '<span class="ccp-dt-step">步骤 ' + (idx + 1) + '：' + esc(step.stepName || '未命名') + '</span>';
+    qHtml += '<span class="ccp-dt-step">步骤 ' + (idx + 1) + '：' + esc(step.stepName || I18n.t('step.unnamed')) + '</span>';
     qHtml += '<span class="ccp-dt-hazard-type">' + hazardLabels[hazardType] + '判定 (' + (hazardTypeIdx + 1) + '/3)</span>';
     qHtml += '</div>';
     qHtml += '<div class="ccp-dt-hazard-desc">潜在危害提示：' + stepHazardDesc + '</div>';
@@ -1172,13 +1175,13 @@ const Questionnaire15min = (() => {
     qHtml += '</div>'; // .ccp-decision-tree close
 
     var isFirstPosition = (idx === 0 && hazardType === 'bio' && currentQ === 1);
-    var prevBtn = !isFirstPosition ? '<button class="btn btn-sm btn-secondary" id="ccpPrevStepBtn" style="margin-right:auto;">← 上一步</button>' : '';
+    var prevBtn = !isFirstPosition ? '<button class="btn btn-sm btn-secondary" id="ccpPrevStepBtn" style="margin-right:auto;">← ' + I18n.t('q15.prevBtn').slice(2) + '<' + '/button>' : '';
     var maxQ = 5;
     var qnumStr = currentQ === 'q2_need' ? 'Q2子判断' : '问题 ' + currentQ + '/' + maxQ + '（' + hazardLabels[hazardType] + ' ' + (hazardTypeIdx + 1) + '/3）';
 
     return '<div id="ccpStepContainer">' +
       '<div style="display:flex;align-items:center;margin-bottom:12px;">' + prevBtn +
-      '<span class="q15-step-indicator" style="margin:0 auto;">步骤 ' + (idx + 1) + ' / ' + steps.length + ' — ' + qnumStr + '</span></div>' +
+      '<span class="q15-step-indicator" style="margin:0 auto;">步骤 ' + (idx + 1) + I18n.t('q15.of') + steps.length + ' — ' + qnumStr + '</span></div>' +
       qHtml + '</div>';
   }
 
@@ -1189,7 +1192,7 @@ const Questionnaire15min = (() => {
     if (!step) return '<p>步骤数据不存在</p>';
     
     var html = '<div class="ccp-step-editor">';
-    html += '<h3>✏️ 编辑步骤 ' + (editIdx + 1) + '：' + esc(step.stepName || '未命名') + '</h3>';
+    html += '<h3>✏️ 编辑步骤 ' + (editIdx + 1) + '：' + esc(step.stepName || I18n.t('step.unnamed')) + '</h3>';
     html += '<p class="q15-table-hint">在此处修改本步骤的基本信息，修改完成后返回CCP判定</p>';
     
     // 步骤卡片编辑器
@@ -1237,26 +1240,26 @@ const Questionnaire15min = (() => {
 
     var html = '<div class="ccp-review-header">';
     html += '<div class="ccp-review-stats">';
-    html += '<div class="ccp-stat-card ccp-stat-ai"><span class="ccp-stat-num">🤖</span><span class="ccp-stat-label">AI智能判定完成</span></div>';
-    html += '<div class="ccp-stat-card ccp-stat-yes"><span class="ccp-stat-num">' + ccpCount + '</span><span class="ccp-stat-label">确认为CCP</span></div>';
-    html += '<div class="ccp-stat-card ccp-stat-no"><span class="ccp-stat-num">' + nonCCPCount + '</span><span class="ccp-stat-label">非CCP</span></div>';
+    html += '<div class="ccp-stat-card ccp-stat-ai"><span class="ccp-stat-num">🤖</span><span class="ccp-stat-label">' + I18n.t('ccp.review.aiDone') + '</span></div>';
+    html += '<div class="ccp-stat-card ccp-stat-yes"><span class="ccp-stat-num">' + ccpCount + '</span><span class="ccp-stat-label">' + I18n.t('ccp.review.confirmedCcp') + '</span></div>';
+    html += '<div class="ccp-stat-card ccp-stat-no"><span class="ccp-stat-num">' + nonCCPCount + '</span><span class="ccp-stat-label">' + I18n.t('ccp.review.nonCcp') + '</span></div>';
     if (modifyCount > 0) {
-      html += '<div class="ccp-stat-card ccp-stat-modify"><span class="ccp-stat-num">' + modifyCount + '</span><span class="ccp-stat-label">需修改</span></div>';
+      html += '<div class="ccp-stat-card ccp-stat-modify"><span class="ccp-stat-num">' + modifyCount + '</span><span class="ccp-stat-label">' + I18n.t('ccp.review.needModify') + '</span></div>';
     }
     html += '</div>';
-    html += '<p class="ccp-review-desc">AI已完成所有CCP判定（共' + totalJudgments + '项），您可以在下方表格中查看AI的判定依据并手动修改。每个判定结果旁的 <span style="cursor:help;display:inline-block;width:16px;height:16px;background:#e2e8f0;border-radius:50%;text-align:center;line-height:16px;font-size:10px;color:#475569;">?</span> 图标可查看AI推理过程。</p>';
+    html += '<p class="ccp-review-desc">' + I18n.t('ccp.review.desc') + totalJudgments + I18n.t('ccp.review.descItems') + '</p>';
     html += '</div>';
 
     // 渲染统一表格
     html += renderUnifiedCcpTable(data, steps);
 
-    // AI Reasoning 提示（hover tooltip已通过统一表格渲染）
+    // 操作按钮
     html += '<div class="ccp-review-actions" style="margin-top:16px;display:flex;gap:10px;">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpConfirmAiBtn">✅ 确认AI判定，继续</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpRedoManualBtn">🔄 重新手动判定</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpViewSummaryBtn">📊 查看判定汇总表</button>';
+    html += '<button class="btn btn-primary btn-sm" id="ccpConfirmAiBtn">' + I18n.t('ccp.review.confirmBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpRedoManualBtn">' + I18n.t('ccp.review.redoBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpViewSummaryBtn">' + I18n.t('ccp.review.summaryBtn') + '</button>';
     html += '</div>';
-    html += '<p style="font-size:11px;color:var(--gray-400);margin-top:8px;">提示：点击表格中的"是/否"按钮即可修改AI的判定答案，修改后会自动重新计算CCP结果。</p>';
+    html += '<p style="font-size:11px;color:var(--gray-400);margin-top:8px;">' + I18n.t('ccp.review.tip') + '</p>';
 
     return html;
   }
@@ -1355,6 +1358,13 @@ const Questionnaire15min = (() => {
       aiBtn.addEventListener('click', async function() {
         aiBtn.disabled = true;
         var hint = content.querySelector('#aiHazardHint');
+        // 先清空旧结果，防止重复点击时数据堆叠
+        data.hazardBio = [];
+        data.hazardChem = [];
+        data.hazardPhys = [];
+        var resultEl = document.getElementById('aiHazardResult');
+        if (resultEl) resultEl.innerHTML = '';
+        saveData(data);
         if (hint) hint.textContent = 'AI分析中...';
         // 收集产品信息
         collectSectionData(content, data);
@@ -1761,13 +1771,13 @@ const Questionnaire15min = (() => {
     if (aiCcpBtn) {
       aiCcpBtn.addEventListener('click', async function() {
         var steps = data.processSteps || [];
-        if (steps.length === 0) { alert('请先添加至少一个步骤'); return; }
+        if (steps.length === 0) { alert(I18n.t('ccp.needSteps')); return; }
         // 如果已有判定数据，确认覆盖
         if (data.ccpSteps && data.ccpSteps.length > 0 && data.ccpCompleted) {
-          if (!confirm('已存在CCP判定结果，AI判定将覆盖现有数据。是否继续？')) return;
+          if (!confirm(I18n.t('ccp.confirmOverwrite'))) return;
         }
         aiCcpBtn.disabled = true;
-        aiCcpBtn.textContent = '⏳ AI分析中...';
+        aiCcpBtn.textContent = I18n.t('ccp.analyzing');
         try {
           var judgments = await callAICcpJudgment(data);
           populateCcpStepsFromAI(data, judgments);
@@ -1784,17 +1794,17 @@ const Questionnaire15min = (() => {
             if (resultEl) {
               var flashEl = document.createElement('div');
               flashEl.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:fadeIn 0.3s;';
-              flashEl.textContent = '✓ AI判定完成：' + ccpCount + '个CCP，' + nonCCPCount + '个非CCP' + (modifyCount > 0 ? '，' + modifyCount + '个需修改' : '');
+              flashEl.textContent = I18n.t('ccp.aiComplete') + ccpCount + I18n.t('ccp.ccpCount') + '，' + nonCCPCount + I18n.t('ccp.nonCcpCount') + (modifyCount > 0 ? '，' + modifyCount + I18n.t('ccp.modifyCount') : '');
               document.body.appendChild(flashEl);
               setTimeout(function() { flashEl.style.opacity = '0'; flashEl.style.transition = 'opacity 0.5s'; setTimeout(function() { if (flashEl.parentNode) flashEl.parentNode.removeChild(flashEl); }, 500); }, 2500);
             }
           }, 300);
         } catch (err) {
           console.error('AI CCP判定失败:', err);
-          alert('AI判定失败: ' + (err.message || '未知错误') + '\n\n请确认后端已启动（运行 python -m uvicorn backend.main:app），或使用"手动逐步判定"按钮。');
+          alert(I18n.t('ccp.aiFailed') + (err.message || '') + '\n\n' + I18n.t('ccp.checkBackend'));
         } finally {
           aiCcpBtn.disabled = false;
-          aiCcpBtn.textContent = '\u{1F916} AI自动判定CCP';
+          aiCcpBtn.textContent = I18n.t('ccp.aiBtn');
         }
       });
     }
@@ -1804,7 +1814,7 @@ const Questionnaire15min = (() => {
     if (judgeBtn) {
       judgeBtn.addEventListener('click', function() {
         var steps = data.processSteps || [];
-        if (steps.length === 0) { alert('请先添加至少一个步骤'); return; }
+        if (steps.length === 0) { alert(I18n.t('ccp.needSteps')); return; }
         data.ccpPageMode = 'judging';
         data.ccpStepIndex = 0;
         data.ccpHazardType = 'bio';
@@ -1843,7 +1853,7 @@ const Questionnaire15min = (() => {
     if (completeBtn) {
       completeBtn.addEventListener('click', function() {
         var steps = data.processSteps || [];
-        if (steps.length === 0) { alert('请先添加至少一个步骤'); return; }
+        if (steps.length === 0) { alert(I18n.t('ccp.needSteps')); return; }
         // 如果有步骤但没有进行完全部CCP判定，允许查看汇总表
         data.ccpPageMode = 'summary';
         saveData(data);
@@ -2012,7 +2022,7 @@ const Questionnaire15min = (() => {
         // flash通知
         var flashEl = document.createElement('div');
         flashEl.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-        flashEl.textContent = '✓ CCP判定已保存！点击"下一步"继续';
+        flashEl.textContent = I18n.t('ccp.review.saved');
         document.body.appendChild(flashEl);
         setTimeout(function() { flashEl.style.opacity = '0'; flashEl.style.transition = 'opacity 0.5s'; setTimeout(function() { if (flashEl.parentNode) flashEl.parentNode.removeChild(flashEl); }, 500); }, 2000);
       });
@@ -2022,7 +2032,7 @@ const Questionnaire15min = (() => {
     var redoBtn = content.querySelector('#ccpRedoManualBtn');
     if (redoBtn) {
       redoBtn.addEventListener('click', function() {
-        if (!confirm('重新手动判定将清除AI的判定结果，是否继续？')) return;
+        if (!confirm(I18n.t('ccp.review.confirmClear'))) return;
         data.ccpSteps = [];
         data.ccpCompleted = false;
         data.ccpPageMode = 'form';
@@ -2085,8 +2095,9 @@ const Questionnaire15min = (() => {
         if (h[field] !== value) {
           h[field] = value;
           h.aiOverridden = true;
-          if (h.aiReasoning && h.aiReasoning.indexOf('(用户已修改)') === -1) {
-            h.aiReasoning = h.aiReasoning + ' (用户已修改)';
+          var umLabel = I18n.t('ccp.userModified');
+          if (h.aiReasoning && h.aiReasoning.indexOf(umLabel) === -1) {
+            h.aiReasoning = h.aiReasoning + ' ' + umLabel;
           }
         }
       }
@@ -2602,7 +2613,7 @@ const Questionnaire15min = (() => {
     var html = '';
     if (matchedMaterials && matchedMaterials.length > 0) {
       html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
-      html += '匹配到 <strong>' + matchedMaterials.length + '</strong> 种原料的危害数据（精确匹配 ' + exactCount + ' 种，AI语义匹配 ' + aiCount + ' 种）：';
+      html += I18n.t('hazard.matchSummary') + '<strong>' + matchedMaterials.length + '</strong>' + I18n.t('hazard.exactMatch') + exactCount + I18n.t('hazard.exactCount') + aiCount + I18n.t('hazard.aiCount');
       html += matchedMaterials.map(function(e) {
         var label = e.material;
         if (e._ai_matched && e._user_input) {

@@ -685,11 +685,18 @@ async def api_raw_material_hazards(req: RawMaterialHazardsRequest):
     # 第二步：对未匹配的原料用 AI 做语义匹配
     ai_matched = []   # 记录哪些是AI匹配的
     if unmatched:
+        # 先收集已精确匹配到的原料名，用于去重
+        exact_matched_names = {entry["material"] for entry in results}
         ai_matches = _ai_match_materials(unmatched, db)
         for item in ai_matches:
             user_input = item["user_input"]
             matched_name = item["matched_name"]
             if matched_name:
+                # 记录AI匹配关系（用于从未匹配列表中移除）
+                ai_matched.append({"user_input": user_input, "matched_name": matched_name})
+                # 去重：如果该原料已通过精确匹配获取，不重复添加
+                if matched_name in exact_matched_names:
+                    continue
                 # 从数据库中取对应数据
                 for entry in db:
                     if entry["material"] == matched_name:
@@ -697,7 +704,7 @@ async def api_raw_material_hazards(req: RawMaterialHazardsRequest):
                         entry_copy["_ai_matched"] = True
                         entry_copy["_user_input"] = user_input
                         results.append(entry_copy)
-                        ai_matched.append({"user_input": user_input, "matched_name": matched_name})
+                        exact_matched_names.add(matched_name)
                         break
             else:
                 # AI也找不到匹配，保留在unmatched但标记AI已尝试

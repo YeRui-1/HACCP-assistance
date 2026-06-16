@@ -160,24 +160,24 @@ const Admin = (() => {
     listEl.innerHTML = `
       <table class="tpl-table">
         <thead><tr>
-          <th>${zh ? '名称' : 'Name'}</th>
-          <th>${zh ? '描述' : 'Description'}</th>
-          <th>${zh ? '状态' : 'Status'}</th>
-          <th>${zh ? '更新时间' : 'Updated'}</th>
-          <th>${zh ? '操作' : 'Actions'}</th>
+          <th>${zh ? I18n.t('common.name') : 'Name'}</th>
+          <th>${zh ? I18n.t('common.desc') : 'Description'}</th>
+          <th>${zh ? I18n.t('common.status') : 'Status'}</th>
+          <th>${zh ? I18n.t('common.updated') : 'Updated'}</th>
+          <th>${zh ? I18n.t('form.colAction') : 'Actions'}</th>
         </tr></thead>
         <tbody>
           ${templates.map(t => `
             <tr>
               <td><strong>${esc(t.name)}</strong></td>
               <td><span style="color:var(--gray-500);font-size:13px;">${esc(t.description || '-')}</span></td>
-              <td>${t.is_published ? `<span class="badge badge-published">${zh ? '已发布' : 'Published'}</span>` : `<span class="badge badge-draft">${zh ? '草稿' : 'Draft'}</span>`}</td>
+              <td>${t.is_published ? `<span class="badge badge-published">${zh ? I18n.t('common.published') : 'Published'}</span>` : `<span class="badge badge-draft">${zh ? I18n.t('common.draft') : 'Draft'}</span>`}</td>
               <td style="font-size:13px;color:var(--gray-400);">${esc(t.updated_at || '')}</td>
               <td class="tpl-actions">
-                <button class="btn btn-xs btn-primary btn-tpl-edit" data-id="${t.id}">${zh ? '编辑' : 'Edit'}</button>
-                ${t.is_published ? '' : `<button class="btn btn-xs btn-secondary btn-tpl-publish" data-id="${t.id}">${zh ? '发布' : 'Publish'}</button>`}
-                <button class="btn btn-xs btn-secondary btn-tpl-copy" data-id="${t.id}">${zh ? '复制' : 'Copy'}</button>
-                ${t.is_published ? '' : `<button class="btn btn-xs btn-tpl-del" data-id="${t.id}" style="color:var(--red);border-color:var(--red);">${zh ? '删除' : 'Delete'}</button>`}
+                <button class="btn btn-xs btn-primary btn-tpl-edit" data-id="${t.id}">${zh ? I18n.t('common.edit') : 'Edit'}</button>
+                ${t.is_published ? '' : `<button class="btn btn-xs btn-secondary btn-tpl-publish" data-id="${t.id}">${zh ? I18n.t('common.publish') : 'Publish'}</button>`}
+                <button class="btn btn-xs btn-secondary btn-tpl-copy" data-id="${t.id}">${zh ? I18n.t('common.copy') : 'Copy'}</button>
+                ${t.is_published ? '' : `<button class="btn btn-xs btn-tpl-del" data-id="${t.id}" style="color:var(--red);border-color:var(--red);">${zh ? I18n.t('common.delete') : 'Delete'}</button>`}
               </td>
             </tr>
           `).join('')}
@@ -198,14 +198,14 @@ const Admin = (() => {
     dialog.className = 'modal-overlay show';
     dialog.innerHTML = `
       <div class="modal-box" style="width:420px;">
-        <h3>${zh ? '新建模板' : 'New Template'}</h3>
+        <h3>${zh ? I18n.t('admin.newTemplate') : 'New Template'}</h3>
         <div style="margin-top:12px;">
-          <label style="font-size:13px;font-weight:500;color:var(--gray-700);">${zh ? '模板名称' : 'Name'}</label>
-          <input type="text" id="dlgName" style="width:100%;padding:8px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:14px;margin-top:4px;" placeholder="${zh ? '请输入模板名称' : 'Enter template name'}">
+          <label style="font-size:13px;font-weight:500;color:var(--gray-700);">${zh ? I18n.t('common.name') : 'Name'}</label>
+          <input type="text" id="dlgName" style="width:100%;padding:8px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:14px;margin-top:4px;" placeholder="${zh ? I18n.t('profile.companyNamePh') : 'Enter template name'}">
         </div>
         <div style="margin-top:12px;">
-          <label style="font-size:13px;font-weight:500;color:var(--gray-700);">${zh ? '描述' : 'Description'}</label>
-          <input type="text" id="dlgDesc" style="width:100%;padding:8px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:14px;margin-top:4px;" placeholder="${zh ? '可选描述' : 'Optional description'}">
+          <label style="font-size:13px;font-weight:500;color:var(--gray-700);">${zh ? I18n.t('common.desc') : 'Description'}</label>
+          <input type="text" id="dlgDesc" style="width:100%;padding:8px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:14px;margin-top:4px;" placeholder="${zh ? 'Optional description' : 'Optional description'}">
         </div>
         <div class="modal-actions">
           <button class="btn btn-secondary btn-sm" id="dlgCancel">${I18n.t('pwd.cancel')}</button>
@@ -281,7 +281,7 @@ const Admin = (() => {
   }
 
   async function doDelete(id) {
-    if (!confirm(I18n.getLang() === 'zh' ? '确定删除此模板？' : 'Delete this template?')) return;
+    if (!confirm(I18n.getLang() === 'zh' ? 'Delete this template?' : 'Delete this template?')) return;
     try {
       const resp = await fetch(`${API_BASE}/api/templates/${id}`, { method: 'DELETE' });
       if (!resp.ok) {
@@ -298,8 +298,8 @@ const Admin = (() => {
       content.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">📝</div>
-          <h3>${I18n.getLang() === 'zh' ? '请先选择模板' : 'Please select a template'}</h3>
-          <p>${I18n.getLang() === 'zh' ? '请从「模板管理」中选择一个模板进行编辑' : 'Please select a template from Template Manager to edit.'}</p>
+          <h3>${I18n.getLang() === 'zh' ? 'Please select a template first' : 'Please select a template'}</h3>
+          <p>${I18n.getLang() === 'zh' ? 'Select a template from Template Manager to edit' : 'Please select a template from Template Manager to edit.'}</p>
           <button class="btn btn-primary" onclick="document.querySelector('.admin-menu-item[data-menu=templates]').click()">${I18n.t('admin.templates')}</button>
         </div>
       `;
@@ -307,7 +307,7 @@ const Admin = (() => {
     }
 
     content.innerHTML = `
-      <a class="back-link" href="javascript:void(0)" id="btnBackToTpl" style="margin-bottom:16px;">← ${I18n.getLang() === 'zh' ? '返回模板列表' : 'Back to Templates'}</a>
+      <a class="back-link" href="javascript:void(0)" id="btnBackToTpl" style="margin-bottom:16px;">← ${I18n.getLang() === 'zh' ? 'Back to template list' : 'Back to Templates'}</a>
       <div class="admin-page-title">${esc(currentTemplateName)} <span style="font-size:12px;color:var(--gray-400);font-weight:400;">(ID: ${currentTemplateId})</span></div>
       <div class="admin-page-desc">${I18n.t('admin.card1.desc')}</div>
       <div style="margin-bottom:16px;">
