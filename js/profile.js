@@ -75,6 +75,7 @@ const Profile = (() => {
       formula: [{ id: genId(), material: '', dosage: '', func: '' }],
       processSteps: [{ id: genId(), stepName: '', operationMethod: '', parameters: '', controlPoint: '', equipmentName: '' }],
       flowConfirmed: false,
+      flowchartConfirmDate: '',
       flowchartXml: '',
     };
   }
@@ -617,25 +618,7 @@ const Profile = (() => {
     // Save fcEditor data to data
     saveData(data);
     return '' +
-      '<h3>配方以及依据</h3><p class="q15-table-hint">根据投料顺序列出原料、辅料及添加剂的精确用量，并解释关键原料的作用</p>' +
-      '<table class="q15-table" id="pf-formulaTable"><thead><tr><th>原料/辅料/添加剂</th><th>精确用量</th><th>关键作用</th><th style="width:50px">操作</th></tr></thead><tbody id="pf-formulaBody">' +
-      (data.formula || []).map(function(f, i){
-        return '<tr data-fm-idx="' + i + '"><td><input type="text" value="' + esc(f.material) + '" placeholder="如：活性炭"></td><td><input type="text" value="' + esc(f.dosage) + '" placeholder="如：Xx g/kg原料"></td><td><input type="text" value="' + esc(f.func) + '" placeholder="如：除去色素"></td><td><button class="q15-del-row pf-del-fm" data-fm-idx="' + i + '">&times;</button></td></tr>';
-      }).join('') +
-      '</tbody></table><button class="btn btn-sm btn-secondary" id="pf-addFormula">+ 添加原料</button>' +
-      '<hr class="q15-divider"><h3>生产流程步骤</h3><p class="q15-table-hint">按照生产顺序列出各加工步骤及其工艺参数</p><div id="pf-processSteps">' +
-      (data.processSteps || []).map(function(s, i) {
-        return '<div class="q15-process-card pf-process-card" data-ps-idx="' + i + '">' +
-          '<div class="q15-process-header"><span class="q15-step-badge">步骤 ' + (i + 1) + '</span><button class="q15-del-process pf-del-ps" data-ps-idx="' + i + '">&times;</button></div>' +
-          '<div class="q15-process-grid"><div class="q15-field-group"><label>步骤名称</label><input type="text" data-ps-field="stepName" value="' + esc(s.stepName) + '" placeholder="如：清洗"></div>' +
-          '<div class="q15-field-group"><label>设备名称</label><input type="text" data-ps-field="equipmentName" value="' + esc(s.equipmentName) + '" placeholder="如：清洗机"></div></div>' +
-          '<div class="q15-field-group" style="margin-bottom:0;"><label>操作方法</label><textarea data-ps-field="operationMethod" rows="2" placeholder="描述操作方法">' + esc(s.operationMethod) + '</textarea></div>' +
-          '<div class="q15-row" style="margin-top:8px;"><div class="q15-field-group"><label>工艺参数</label><input type="text" data-ps-field="parameters" value="' + esc(s.parameters) + '" placeholder="如：温度85℃"></div>' +
-          '<div class="q15-field-group"><label>控制点</label><input type="text" data-ps-field="controlPoint" value="' + esc(s.controlPoint) + '" placeholder="如：CCP-1"></div></div></div>';
-      }).join('') +
-      '</div><button class="btn btn-sm btn-secondary" id="pf-addStep">+ 添加步骤</button>' +
-      '<hr class="q15-divider"><h3>🗺️ 生产工艺流程图</h3><p class="q15-table-hint">在下方 draw.io 编辑器中绘制您的生产工艺流程图，完成后保存，将自动同步到报告中。</p><div class="q15-flowchart-area" id="pfFlowchartArea">' + renderFlowchartPreview(data) + '</div>' +
-      '<hr class="q15-divider"><h3>📋 流程图模板编辑 <span style="font-size:13px;font-weight:400;color:var(--gray-400);">编辑步骤、箭头标注，实时预览</span></h3><p class="q15-table-hint">下方为菊粉工艺流程图模板，可直接编辑步骤名称、切换CCP标识、添加入/输出箭头和返工箭头，SVG实时更新。</p>' +
+      '<h3>📋 流程图模板编辑 <span style="font-size:13px;font-weight:400;color:var(--gray-400);">编辑步骤、箭头标注，实时预览</span></h3><p class="q15-table-hint">下方为菊粉工艺流程图模板，可直接编辑步骤名称、切换CCP标识、添加入/输出箭头和返工箭头，SVG实时更新。</p>' +
       '<div class="pf-fc-editor-wrap">' +
         '<div class="pf-fc-toolbar"><span class="fcp-toolbar-title">步骤列表 <strong style="color:var(--primary);">' + ed.steps.length + '</strong>步</span><button class="btn btn-xs btn-secondary" onclick="Profile.fcResetDefault()">↩️ 恢复默认</button><button class="btn btn-xs btn-secondary" onclick="Profile.fcGenDrawioXml()">🔗 用draw.io打开</button></div>' +
         '<div class="pf-fc-columns">' +
@@ -664,7 +647,8 @@ const Profile = (() => {
 
   // ===== 步骤5 ====
   function renderFlowchartConfirm(data) {
-    return '<div class="q15-confirm-box"><label class="q15-checkbox-label"><input type="checkbox" data-pf-field="flowConfirmed"' + (data.flowConfirmed ? ' checked' : '') + '> HACCP小组已到生产现场，对以上流程图的每一步进行核对确认，确保与实际操作完全一致</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">（确认内容包括：是否有额外的原料添加、步骤合并等）</p></div>' +
+    return '<div class="q15-confirm-box"><label class="q15-checkbox-label"><input type="checkbox" data-pf-field="flowConfirmed"' + (data.flowConfirmed ? ' checked' : '') + '> HACCP小组已到生产现场，对以上流程图的每一步进行核对确认，确保与实际操作完全一致</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">（确认内容包括：是否有额外的原料添加、步骤合并等）</p>' +
+      '<div class="q15-field-group" style="margin-top:16px;"><label>确认时间 <span class="required">*</span></label><input type="date" data-pf-field="flowchartConfirmDate" value="' + esc(data.flowchartConfirmDate || '') + '"></div></div>' +
       '<div class="q15-flowchart-area" style="margin-top:24px;"><h3>流程图预览</h3><p class="q15-table-hint">可在问卷中使用 draw.io 绘制专业的生产工艺流程图</p><div class="q15-flowchart-empty"><div class="q15-flowchart-empty-icon">🗺️</div><p>暂未绘制流程图</p></div></div>';
   }
 
