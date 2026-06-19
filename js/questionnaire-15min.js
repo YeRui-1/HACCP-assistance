@@ -42,6 +42,9 @@ const Questionnaire15min = (() => {
       hazardBio: [],
       hazardChem: [],
       hazardPhys: [],
+      // 危害分析工作单（三子步骤共享数据）
+      hazardWorksheet: [],
+      hazardWorksheetStep: 'identify', // 'identify' | 'assess' | 'control'
       hazardConfirmed: false,
       ccpSteps: [],       // 存储每个步骤的CCP判定结果: { stepName, completed, hazards: { bio: { q1, q2_control, q2_need, q3, q4, q5, isCCP, hazardDesc }, chem: {...}, phys: {...} } }
       ccpStepIndex: 0,    // 当前正在判定的步骤索引
@@ -518,11 +521,6 @@ const Questionnaire15min = (() => {
         renderActiveSection();
       });
     }
-  }
-
-  function renderProcessFlow(data) {
-    var uploadHtml = renderCompactUploadArea();
-    return '<h3>配方以及依据</h3><p class="q15-table-hint">根据投料顺序列出原料、辅料及添加剂的精确用量，并解释关键原料的作用</p><table class="q15-table" id="formulaTable"><thead><tr><th>原料/辅料/添加剂</th><th>精确用量</th><th>关键作用</th><th style="width:50px">操作</th></tr></thead><tbody id="formulaBody">' + data.formula.map(function(f, i) { return '<tr data-fm-idx="' + i + '"><td><input type="text" value="' + esc(f.material) + '" placeholder="如：活性炭"></td><td><input type="text" value="' + esc(f.dosage) + '" placeholder="如：Xx g/kg原料"></td><td><input type="text" value="' + esc(f.func) + '" placeholder="如：除去色素"></td><td><button class="q15-del-row" data-fm-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addFormulaRow">+ 添加原料</button><hr class="q15-divider">' + uploadHtml + '<h3>基于产品类型，AI列出常见危害</h3><p class="q15-table-hint">基于产品类型，系统将自动识别该产品常见的生物/化学/物理危害</p><div class="q15-ai-btn-wrapper"><button class="btn btn-secondary btn-sm" id="aiHazardBtn">\u{1F916} AI识别危害</button><span id="aiHazardHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><div id="aiHazardResult" style="margin-top:12px;"></div>';
   }
 
   // ===== CCP 导航面板（可点击跳转）=====
@@ -1449,6 +1447,79 @@ const Questionnaire15min = (() => {
 
     // 绑定精简版上传区域事件
     bindCompactUploadEvents(content);
+
+    // ===== 危害分析工作单子步骤事件绑定 =====
+    // 子步骤导航点击
+    content.querySelectorAll('.hw-subnav-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var step = this.dataset.hwStep;
+        if (step) {
+          collectHazardWorksheetData(content, data);
+          data.hazardWorksheetStep = step;
+          saveData(data);
+          renderActiveSection();
+          renderSectionNav();
+        }
+      });
+    });
+
+    // 危害评估区域的 select 和 checkbox 变化实时保存
+    content.querySelectorAll('.hw-select, .hw-textarea, .hw-significant').forEach(function(el) {
+      el.addEventListener('change', function() {
+        collectHazardWorksheetData(content, data);
+        saveData(data);
+        // 如果改变的是严重性或可能性，刷新风险等级显示
+        if (el.classList.contains('hw-select')) {
+          var si = parseInt(el.dataset.wsSi);
+          var hi = parseInt(el.dataset.wsHi);
+          if (!isNaN(si) && !isNaN(hi) && data.hazardWorksheet[si] && data.hazardWorksheet[si].hazards[hi]) {
+            var h = data.hazardWorksheet[si].hazards[hi];
+            var riskEl = document.getElementById('ws-risk-si' + si + '-hi' + hi);
+            if (riskEl) riskEl.innerHTML = calcRiskLevel(h.severity, h.likelihood);
+          }
+        }
+      });
+      el.addEventListener('input', function() {
+        collectHazardWorksheetData(content, data);
+        saveData(data);
+      });
+    });
+
+    // 上一步/下一步/查看工作单按钮
+    var hwPrevBtn = content.querySelector('#hwPrevBtn');
+    if (hwPrevBtn) {
+      hwPrevBtn.addEventListener('click', function() {
+        collectHazardWorksheetData(content, data);
+        var curr = data.hazardWorksheetStep || 'identify';
+        if (curr === 'assess') data.hazardWorksheetStep = 'identify';
+        else if (curr === 'control') data.hazardWorksheetStep = 'assess';
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+      });
+    }
+
+    var hwNextBtn = content.querySelector('#hwNextBtn');
+    if (hwNextBtn) {
+      hwNextBtn.addEventListener('click', function() {
+        collectHazardWorksheetData(content, data);
+        var curr = data.hazardWorksheetStep || 'identify';
+        if (curr === 'identify') data.hazardWorksheetStep = 'assess';
+        else if (curr === 'assess') data.hazardWorksheetStep = 'control';
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+      });
+    }
+
+    var hwViewBtn = content.querySelector('#hwViewWorksheetBtn');
+    if (hwViewBtn) {
+      hwViewBtn.addEventListener('click', function() {
+        collectHazardWorksheetData(content, data);
+        saveData(data);
+        App.navigateTo('hazardWorksheet');
+      });
+    }
 
     // CCP页面按钮事件绑定（新 + 旧兼容）
     // 只有在使用旧的CCP视图时才绑定旧按钮，避免冲突
@@ -2505,6 +2576,549 @@ const Questionnaire15min = (() => {
     }, 15000);
   }
 
+  // ==================== 将 renderProcessFlow 改造为三子步骤 ====================
+  // 重写 renderProcessFlow (临时方案 - 在原有基础上扩展)
+  // 使用 data.hazardWorksheetStep 字段控制子步骤: 'identify' | 'assess' | 'control'
+
+  // 子步骤导航
+  function renderHazardSubNav(data) {
+    var step = data.hazardWorksheetStep || 'identify';
+    var steps = [
+      { id: 'identify', label: '① 危害识别', icon: '🔍' },
+      { id: 'assess', label: '② 危害评估', icon: '📊' },
+      { id: 'control', label: '③ 控制措施', icon: '🛡️' }
+    ];
+    var html = '<div class="hw-subnav">';
+    steps.forEach(function(s) {
+      var isActive = s.id === step;
+      var isDone = false;
+      if (s.id === 'identify') isDone = data.hazardWorksheet && data.hazardWorksheet.length > 0;
+      else if (s.id === 'assess') isDone = data.hazardWorksheet.some(function(st) { return st.hazards && st.hazards.some(function(h) { return h.isSignificant !== undefined; }); });
+      else if (s.id === 'control') isDone = data.hazardWorksheet.some(function(st) { return st.hazards && st.hazards.some(function(h) { return h.controlMeasure; }); });
+      html += '<div class="hw-subnav-item ' + (isActive ? 'active' : '') + (isDone ? ' done' : '') + '" data-hw-step="' + s.id + '">' +
+        '<span class="hw-subnav-num">' + (isDone ? '✓' : s.icon) + '</span>' +
+        '<span>' + s.label + '</span></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  // ===== 更新 renderProcessFlow 为三子步骤 =====
+  // 保持原有的 renderProcessFlow 函数名，但内部委托到子函数
+  // 注意：这会在加载时覆盖 renderProcessFlow 函数定义
+
+  // 步骤危害数据库缓存
+  var _stepHazardsCache = null;
+
+  // 加载步骤危害数据库
+  function loadStepHazards() {
+    if (_stepHazardsCache) return Promise.resolve(_stepHazardsCache);
+    // 尝试从后端加载
+    var url = 'data/step_hazards.json';
+    return fetch(url)
+      .then(function(resp) {
+        if (!resp.ok) throw new Error('加载失败');
+        return resp.json();
+      })
+      .then(function(data) {
+        _stepHazardsCache = data;
+        return data;
+      })
+      .catch(function(err) {
+        console.warn('步骤危害数据库加载失败:', err);
+        return [];
+      });
+  }
+
+  // 步骤名称模糊匹配
+  function matchStepName(userStepName, stepDb) {
+    if (!userStepName || !stepDb) return null;
+    var name = userStepName.trim().toLowerCase();
+    for (var i = 0; i < stepDb.length; i++) {
+      var entry = stepDb[i];
+      // 精确匹配
+      if (entry.step.toLowerCase() === name) return entry;
+      // 别名匹配
+      if (entry.aliases) {
+        for (var j = 0; j < entry.aliases.length; j++) {
+          if (entry.aliases[j].toLowerCase() === name) return entry;
+        }
+      }
+      // 包含匹配（用户步骤名包含数据库步骤名，或反之）
+      if (name.indexOf(entry.step.toLowerCase()) !== -1 || entry.step.toLowerCase().indexOf(name) !== -1) return entry;
+      // 别名包含匹配
+      if (entry.aliases) {
+        for (var k = 0; k < entry.aliases.length; k++) {
+          if (name.indexOf(entry.aliases[k].toLowerCase()) !== -1 || entry.aliases[k].toLowerCase().indexOf(name) !== -1) return entry;
+        }
+      }
+    }
+    return null;
+  }
+
+  // 从档案数据中读取流程图编辑器步骤
+  function getFcStepsFromProfile() {
+    try {
+      var raw = localStorage.getItem('haccp_profile_data');
+      if (!raw) return [];
+      var profileData = JSON.parse(raw);
+      if (profileData.fcEditor && profileData.fcEditor.steps && profileData.fcEditor.steps.length > 0) {
+        return profileData.fcEditor.steps;
+      }
+      // 兼容旧版本：如果 fcEditor 不存在但 processSteps 有数据
+      if (profileData.processSteps && profileData.processSteps.length > 0) {
+        var steps = [];
+        profileData.processSteps.forEach(function(s) {
+          if (s.stepName && s.stepName.trim()) steps.push(s.stepName.trim());
+        });
+        return steps;
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  // 自动匹配步骤危害（从档案的流程图编辑器读取步骤）
+  function autoMatchStepHazards(data) {
+    var fcSteps = getFcStepsFromProfile();
+    if (fcSteps.length === 0) return;
+    
+    loadStepHazards().then(function(stepDb) {
+      if (!stepDb || stepDb.length === 0) return;
+      
+      var ws = [];
+      var matchedCount = 0;
+      var unmatchedSteps = [];
+      
+      fcSteps.forEach(function(stepName) {
+        var matched = matchStepName(stepName, stepDb);
+        var stepEntry = { stepId: genId(), stepName: stepName || '', hazards: [] };
+        
+        if (matched) {
+          matchedCount++;
+          var h = matched.hazards;
+          // 生物危害（跳过"无显著"标记）
+          if (h.bio && h.bio.desc && h.bio.desc !== '无显著生物危害' && h.bio.desc !== '无') {
+            stepEntry.hazards.push({
+              id: genId(),
+              category: 'biological',
+              hazardDesc: h.bio.desc,
+              source: stepName,
+              isSignificant: h.bio.isSignificant || false,
+              severity: h.bio.isSignificant ? '高' : '中',
+              likelihood: h.bio.isSignificant ? '高' : '中',
+              basis: h.bio.basis || '',
+              controlMeasure: h.bio.control || '',
+              controlRelation: h.bio.controlRelation || ''
+            });
+          }
+          // 化学危害
+          if (h.chem && h.chem.desc && h.chem.desc !== '无显著化学危害' && h.chem.desc !== '无') {
+            stepEntry.hazards.push({
+              id: genId(),
+              category: 'chemical',
+              hazardDesc: h.chem.desc,
+              source: stepName,
+              isSignificant: h.chem.isSignificant || false,
+              severity: h.chem.isSignificant ? '高' : '中',
+              likelihood: h.chem.isSignificant ? '高' : '中',
+              basis: h.chem.basis || '',
+              controlMeasure: h.chem.control || '',
+              controlRelation: h.chem.controlRelation || ''
+            });
+          }
+          // 物理危害
+          if (h.phys && h.phys.desc && h.phys.desc !== '无显著物理危害' && h.phys.desc !== '无') {
+            stepEntry.hazards.push({
+              id: genId(),
+              category: 'physical',
+              hazardDesc: h.phys.desc,
+              source: stepName,
+              isSignificant: h.phys.isSignificant || false,
+              severity: h.phys.isSignificant ? '高' : '中',
+              likelihood: h.phys.isSignificant ? '中' : '低',
+              basis: h.phys.basis || '',
+              controlMeasure: h.phys.control || '',
+              controlRelation: h.phys.controlRelation || ''
+            });
+          }
+        } else {
+          unmatchedSteps.push(stepName);
+        }
+        ws.push(stepEntry);
+      });
+      
+      data.hazardWorksheet = ws;
+      data._unmatchedSteps = unmatchedSteps;
+      saveData(data);
+      
+      // 重新渲染
+      renderActiveSection();
+      renderSectionNav();
+    });
+  }
+
+  // 危害识别子步骤（只显示按步骤匹配的危害，去掉了配方/原料分析）
+  function renderHazardIdentify(data) {
+    // 检查是否有hazardWorksheet数据；如果为空则检查档案中是否有流程图步骤
+    var ws = data.hazardWorksheet || [];
+    var fcSteps = getFcStepsFromProfile();
+    var autoTriggered = false;
+    
+    // 如果worksheet为空，但档案中有流程图步骤，触发自动匹配
+    if (ws.length === 0 && fcSteps.length > 0) {
+      autoTriggered = true;
+      // 立即触发匹配
+      setTimeout(function() {
+        autoMatchStepHazards(data);
+      }, 100);
+    }
+
+    var html = '<h3>识别潜在危害</h3><p class="q15-table-hint">根据创建档案中绘制的流程图操作步骤，系统自动匹配可能的危害</p>';
+
+    // 自动匹配中或匹配结果显示
+    if (autoTriggered) {
+      html += '<div id="stepHazardLoading" style="padding:20px;text-align:center;color:var(--gray-400);">' +
+        '<span class="spinner" style="width:18px;height:18px;"></span> 正在从档案中读取工艺流程并匹配危害数据...</div>';
+    }
+
+    // 匹配结果展示（按步骤列出危害）
+    html += '<div id="stepHazardResult">';
+    if (ws.length > 0) {
+      var matchedCount = 0;
+      ws.forEach(function(step) {
+        if (step.hazards && step.hazards.length > 0) matchedCount++;
+      });
+      html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
+      html += '已匹配 ' + matchedCount + '/' + ws.length + ' 个步骤的危害数据';
+      html += '</div>';
+
+      // 未匹配步骤提示
+      var unmatched = data._unmatchedSteps || [];
+      if (unmatched.length > 0) {
+        html += '<div style="margin-bottom:12px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e;">';
+        html += '以下步骤未匹配到危害数据，可使用AI辅助识别：<strong>' + unmatched.join('、') + '</strong>';
+        html += '</div>';
+      }
+
+      // 按步骤展示可勾选的危害列表
+      html += '<div class="q15-step-hazards-list">';
+      ws.forEach(function(step, si) {
+        if (!step.hazards || step.hazards.length === 0) return;
+        var catLabels = { biological: 'B', chemical: 'C', physical: 'P' };
+        var catColors = { biological: '#dc2626', chemical: '#d97706', physical: '#6b7280' };
+        var catFull = { biological: '生物危害', chemical: '化学危害', physical: '物理危害' };
+
+        html += '<div class="q15-step-hazard-card" style="margin-bottom:12px;padding:12px 16px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);">';
+        html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px;">' + esc(step.stepName) + '</div>';
+        
+        step.hazards.forEach(function(h, hi) {
+          var catLabel = catLabels[h.category] || '';
+          var catColor = catColors[h.category] || '#666';
+          var catFullName = catFull[h.category] || '';
+          html += '<label class="q15-step-hazard-item" style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;margin:2px 0;border-radius:4px;cursor:pointer;transition:var(--transition);">' +
+            '<input type="checkbox" class="hw-hazard-checkbox" data-ws-si="' + si + '" data-ws-hi="' + hi + '" checked style="margin-top:3px;">' +
+            '<span style="display:inline-block;padding:0 6px;border-radius:3px;font-size:11px;font-weight:700;color:#fff;background:' + catColor + ';flex-shrink:0;">' + catLabel + '</span>' +
+            '<div style="flex:1;font-size:13px;">' +
+              '<div>' + esc(h.hazardDesc) + '</div>' +
+              '<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">' + catFullName + (h.isSignificant ? ' | <span style="color:#dc2626;">显著危害</span>' : ' | <span style="color:var(--gray-400);">非显著</span>') + '</div>' +
+            '</div>' +
+          '</label>';
+        });
+        html += '</div>';
+      });
+      html += '</div>';
+    } else if (!autoTriggered) {
+      html += '<div style="padding:20px;text-align:center;color:var(--gray-400);">暂无工艺流程步骤数据，请先在"创建档案"中的流程图编辑器中添加操作步骤</div>';
+    }
+    html += '</div>';
+
+    // AI辅助识别按钮（用于未匹配步骤）
+    html += '<div class="q15-ai-btn-wrapper" style="margin-top:12px;">';
+    html += '<button class="btn btn-secondary btn-sm" id="aiHazardBtn">\u{1F916} AI辅助识别</button>';
+    html += '<span id="aiHazardHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>';
+    html += '</div>';
+    html += '<div id="aiHazardResult" style="margin-top:12px;"></div>';
+
+    return html;
+  }
+
+  // 危害评估子步骤
+  function renderHazardAssess(data) {
+    var ws = data.hazardWorksheet || [];
+    if (ws.length === 0) {
+      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">请先在"危害识别"步骤中添加危害数据</div>';
+    }
+    var html = '<div class="hw-assess-table-wrapper"><table class="hw-table"><thead><tr>' +
+      '<th style="min-width:80px;">加工步骤</th><th>潜在危害</th><th>危害类别</th>' +
+      '<th style="width:80px;">严重性</th><th style="width:80px;">可能性</th><th style="width:80px;">风险等级</th>' +
+      '<th style="min-width:150px;">判断依据</th><th style="width:70px;">显著危害</th></tr></thead><tbody>';
+    ws.forEach(function(step, si) {
+      if (!step.hazards || step.hazards.length === 0) return;
+      step.hazards.forEach(function(h, hi) {
+        var catLabel = h.category === 'biological' ? '生物危害' : (h.category === 'chemical' ? '化学危害' : '物理危害');
+        var catColor = h.category === 'biological' ? '#dc2626' : (h.category === 'chemical' ? '#d97706' : '#6b7280');
+        html += '<tr>' +
+          (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;"><strong>' + esc(step.stepName) + '</strong></td>' : '') +
+          '<td>' + esc(h.hazardDesc) + '</td>' +
+          '<td style="color:' + catColor + ';">' + catLabel + '</td>' +
+          '<td><select class="hw-select" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="severity">' +
+            '<option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option>' +
+            '<option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option>' +
+            '<option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option>' +
+          '</select></td>' +
+          '<td><select class="hw-select" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="likelihood">' +
+            '<option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option>' +
+            '<option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option>' +
+            '<option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option>' +
+          '</select></td>' +
+          '<td id="ws-risk-si' + si + '-hi' + hi + '" style="font-weight:500;">' + calcRiskLevel(h.severity || '中', h.likelihood || '中') + '</td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="basis" rows="2" placeholder="填写显著危害判断依据">' + esc(h.basis || '') + '</textarea></td>' +
+          '<td style="text-align:center;"><input type="checkbox" class="hw-significant" data-ws-si="' + si + '" data-ws-hi="' + hi + '"' + (h.isSignificant ? ' checked' : '') + '></td>' +
+        '</tr>';
+      });
+    });
+    html += '</tbody></table></div>';
+    html += '<div style="margin-top:8px;font-size:12px;color:var(--gray-400);">💡 系统根据严重性和可能性自动计算风险等级，勾选"显著危害"表示该危害需要制定控制措施</div>';
+    return html;
+  }
+
+  function calcRiskLevel(severity, likelihood) {
+    if (!severity || !likelihood) return '—';
+    var s = severity === '高' ? 3 : (severity === '中' ? 2 : 1);
+    var l = likelihood === '高' ? 3 : (likelihood === '中' ? 2 : 1);
+    var r = s * l;
+    if (r >= 6) return '<span style="color:#dc2626;">高</span>';
+    if (r >= 3) return '<span style="color:#d97706;">中</span>';
+    return '<span style="color:#16a34a;">低</span>';
+  }
+
+  // 控制措施子步骤
+  function renderHazardControl(data) {
+    var ws = data.hazardWorksheet || [];
+    if (ws.length === 0) {
+      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">请先在"危害识别"步骤中添加危害数据</div>';
+    }
+    // 只显示显著危害
+    var hasSignificant = false;
+    ws.forEach(function(step) {
+      if (step.hazards) step.hazards.forEach(function(h) { if (h.isSignificant) hasSignificant = true; });
+    });
+    if (!hasSignificant) {
+      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">请在"危害评估"步骤中勾选显著危害，以便制定控制措施</div>';
+    }
+    var html = '<div class="hw-control-table-wrapper"><table class="hw-table"><thead><tr>' +
+      '<th>加工步骤</th><th>潜在危害</th><th>控制措施</th><th style="min-width:200px;">控制措施与危害的关系</th></tr></thead><tbody>';
+    ws.forEach(function(step, si) {
+      if (!step.hazards) return;
+      step.hazards.forEach(function(h, hi) {
+        if (!h.isSignificant) return;
+        html += '<tr>' +
+          '<td><strong>' + esc(step.stepName) + '</strong></td>' +
+          '<td>' + esc(h.hazardDesc) + '</td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlMeasure" rows="2" placeholder="填写控制措施">' + esc(h.controlMeasure || '') + '</textarea></td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlRelation" rows="2" placeholder="描述控制措施与危害的关系">' + esc(h.controlRelation || '') + '</textarea></td>' +
+        '</tr>';
+      });
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  // 重写 renderProcessFlow - 通过 data.hazardWorksheetStep 切换子步骤
+  function renderProcessFlow(data) {
+    // 初始化 hazardWorksheet 数据
+    if (!data.hazardWorksheet) data.hazardWorksheet = [];
+    if (!data.hazardWorksheetStep) data.hazardWorksheetStep = 'identify';
+    
+    // 如果 hazardBio/Chem/Phys 有数据但 worksheet 为空，从 legacy 数据转换
+    if (data.hazardWorksheet.length === 0 && (data.hazardBio.length > 0 || data.hazardChem.length > 0 || data.hazardPhys.length > 0)) {
+      convertHazardsToWorksheet(data);
+    }
+
+    var subNav = renderHazardSubNav(data);
+    var stepContent = '';
+    var step = data.hazardWorksheetStep || 'identify';
+    
+    if (step === 'identify') {
+      stepContent = renderHazardIdentify(data);
+    } else if (step === 'assess') {
+      stepContent = renderHazardAssess(data);
+    } else if (step === 'control') {
+      stepContent = renderHazardControl(data);
+    }
+
+    var html = subNav + '<div class="hw-step-content">' + stepContent + '</div>';
+    
+    // 操作按钮
+    html += '<div class="hw-actions" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);display:flex;gap:10px;justify-content:space-between;">';
+    html += '<div>';
+    if (step !== 'identify') {
+      html += '<button class="btn btn-secondary btn-sm" id="hwPrevBtn">← 上一步</button>';
+    }
+    html += '</div><div>';
+    if (step !== 'control') {
+      html += '<button class="btn btn-primary btn-sm" id="hwNextBtn">下一步 →</button>';
+    } else {
+      html += '<button class="btn btn-primary btn-sm" id="hwViewWorksheetBtn">📋 查看分析工作单</button>';
+    }
+    html += '</div></div>';
+
+    return html;
+  }
+
+  // 从 legacy hazardBio/Chem/Phys 转换到 worksheet 格式
+  function convertHazardsToWorksheet(data) {
+    var wsMap = {};
+    function getOrCreateStep(stepName) {
+      if (!stepName) stepName = '通用';
+      if (!wsMap[stepName]) {
+        wsMap[stepName] = { stepId: genId(), stepName: stepName, hazards: [] };
+      }
+      return wsMap[stepName];
+    }
+    // 处理 legacy 数据
+    var legacyMaps = [
+      { key: 'hazardBio', category: 'biological' },
+      { key: 'hazardChem', category: 'chemical' },
+      { key: 'hazardPhys', category: 'physical' }
+    ];
+    legacyMaps.forEach(function(lm) {
+      (data[lm.key] || []).forEach(function(h) {
+        var stepName = '原料验收'; // 默认步骤
+        if (h.material) stepName = h.material + '验收';
+        var step = getOrCreateStep(stepName);
+        step.hazards.push({
+          id: genId(),
+          category: lm.category,
+          hazardDesc: h.desc || h.risk || '',
+          source: h.material || '',
+          isSignificant: h.isCCP || false,
+          severity: h.severity || '中',
+          likelihood: h.likelihood || '中',
+          basis: '',
+          controlMeasure: h.control || '',
+          controlRelation: ''
+        });
+      });
+    });
+    data.hazardWorksheet = Object.values(wsMap);
+    // 如果 processSteps 有数据，按步骤组织
+    if (data.processSteps && data.processSteps.length > 0) {
+      var orderedWs = [];
+      data.processSteps.forEach(function(ps) {
+        if (wsMap[ps.stepName]) orderedWs.push(wsMap[ps.stepName]);
+        else orderedWs.push({ stepId: ps.id, stepName: ps.stepName, hazards: [] });
+      });
+      data.hazardWorksheet = orderedWs;
+    }
+  }
+
+  // ===== 收集危害工作单数据 =====
+  function collectHazardWorksheetData(content, data) {
+    // 从子步骤UI收集数据到 data.hazardWorksheet
+    // 危害识别 - 复选框（hw-checkbox + hw-hazard-checkbox）
+    content.querySelectorAll('.hw-checkbox, .hw-hazard-checkbox').forEach(function(cb) {
+      var si = parseInt(cb.dataset.wsSi);
+      var hi = parseInt(cb.dataset.wsHi);
+      if (!isNaN(si) && !isNaN(hi) && data.hazardWorksheet[si] && data.hazardWorksheet[si].hazards[hi]) {
+        data.hazardWorksheet[si].hazards[hi].selected = cb.checked;
+      }
+    });
+
+    // 危害评估 - 严重性/可能性/判断依据/显著危害
+    content.querySelectorAll('.hw-select').forEach(function(sel) {
+      var si = parseInt(sel.dataset.wsSi);
+      var hi = parseInt(sel.dataset.wsHi);
+      var field = sel.dataset.wsField;
+      if (!isNaN(si) && !isNaN(hi) && data.hazardWorksheet[si] && data.hazardWorksheet[si].hazards[hi]) {
+        data.hazardWorksheet[si].hazards[hi][field] = sel.value;
+      }
+    });
+    content.querySelectorAll('.hw-textarea').forEach(function(ta) {
+      var si = parseInt(ta.dataset.wsSi);
+      var hi = parseInt(ta.dataset.wsHi);
+      var field = ta.dataset.wsField;
+      if (!isNaN(si) && !isNaN(hi) && data.hazardWorksheet[si] && data.hazardWorksheet[si].hazards[hi]) {
+        data.hazardWorksheet[si].hazards[hi][field] = ta.value;
+      }
+    });
+    content.querySelectorAll('.hw-significant').forEach(function(cb) {
+      var si = parseInt(cb.dataset.wsSi);
+      var hi = parseInt(cb.dataset.wsHi);
+      if (!isNaN(si) && !isNaN(hi) && data.hazardWorksheet[si] && data.hazardWorksheet[si].hazards[hi]) {
+        data.hazardWorksheet[si].hazards[hi].isSignificant = cb.checked;
+      }
+    });
+  }
+
+  // ===== 显示危害分析工作单（跳转到新页面）=====
+  function showHazardWorksheet() {
+    var data = loadData();
+    var container = document.getElementById('hazardWorksheetContainer');
+    if (!container) return;
+    
+    var ws = data.hazardWorksheet || [];
+    if (ws.length === 0) {
+      container.innerHTML = '<a class="back-link" href="javascript:App.navigateTo(\'questionnaire\')">← 返回问卷</a>' +
+        '<div class="empty-state"><div class="empty-icon">📋</div><h3>暂无危害分析数据</h3>' +
+        '<p>请先在问卷的第一步「进行危害分析」中添加危害数据</p>' +
+        '<button class="btn btn-primary" onclick="App.navigateTo(\'questionnaire\')">返回问卷</button></div>';
+      return;
+    }
+
+    var html = '<a class="back-link" href="javascript:App.navigateTo(\'questionnaire\')">← 返回问卷</a>';
+    html += '<div class="hw-worksheet-page">';
+    html += '<h1>危害分析工作单</h1>';
+    html += '<p class="q15-table-hint" style="margin-bottom:16px;">以下为完整的危害分析工作单，包含危害识别、评估及控制措施</p>';
+    
+    // 表格
+    html += '<div class="hw-worksheet-table-wrapper" style="overflow-x:auto;">';
+    html += '<table class="hw-worksheet-table"><thead><tr>' +
+      '<th style="min-width:80px;">加工步骤</th>' +
+      '<th>潜在危害</th>' +
+      '<th>危害类别</th>' +
+      '<th>显著危害</th>' +
+      '<th style="min-width:140px;">判断依据</th>' +
+      '<th>控制措施</th>' +
+      '<th style="min-width:180px;">控制措施与危害的关系</th>' +
+      '</tr></thead><tbody>';
+
+    ws.forEach(function(step, si) {
+      if (!step.hazards || step.hazards.length === 0) {
+        html += '<tr><td>' + esc(step.stepName) + '</td><td colspan="6" style="color:var(--gray-400);text-align:center;">无危害数据</td></tr>';
+        return;
+      }
+      step.hazards.forEach(function(h, hi) {
+        var catLabel = h.category === 'biological' ? '生物危害' : (h.category === 'chemical' ? '化学危害' : '物理危害');
+        html += '<tr>' +
+          (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;font-weight:500;">' + esc(step.stepName) + '</td>' : '') +
+          '<td>' + esc(h.hazardDesc) + '</td>' +
+          '<td>' + catLabel + '</td>' +
+          '<td>' + (h.isSignificant ? '<span style="color:#dc2626;font-weight:500;">是</span>' : '<span style="color:var(--gray-400);">否</span>') + '</td>' +
+          '<td>' + esc(h.basis || '—') + '</td>' +
+          '<td>' + esc(h.controlMeasure || '—') + '</td>' +
+          '<td>' + esc(h.controlRelation || '—') + '</td>' +
+        '</tr>';
+      });
+    });
+
+    html += '</tbody></table></div>';
+    html += '<div style="margin-top:16px;display:flex;gap:10px;">';
+    html += '<button class="btn btn-secondary" onclick="App.navigateTo(\'questionnaire\')">← 返回问卷</button>';
+    html += '<button class="btn btn-secondary" id="hwPrintBtn">🖨️ 打印/导出</button>';
+    html += '</div></div>';
+
+    container.innerHTML = html;
+
+    // 打印按钮
+    var printBtn = document.getElementById('hwPrintBtn');
+    if (printBtn) {
+      printBtn.addEventListener('click', function() {
+        window.print();
+      });
+    }
+  }
+
   // ==================== 提交问卷 ====================
   function submitQuestionnaire(data) {
     const finalData = loadData();
@@ -2515,5 +3129,5 @@ const Questionnaire15min = (() => {
     App.navigateTo('results');
   }
 
-  return { init: init, loadData: loadData, reset: function() { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SECTION_COMPLETED_KEY); currentStep = 0; } };
+  return { init: init, loadData: loadData, showHazardWorksheet: showHazardWorksheet, reset: function() { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SECTION_COMPLETED_KEY); currentStep = 0; } };
 })();

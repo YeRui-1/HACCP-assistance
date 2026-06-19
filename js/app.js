@@ -59,6 +59,11 @@ const App = (() => {
     } else if (page === 'questionnaire') {
       translatePage();
       Questionnaire15min.init();
+    } else if (page === 'hazardWorksheet') {
+      translatePage();
+      if (window.Questionnaire15min && Questionnaire15min.showHazardWorksheet) {
+        Questionnaire15min.showHazardWorksheet();
+      }
     } else if (page === 'results') {
       translatePage();
       Results.init();
