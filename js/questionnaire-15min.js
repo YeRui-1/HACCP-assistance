@@ -1521,6 +1521,22 @@ const Questionnaire15min = (() => {
       });
     }
 
+    // 危害识别"重新匹配"按钮
+    var hwRefreshBtn = content.querySelector('#hwRefreshBtn');
+    if (hwRefreshBtn) {
+      hwRefreshBtn.addEventListener('click', function() {
+        this.disabled = true;
+        this.textContent = '⏳ 重新匹配中...';
+        refreshStepHazards(data);
+        setTimeout(function() {
+          if (hwRefreshBtn) {
+            hwRefreshBtn.disabled = false;
+            hwRefreshBtn.textContent = '🔄 重新匹配';
+          }
+        }, 1000);
+      });
+    }
+
     // CCP页面按钮事件绑定（新 + 旧兼容）
     // 只有在使用旧的CCP视图时才绑定旧按钮，避免冲突
     if (data.ccpPageMode !== 'judging' && data.ccpPageMode !== 'form' && data.ccpPageMode !== 'summary') {
@@ -2611,9 +2627,10 @@ const Questionnaire15min = (() => {
   var _stepHazardsCache = null;
 
   // 加载步骤危害数据库
-  function loadStepHazards() {
-    if (_stepHazardsCache) return Promise.resolve(_stepHazardsCache);
-    // 尝试从后端加载
+  function loadStepHazards(forceRefresh) {
+    if (_stepHazardsCache && !forceRefresh) return Promise.resolve(_stepHazardsCache);
+    // 如果强制刷新，清除缓存
+    if (forceRefresh) _stepHazardsCache = null;
     var url = 'data/step_hazards.json';
     return fetch(url)
       .then(function(resp) {
@@ -2628,6 +2645,74 @@ const Questionnaire15min = (() => {
         console.warn('步骤危害数据库加载失败:', err);
         return [];
       });
+  }
+
+  // 强制刷新危害匹配（清除缓存 + 清空已匹配数据 + 重新匹配）
+  function refreshStepHazards(data) {
+    // 清除已匹配的数据
+    data.hazardWorksheet = [];
+    data._unmatchedSteps = [];
+    saveData(data);
+    
+    // 强制重新加载并匹配
+    var fcSteps = getFcStepsFromProfile();
+    if (fcSteps.length === 0) {
+      renderActiveSection();
+      renderSectionNav();
+      return;
+    }
+    
+    loadStepHazards(true).then(function(stepDb) {
+      if (!stepDb || stepDb.length === 0) return;
+      
+      var ws = [];
+      var matchedCount = 0;
+      var unmatchedSteps = [];
+      
+      fcSteps.forEach(function(stepName) {
+        var matched = matchStepName(stepName, stepDb);
+        var stepEntry = { stepId: genId(), stepName: stepName || '', hazards: [] };
+        
+        if (matched) {
+          matchedCount++;
+          var h = matched.hazards;
+          if (h.bio && h.bio.desc && h.bio.desc !== '无显著生物危害' && h.bio.desc !== '无') {
+            stepEntry.hazards.push({
+              id: genId(), category: 'biological', hazardDesc: h.bio.desc, source: stepName,
+              isSignificant: h.bio.isSignificant || false, severity: h.bio.isSignificant ? '高' : '中',
+              likelihood: h.bio.isSignificant ? '高' : '中', basis: h.bio.basis || '',
+              controlMeasure: h.bio.control || '', controlRelation: h.bio.controlRelation || ''
+            });
+          }
+          if (h.chem && h.chem.desc && h.chem.desc !== '无显著化学危害' && h.chem.desc !== '无') {
+            stepEntry.hazards.push({
+              id: genId(), category: 'chemical', hazardDesc: h.chem.desc, source: stepName,
+              isSignificant: h.chem.isSignificant || false, severity: h.chem.isSignificant ? '高' : '中',
+              likelihood: h.chem.isSignificant ? '高' : '中', basis: h.chem.basis || '',
+              controlMeasure: h.chem.control || '', controlRelation: h.chem.controlRelation || ''
+            });
+          }
+          if (h.phys && h.phys.desc && h.phys.desc !== '无显著物理危害' && h.phys.desc !== '无') {
+            stepEntry.hazards.push({
+              id: genId(), category: 'physical', hazardDesc: h.phys.desc, source: stepName,
+              isSignificant: h.phys.isSignificant || false, severity: h.phys.isSignificant ? '高' : '中',
+              likelihood: h.phys.isSignificant ? '中' : '低', basis: h.phys.basis || '',
+              controlMeasure: h.phys.control || '', controlRelation: h.phys.controlRelation || ''
+            });
+          }
+        } else {
+          unmatchedSteps.push(stepName);
+        }
+        ws.push(stepEntry);
+      });
+      
+      data.hazardWorksheet = ws;
+      data._unmatchedSteps = unmatchedSteps;
+      saveData(data);
+      
+      renderActiveSection();
+      renderSectionNav();
+    });
   }
 
   // 步骤名称模糊匹配
@@ -2832,10 +2917,11 @@ const Questionnaire15min = (() => {
     }
     html += '</div>';
 
-    // AI辅助识别按钮（用于未匹配步骤）
-    html += '<div class="q15-ai-btn-wrapper" style="margin-top:12px;">';
+    // 操作按钮区（重新匹配 + AI辅助识别）
+    html += '<div class="q15-ai-btn-wrapper" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">';
     html += '<button class="btn btn-secondary btn-sm" id="aiHazardBtn">\u{1F916} AI辅助识别</button>';
-    html += '<span id="aiHazardHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>';
+    html += '<button class="btn btn-secondary btn-sm" id="hwRefreshBtn">\u{1F504} 重新匹配</button>';
+    html += '<span id="aiHazardHint" style="font-size:12px;color:var(--gray-400);margin-left:5px;"></span>';
     html += '</div>';
     html += '<div id="aiHazardResult" style="margin-top:12px;"></div>';
 

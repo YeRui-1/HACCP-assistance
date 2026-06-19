@@ -243,6 +243,33 @@
     }
   },
   {
+    "step": "膜滤",
+    "aliases": ["膜过滤", "一级膜滤", "二级膜滤", "一级/二级膜滤", "膜分离", "一级膜过滤", "二级膜过滤"],
+    "hazards": {
+      "bio": {
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "isSignificant": false,
+        "basis": "原料本身自带",
+        "control": "灭菌工序可去除",
+        "controlRelation": "后道灭菌工序可消除生物危害"
+      },
+      "chem": {
+        "desc": "无显著化学危害",
+        "isSignificant": false,
+        "basis": "",
+        "control": "",
+        "controlRelation": ""
+      },
+      "phys": {
+        "desc": "未过滤掉的异物",
+        "isSignificant": true,
+        "basis": "未过滤掉",
+        "control": "严格控制膜滤操作参数，定期检查膜完整性，确保过滤效果",
+        "controlRelation": "CCP-膜滤本身直接控制物理危害，是关键控制点"
+      }
+    }
+  },
+  {
     "step": "粉碎",
     "aliases": ["捣碎", "破碎", "研磨", "粉碎/捣碎"],
     "hazards": {
