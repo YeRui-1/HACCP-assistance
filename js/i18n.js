@@ -183,6 +183,7 @@ const I18n = (() => {
     'ccp.checkBackend':       ['请确认后端已启动（运行 python -m uvicorn backend.main:app），或使用"手动逐步判定"按钮。', 'Please confirm the backend is running, or use "Manual Step-by-Step" instead.'],
     'ccp.confirmOverwrite':   ['已存在CCP判定结果，AI判定将覆盖现有数据。是否继续？', 'Existing CCP judgment results will be overwritten. Continue?'],
     'ccp.needSteps':          ['请先添加至少一个步骤', 'Please add at least one step first'],
+    'ccp.stepHint':           ['💡 请根据实际生产流程列出每个加工步骤，然后点击「AI自动判定CCP」或「手动逐步判定」来确认每个步骤是否为关键控制点(CCP)。', '💡 List each processing step according to your actual production flow, then click "AI Auto-determine CCP" or "Manual Step-by-Step" to confirm whether each step is a Critical Control Point (CCP).'],
 
     // ===== AI CCP 审核视图 =====
     'ccp.review.aiDone':      ['AI智能判定完成', 'AI Judgment Complete'],

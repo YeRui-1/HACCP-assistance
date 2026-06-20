@@ -666,6 +666,7 @@ const Questionnaire15min = (() => {
       html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请填写上方表单并点击确认保存添加步骤。</p>';
     }
     
+    html += '<div class="ccp-step-hint" style="margin-top:12px;padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">' + I18n.t('ccp.stepHint') + '</div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">';
     html += '<button class="btn btn-sm" id="aiCcpJudgeBtn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;">' + I18n.t('ccp.aiBtn') + '</button>';
     html += '<button class="btn btn-secondary btn-sm" id="ccpJudgeBtn">' + I18n.t('ccp.manualBtn') + '</button>';
@@ -1315,11 +1316,11 @@ const Questionnaire15min = (() => {
   }
 
   function renderCorrective(data) {
-    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划</p><table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>关键限值(CL)</th><th>纠偏措施</th><th>验证</th><th>记录</th><th style="width:50px">操作</th></tr></thead><tbody id="correctiveBody">' + data.correctiveActions.map(function(c, i) { return '<tr data-ca-idx="' + i + '"><td><input type="text" value="' + esc(c.ccp) + '" placeholder="如：杀菌工序"></td><td><input type="text" value="' + esc(c.cl) + '" placeholder="如：90\u2103"></td><td><input type="text" value="' + esc(c.corrective) + '" placeholder="纠偏措施"></td><td><input type="text" value="' + esc(c.verification) + '" placeholder="验证方法"></td><td><input type="text" value="' + esc(c.record) + '" placeholder="记录表格"></td><td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addCorrectiveRow">+ 添加纠偏项</button>';
+    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiCorrectiveBtn">🤖 AI生成纠偏措施</button><span id="aiCorrectiveHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div>根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划</p><table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>关键限值(CL)</th><th>纠偏措施</th><th>验证</th><th>记录</th><th style="width:50px">操作</th></tr></thead><tbody id="correctiveBody">' + data.correctiveActions.map(function(c, i) { return '<tr data-ca-idx="' + i + '"><td><input type="text" value="' + esc(c.ccp) + '" placeholder="如：杀菌工序"></td><td><input type="text" value="' + esc(c.cl) + '" placeholder="如：90\u2103"></td><td><input type="text" value="' + esc(c.corrective) + '" placeholder="纠偏措施"></td><td><input type="text" value="' + esc(c.verification) + '" placeholder="验证方法"></td><td><input type="text" value="' + esc(c.record) + '" placeholder="记录表格"></td><td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addCorrectiveRow">+ 添加纠偏项</button>';
   }
 
   function renderVerification(data) {
-    return '<div class="q15-field-group"><label>验证方法</label><textarea data-q15-field="verificationMethod" rows="4" placeholder="描述验证程序的方法，如：\n1. 每批次对CCP监控记录进行审核\n2. 每周对纠偏记录进行回顾\n3. 每月进行成品抽样检测\n4. 每季度进行环境微生物监测">' + (data.verificationMethod || '') + '</textarea></div><div class="q15-field-group"><label>验证频率</label><input type="text" data-q15-field="verificationFrequency" value="' + (data.verificationFrequency || '') + '" placeholder="如：每日、每周、每批次"></div><div class="q15-field-group"><label>验证人员</label><input type="text" data-q15-field="verificationPersonnel" value="' + (data.verificationPersonnel || '') + '" placeholder="如：HACCP小组组长、品控主管"></div><div class="q15-confirm-box" style="margin-top:16px;"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="verificationConfirmed"' + (data.verificationConfirmed ? ' checked' : '') + '> 验证程序已完成确认</label></div>';
+    return '<h3>验证程序</h3><p class="q15-table-hint">验证不同于监控——验证是确认整个HACCP体系是否有效运行。AI将根据CCP、监控方案和纠偏措施，自动生成全面的验证程序。</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiVerificationBtn">🤖 AI生成验证程序</button><span id="aiVerificationHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><div class="q15-field-group"><label>验证方法</label><textarea data-q15-field="verificationMethod" rows="4" placeholder="描述验证程序的方法，如：\n1. 每批次对CCP监控记录进行审核\n2. 每周对纠偏记录进行回顾\n3. 每月进行成品抽样检测\n4. 每季度进行环境微生物监测">' + (data.verificationMethod || '') + '</textarea></div><div class="q15-field-group"><label>验证频率</label><input type="text" data-q15-field="verificationFrequency" value="' + (data.verificationFrequency || '') + '" placeholder="如：每日、每周、每批次"></div><div class="q15-field-group"><label>验证人员</label><input type="text" data-q15-field="verificationPersonnel" value="' + (data.verificationPersonnel || '') + '" placeholder="如：HACCP小组组长、品控主管"></div><div class="q15-confirm-box" style="margin-top:16px;"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="verificationConfirmed"' + (data.verificationConfirmed ? ' checked' : '') + '> 验证程序已完成确认</label></div>';
   }
 
   function renderRecordKeeping(data) {
@@ -1500,12 +1501,74 @@ const Questionnaire15min = (() => {
     ['Bio', 'Chem', 'Phys'].forEach(function(type) { var body = content.querySelector('#hazard' + type + 'Body'); if (body) { body.querySelectorAll('input, select').forEach(function(el) { el.addEventListener('change', function() { collectHazardTableData(content, data); saveData(data); }); el.addEventListener('input', function() { collectHazardTableData(content, data); saveData(data); }); }); } });
 
     const aiCriticalBtn = content.querySelector('#aiCriticalBtn');
-    if (aiCriticalBtn) { aiCriticalBtn.addEventListener('click', function() { aiCriticalBtn.disabled = true; var hint = content.querySelector('#aiCriticalHint'); if (hint) hint.textContent = 'AI分析中...'; var result = content.querySelector('#aiCriticalResult'); setTimeout(function() { var standard = data.execStandard || '国标'; var demoResult = '根据' + (standard === 'gb' ? 'GB 14881-2013 食品安全国家标准 食品生产通用卫生规范' : standard) + '，建议关键限制如下：\n\n1. 杀菌工序 CCP-3：\n   - 中心温度：\u226585\u2103\n   - 保持时间：\u226515秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n2. 金属检测 CCP-4：\n   - Fe：\u22641.5mm\n   - SUS：\u22642.0mm\n   - 依据：GB/T 25346-2010\n\n3. 原料验收 CCP-1：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022'; if (result) result.innerHTML = '<div class="q15-ai-result">' + demoResult.replace(/\n/g, '<br>') + '</div>'; if (hint) hint.textContent = '\u2713 AI建议已生成'; aiCriticalBtn.disabled = false; }, 800); }); }
+    if (aiCriticalBtn) { aiCriticalBtn.addEventListener('click', async function() {
+      aiCriticalBtn.disabled = true;
+      var hint = content.querySelector('#aiCriticalHint');
+      if (hint) hint.textContent = 'AI分析中...';
+      var result = content.querySelector('#aiCriticalResult');
+      try {
+        var ccpList = getCurrentCcpList(data);
+        var hasCcp = ccpList.some(function(s) { return s.isCCP; });
+        if (!hasCcp) {
+          if (hint) hint.textContent = '⚠ 未检测到CCP，请先在步骤1完成CCP判定';
+          aiCriticalBtn.disabled = false;
+          return;
+        }
+        var resp = await fetch(API_HOST + '/api/ai/critical-limits', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_name: data.productName || '', ccp_steps: ccpList, exec_standard: data.execStandard || 'gb' })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        var r = await resp.json();
+        if (r.ok && r.data) {
+          data.criticalLimits = r.data.criticalLimits || '';
+          saveData(data);
+          if (result) result.innerHTML = '<div class="q15-ai-result">' + esc(data.criticalLimits).replace(/\n/g, '<br>') + '</div>';
+          if (hint) hint.textContent = '✓ AI建议已生成';
+        } else { throw new Error('Invalid response'); }
+      } catch (err) {
+        console.warn('AI critical limits failed:', err);
+        if (hint) hint.textContent = '✖ AI建议生成失败，请重试';
+      }
+      aiCriticalBtn.disabled = false;
+    }); }
 
     const addMonitorBtn = content.querySelector('#addMonitorRow');
     if (addMonitorBtn) { addMonitorBtn.addEventListener('click', function() { data.monitoring.push({ id: genId(), ccp: '', object: '', method: '', frequency: '', personnel: '', remark: '' }); saveData(data); renderActiveSection(); }); }
     content.querySelectorAll('#monitorBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.mnIdx); if (data.monitoring.length > 1) { data.monitoring.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
     content.querySelectorAll('#monitorBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.mnIdx), inputs = row.querySelectorAll('input'); if (data.monitoring[idx]) { data.monitoring[idx].ccp = inputs[0].value; data.monitoring[idx].object = inputs[1].value; data.monitoring[idx].method = inputs[2].value; data.monitoring[idx].frequency = inputs[3].value; data.monitoring[idx].personnel = inputs[4].value; data.monitoring[idx].remark = inputs[5].value; saveData(data); } }); });
+
+    const aiCorrectiveBtn = content.querySelector('#aiCorrectiveBtn');
+    if (aiCorrectiveBtn) { aiCorrectiveBtn.addEventListener('click', async function() {
+      aiCorrectiveBtn.disabled = true;
+      var hint = content.querySelector('#aiCorrectiveHint');
+      if (hint) hint.textContent = 'AI分析中...';
+      try {
+        var ccpList = getCurrentCcpList(data);
+        var hasCcp = ccpList.some(function(s) { return s.isCCP; });
+        if (!hasCcp) {
+          if (hint) hint.textContent = '⚠ 未检测到CCP，请先在步骤1完成CCP判定';
+          aiCorrectiveBtn.disabled = false;
+          return;
+        }
+        var resp = await fetch(API_HOST + '/api/ai/corrective-actions', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_name: data.productName || '', ccp_steps: ccpList, critical_limits: data.criticalLimits || '' })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        var r = await resp.json();
+        if (r.ok && r.data && r.data.correctiveActions) {
+          data.correctiveActions = r.data.correctiveActions.map(function(c) { return { id: genId(), ccp: c.ccp || '', cl: c.cl || '', corrective: c.corrective || '', verification: c.verification || '', record: c.record || '' }; });
+          saveData(data);
+          renderActiveSection();
+          if (hint) hint.textContent = '\u2713 AI纠偏措施已生成';
+        } else { throw new Error('Invalid response'); }
+      } catch (err) {
+        console.warn('AI corrective failed:', err);
+        if (hint) hint.textContent = '\u2716 AI生成失败，请重试';
+      }
+      aiCorrectiveBtn.disabled = false;
+    }); }
 
     const addCorrectiveBtn = content.querySelector('#addCorrectiveRow');
     if (addCorrectiveBtn) { addCorrectiveBtn.addEventListener('click', function() { data.correctiveActions.push({ id: genId(), ccp: '', cl: '', corrective: '', verification: '', record: '' }); saveData(data); renderActiveSection(); }); }
@@ -1513,7 +1576,72 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('#correctiveBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.caIdx), inputs = row.querySelectorAll('input'); if (data.correctiveActions[idx]) { data.correctiveActions[idx].ccp = inputs[0].value; data.correctiveActions[idx].cl = inputs[1].value; data.correctiveActions[idx].corrective = inputs[2].value; data.correctiveActions[idx].verification = inputs[3].value; data.correctiveActions[idx].record = inputs[4].value; saveData(data); } }); });
 
     const aiMonitorBtn = content.querySelector('#aiMonitorBtn');
-    if (aiMonitorBtn) { aiMonitorBtn.addEventListener('click', function() { aiMonitorBtn.disabled = true; var hint = content.querySelector('#aiMonitorHint'); if (hint) hint.textContent = 'AI分析中...'; setTimeout(function() { data.monitoring = [{ id: genId(), ccp: 'CCP-3 杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013，温度偏差需\u2264\u00B11\u2103' }, { id: genId(), ccp: 'CCP-4 金属检测', object: '金属异物', method: '在线金属检测仪自动检测', frequency: '连续监控', personnel: '设备维护人员+品控专员', remark: '依据GB/T 25346-2010' }, { id: genId(), ccp: 'CCP-1 原料验收', object: '农药残留、重金属', method: '供应商检测报告+抽检验证', frequency: '每批次审核', personnel: '经培训的采购专员', remark: '依据GB 2763-2021、GB 2762-2022' }]; saveData(data); if (hint) hint.textContent = '\u2713 AI规划完成'; aiMonitorBtn.disabled = false; renderActiveSection(); }, 1000); }); }
+    if (aiMonitorBtn) { aiMonitorBtn.addEventListener('click', async function() {
+      aiMonitorBtn.disabled = true;
+      var hint = content.querySelector('#aiMonitorHint');
+      if (hint) hint.textContent = 'AI分析中...';
+      try {
+        var ccpList = getCurrentCcpList(data);
+        var hasCcp = ccpList.some(function(s) { return s.isCCP; });
+        if (!hasCcp) {
+          if (hint) hint.textContent = '⚠ 未检测到CCP，请先在步骤1完成CCP判定';
+          aiMonitorBtn.disabled = false;
+          return;
+        }
+        var resp = await fetch(API_HOST + '/api/ai/monitoring', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_name: data.productName || '', ccp_steps: ccpList, process_description: data.intendedUse || '' })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        var r = await resp.json();
+        if (r.ok && r.data && r.data.monitoring) {
+          data.monitoring = r.data.monitoring.map(function(m) { return { id: genId(), ccp: m.ccp || '', object: m.object || '', method: m.method || '', frequency: m.frequency || '', personnel: m.personnel || '', remark: m.remark || '' }; });
+          saveData(data);
+          renderActiveSection();
+          if (hint) hint.textContent = '✓ AI规划完成';
+        } else { throw new Error('Invalid response'); }
+      } catch (err) {
+        console.warn('AI monitoring failed:', err);
+        if (hint) hint.textContent = '✖ AI规划失败，请重试';
+      }
+      aiMonitorBtn.disabled = false;
+    }); }
+
+    const aiVerificationBtn = content.querySelector('#aiVerificationBtn');
+    if (aiVerificationBtn) { aiVerificationBtn.addEventListener('click', async function() {
+      aiVerificationBtn.disabled = true;
+      var hint = content.querySelector('#aiVerificationHint');
+      if (hint) hint.textContent = 'AI分析中...';
+      collectSectionData(content, data);
+      saveData(data);
+      try {
+        var ccpList = getCurrentCcpList(data);
+        var hasCcp = ccpList.some(function(s) { return s.isCCP; });
+        if (!hasCcp) {
+          if (hint) hint.textContent = '⚠ 未检测到CCP，请先在步骤1完成CCP判定';
+          aiVerificationBtn.disabled = false;
+          return;
+        }
+        var resp = await fetch(API_HOST + '/api/ai/verification', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_name: data.productName || '', ccp_steps: ccpList, monitoring: data.monitoring || [], corrective_actions: data.correctiveActions || [] })
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        var r = await resp.json();
+        if (r.ok && r.data) {
+          if (r.data.verificationMethod) data.verificationMethod = r.data.verificationMethod;
+          if (r.data.verificationFrequency) data.verificationFrequency = r.data.verificationFrequency;
+          if (r.data.verificationPersonnel) data.verificationPersonnel = r.data.verificationPersonnel;
+          saveData(data);
+          renderActiveSection();
+          if (hint) hint.textContent = '\u2713 AI验证程序已生成';
+        } else { throw new Error('Invalid response'); }
+      } catch (err) {
+        console.warn('AI verification failed:', err);
+        if (hint) hint.textContent = '\u2716 AI生成失败，请重试';
+      }
+      aiVerificationBtn.disabled = false;
+    }); }
 
     // 绑定精简版上传区域事件
     bindCompactUploadEvents(content);
@@ -1630,6 +1758,31 @@ const Questionnaire15min = (() => {
       });
     });
     return count;
+  }
+
+  
+  // 从 ccpSteps 提取 CCP 列表供 AI 接口使用
+  function getCurrentCcpList(data) {
+    var steps = data.processSteps || [];
+    var ccpSteps = data.ccpSteps || [];
+    var result = [];
+    steps.forEach(function(s, i) {
+      var ccs = ccpSteps[i];
+      var isCCP = false;
+      if (ccs && ccs.hazards) {
+        ['bio', 'chem', 'phys'].forEach(function(ht) {
+          if (ccs.hazards[ht] && ccs.hazards[ht].isCCP === true) isCCP = true;
+        });
+      }
+      result.push({
+        stepName: s.stepName || '',
+        equipmentName: s.equipmentName || '',
+        operationMethod: s.operationMethod || '',
+        parameters: s.parameters || '',
+        isCCP: isCCP
+      });
+    });
+    return result;
   }
 
   // ===== CCP决策树辅助函数 (5问题版本) =====

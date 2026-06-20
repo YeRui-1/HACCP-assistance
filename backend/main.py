@@ -1217,6 +1217,289 @@ def _mock_ccp_judgment(req: CcpJudgmentRequest) -> dict:
     return {"ok": True, "data": {"judgments": judgments}}
 
 
+# ===== AI 关键限值 / 监控 / 纠偏 / 验证 =====
+
+CRITICAL_LIMITS_PROMPT = """你是一位专业的HACCP关键限值专家。请根据用户提供的CCP信息和执行标准，为每个CCP制定科学合理的关键限值。
+
+要求：
+1. 每个CCP的关键限值必须有科学依据（法规标准、文献数据或实验验证）
+2. 关键限值必须具体、可测量（温度、时间、尺寸、浓度等数值）
+3. 标注每个限值的法规依据（如GB 14881-2013、GB 2762-2022等）
+4. 如果执行标准是国标，则参考GB系列标准
+
+请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
+{
+  "criticalLimits": "所有CCP的关键限值说明文本（Markdown格式，每个CCP一个段落）\n\n格式示例：\n1. **CCP名称**：\n   - 关键限值1：具体数值和单位\n   - 关键限值2：具体数值和单位\n   - 依据：XX标准第X条",
+  "details": [
+    {"ccp": "CCP名称", "limit": "关键限值", "basis": "法规依据", "rationale": "设置理由"}
+  ]
+}"""
+
+MONITORING_PROMPT = """你是一位专业的HACCP监控程序专家。请根据用户提供的CCP列表和产品信息，为每个CCP设计科学合理的监控方案。
+
+监控方案应包含：监控对象（测什么）、监控方法（怎么测）、监控频率（多久测一次）、监控人员（谁来测）。
+
+要求：
+1. 监控方法应具体可操作（如"在线温度传感器连续监控"而非"监控温度"）
+2. 监控频率应根据风险等级合理设置（连续监控/每批次/每日/每周）
+3. 监控人员应有明确资质要求
+
+请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
+{
+  "monitoring": [
+    {"ccp": "CCP名称", "object": "监控对象", "method": "监控方法", "frequency": "监控频率", "personnel": "监控人员", "remark": "备注（法规依据等）"}
+  ]
+}"""
+
+CORRECTIVE_ACTIONS_PROMPT = """你是一位专业的HACCP纠偏措施专家。请根据用户提供的CCP列表及其关键限值，为每个CCP制定科学合理的纠偏措施。
+
+纠偏措施应包含：
+1. 关键控制点(CCP)名称
+2. 关键限值(CL)的具体数值
+3. 当关键限值偏离时应采取的纠正措施
+4. 验证纠偏效果的方法
+5. 需要填写的记录表格
+
+要求：
+1. 纠偏措施必须具体可操作，不能是笼统的描述
+2. 明确谁来执行纠偏、如何记录
+3. 考虑最坏情况（如产品如何处理：隔离/重新加工/销毁）
+
+请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
+{
+  "correctiveActions": [
+    {"ccp": "CCP名称", "cl": "关键限值", "corrective": "纠偏措施", "verification": "验证方法", "record": "记录表格名称"}
+  ]
+}"""
+
+VERIFICATION_PROMPT = """你是一位专业的HACCP验证程序专家。请根据用户提供的CCP列表、监控方案和纠偏措施，制定HACCP计划的验证程序。
+
+验证程序应包含：
+1. 验证方法（如何验证HACCP体系有效运行）
+2. 验证频率（多久验证一次）
+3. 验证人员（谁来负责验证）
+
+验证不同于监控——验证是确认整个HACCP体系是否有效运行，而不是对单个CCP的日常监控。
+
+请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
+{
+  "verificationMethod": "验证方法的详细描述文本（建议用编号列表）",
+  "verificationFrequency": "验证频率（如：每日、每周、每批次等）",
+  "verificationPersonnel": "建议的验证人员（如：HACCP小组组长、品控主管等）"
+}"""
+
+
+class CorrectiveActionsRequest(BaseModel):
+    product_name: str = ""
+    ccp_steps: list = []  # [{stepName, isCCP: true/false}]
+    critical_limits: str = ""  # 现有关键限值文本
+
+
+class VerificationRequest(BaseModel):
+    product_name: str = ""
+    ccp_steps: list = []
+    monitoring: list = []  # [{ccp, object, method, frequency, personnel}]
+    corrective_actions: list = []  # [{ccp, cl, corrective, verification, record}]
+
+
+class MonitoringRequest(BaseModel):
+    product_name: str = ""
+    ccp_steps: list = []
+    process_description: str = ""
+
+
+class CriticalLimitsRequest(BaseModel):
+    product_name: str = ""
+    ccp_steps: list = []
+    exec_standard: str = "gb"
+
+
+def _call_deepseek(system_prompt: str, user_content: str, temperature: float = 0.3, max_tokens: int = 2048) -> dict:
+    """通用 DeepSeek API 调用函数"""
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+    }
+    json_data_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    http_req = urllib.request.Request(DEEPSEEK_API_URL, data=json_data_bytes, headers=headers, method="POST")
+    with urllib.request.urlopen(http_req, timeout=90) as resp:
+        result = json.loads(resp.read().decode("utf-8"))
+        content = result["choices"][0]["message"]["content"].strip()
+    if content.startswith("```"):
+        lines = content.split("\n")
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines[-1].strip() == "```":
+            lines = lines[:-1]
+        content = "\n".join(lines)
+    return json.loads(content)
+
+
+def _is_mock_mode() -> bool:
+    return DEEPSEEK_API_KEY == "sk-your-deepseek-api-key-here" or not DEEPSEEK_API_KEY
+
+
+@app.post("/api/ai/critical-limits")
+async def api_ai_critical_limits(req: CriticalLimitsRequest):
+    """根据CCP列表和执行标准，AI生成关键限值建议"""
+    if not req.ccp_steps:
+        raise HTTPException(status_code=400, detail="CCP步骤列表不能为空")
+
+    ccp_list = [s for s in req.ccp_steps if s.get("isCCP")]
+    if not ccp_list:
+        return {"ok": True, "data": {"criticalLimits": "暂无CCP，不需要设置关键限值", "details": []}}
+
+    std_labels = {"gb": "国标（GB）", "industry": "行业标准", "enterprise": "企业标准", "international": "国际标准"}
+    std_label = std_labels.get(req.exec_standard, "国标（GB）")
+
+    ccp_text = "\n".join(f"- {s.get('stepName', '')}" for s in ccp_list)
+    user_content = f"产品名称：{req.product_name}\n执行标准：{std_label}\n\n确定的CCP：\n{ccp_text}\n\n请为以上CCP制定关键限值。"
+
+    if _is_mock_mode():
+        limits_text = ""
+        details = []
+        for s in ccp_list:
+            name = s.get("stepName", "").lower()
+            if any(kw in name for kw in ["杀菌", "热处理", "灭菌"]):
+                limits_text += f"1. **{s.get('stepName', '')}**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n"
+                details.append({"ccp": s.get("stepName", ""), "limit": "中心温度≥85℃，保持时间≥15秒", "basis": "GB 14881-2013", "rationale": "充分杀灭致病菌"})
+            elif any(kw in name for kw in ["金属检测", "异物"]):
+                limits_text += f"2. **{s.get('stepName', '')}**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n"
+                details.append({"ccp": s.get("stepName", ""), "limit": "Fe≤1.5mm，SUS≤2.0mm", "basis": "GB/T 25346-2010", "rationale": "防止金属异物进入成品"})
+            elif any(kw in name for kw in ["验收", "接收"]):
+                limits_text += f"3. **{s.get('stepName', '')}**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n"
+                details.append({"ccp": s.get("stepName", ""), "limit": "符合GB 2763/2762限量标准", "basis": "GB 2763-2021、GB 2762-2022", "rationale": "原料安全是HACCP的基础"})
+            else:
+                limits_text += f"**{s.get('stepName', '')}**：\n   - 需根据实际工艺参数确定\n   - 依据：企业内控标准\n\n"
+                details.append({"ccp": s.get("stepName", ""), "limit": "待定", "basis": "企业内控标准", "rationale": "需根据实际工艺确定"})
+        return {"ok": True, "data": {"criticalLimits": limits_text.strip(), "details": details}}
+
+    try:
+        data = _call_deepseek(CRITICAL_LIMITS_PROMPT, user_content)
+        return {"ok": True, "data": data}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+@app.post("/api/ai/monitoring")
+async def api_ai_monitoring(req: MonitoringRequest):
+    """根据CCP列表，AI生成监控方案"""
+    if not req.ccp_steps:
+        raise HTTPException(status_code=400, detail="CCP步骤列表不能为空")
+
+    ccp_list = [s for s in req.ccp_steps if s.get("isCCP")]
+    if not ccp_list:
+        return {"ok": True, "data": {"monitoring": []}}
+
+    ccp_text = "\n".join(f"- {s.get('stepName', '')}：{s.get('operationMethod', '')} {s.get('parameters', '')}" for s in ccp_list)
+    user_content = f"产品名称：{req.product_name}\n工艺描述：{req.process_description}\n\n确定的CCP：\n{ccp_text}\n\n请为以上CCP制定监控方案。"
+
+    if _is_mock_mode():
+        monitor = []
+        for s in ccp_list:
+            name = s.get("stepName", "").lower()
+            if any(kw in name for kw in ["杀菌", "热处理", "灭菌"]):
+                monitor.append({"ccp": s.get("stepName", ""), "object": "温度、时间", "method": "在线温度传感器连续监控", "frequency": "每批次实时记录", "personnel": "经HACCP培训的品控专员", "remark": "温度偏差需≤±1℃"})
+            elif any(kw in name for kw in ["金属检测", "异物"]):
+                monitor.append({"ccp": s.get("stepName", ""), "object": "金属异物", "method": "在线金属检测仪自动检测", "frequency": "连续监控", "personnel": "设备维护人员+品控专员", "remark": "按GB/T 25346-2010执行"})
+            elif any(kw in name for kw in ["验收", "接收"]):
+                monitor.append({"ccp": s.get("stepName", ""), "object": "农药残留、重金属", "method": "供应商检测报告+抽检验证", "frequency": "每批次审核", "personnel": "经培训的采购专员", "remark": "依据GB 2763-2021、GB 2762-2022"})
+            else:
+                monitor.append({"ccp": s.get("stepName", ""), "object": "工艺参数", "method": "在线/人工检测", "frequency": "按需确定", "personnel": "品控人员", "remark": "依据企业标准"})
+        return {"ok": True, "data": {"monitoring": monitor}}
+
+    try:
+        data = _call_deepseek(MONITORING_PROMPT, user_content)
+        return {"ok": True, "data": data}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+@app.post("/api/ai/corrective-actions")
+async def api_ai_corrective_actions(req: CorrectiveActionsRequest):
+    """根据CCP列表和关键限值，AI生成纠偏措施"""
+    if not req.ccp_steps:
+        raise HTTPException(status_code=400, detail="CCP步骤列表不能为空")
+
+    ccp_list = [s for s in req.ccp_steps if s.get("isCCP")]
+    if not ccp_list:
+        return {"ok": True, "data": {"correctiveActions": []}}
+
+    ccp_text = "\n".join(f"- {s.get('stepName', '')}" for s in ccp_list)
+    user_content = f"产品名称：{req.product_name}\n\n确定的CCP：\n{ccp_text}\n\n已确定的关键限值：\n{req.critical_limits or '暂未设置'}\n\n请为以上CCP制定纠偏措施。"
+
+    if _is_mock_mode():
+        actions = []
+        for s in ccp_list:
+            name = s.get("stepName", "").lower()
+            if any(kw in name for kw in ["杀菌", "热处理", "灭菌"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "中心温度≥85℃，保持≥15秒", "corrective": "温度不达标时：1)立即调整设备参数；2)对受影响产品隔离评估；3)重新杀菌或销毁不合格品", "verification": "1)复查温度记录曲线；2)对重新加工产品抽样检测微生物；3)校准温度传感器", "record": "《杀菌工序温度异常记录表》《产品隔离处理记录》"})
+            elif any(kw in name for kw in ["金属检测", "异物"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "Fe≤1.5mm，SUS≤2.0mm", "corrective": "检测仪报警时：1)立即将受影响产品隔离；2)用标准试块测试设备；3)对上一批次检出时段产品重新检测；4)查找异物来源", "verification": "1)每小时用标准试块测试检测仪；2)对剔除产品进行确认；3)定期维护设备", "record": "《金属检测异常处理记录》《设备校验记录》"})
+            elif any(kw in name for kw in ["验收", "接收"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "符合GB 2763/2762限量标准", "corrective": "检测不合格时：1)拒收该批原料；2)通知供应商整改；3)如已入库则立即隔离标识；4)评估是否需要更换供应商", "verification": "1)每批查验供应商检测报告；2)定期送第三方检测；3)年度供应商审核", "record": "《原料验收不合格记录》《供应商整改通知单》"})
+            else:
+                actions.append({"ccp": s.get("stepName", ""), "cl": "待定", "corrective": "偏离关键限值时：1)立即隔离受影响产品；2)查明原因并纠正；3)对受影响产品评估处理；4)记录处理过程", "verification": "复查纠正措施有效性", "record": "《CCP偏差处理记录》"})
+        return {"ok": True, "data": {"correctiveActions": actions}}
+
+    try:
+        data = _call_deepseek(CORRECTIVE_ACTIONS_PROMPT, user_content)
+        return {"ok": True, "data": data}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+@app.post("/api/ai/verification")
+async def api_ai_verification(req: VerificationRequest):
+    """根据CCP、监控方案和纠偏措施，AI生成验证程序"""
+    if not req.ccp_steps:
+        raise HTTPException(status_code=400, detail="CCP步骤列表不能为空")
+
+    ccp_list = [s for s in req.ccp_steps if s.get("isCCP")]
+    ccp_text = "\n".join(f"- {s.get('stepName', '')}" for s in ccp_list) if ccp_list else "暂无CCP"
+    monitor_text = "\n".join(f"- {m.get('ccp', '')}: {m.get('method', '')} ({m.get('frequency', '')})" for m in (req.monitoring or []))
+    corrective_text = "\n".join(f"- {c.get('ccp', '')}: {c.get('corrective', '')}" for c in (req.corrective_actions or []))
+    user_content = f"产品名称：{req.product_name}\n\nCCP列表：\n{ccp_text}\n\n监控方案：\n{monitor_text or '暂无'}\n\n纠偏措施：\n{corrective_text or '暂无'}\n\n请为以上HACCP体系制定验证程序。"
+
+    if _is_mock_mode():
+        return {"ok": True, "data": {
+            "verificationMethod": "1. **CCP监控记录审核**：每批次生产结束后，由品控主管审核所有CCP监控记录，确认关键限值符合要求。\n2. **纠偏记录回顾**：每周由HACCP小组组长回顾所有纠偏记录，确认纠偏措施有效执行。\n3. **成品抽样检测**：每月对成品进行微生物、理化指标抽样检测，验证HACCP体系有效性。\n4. **设备校准**：每季度对温度传感器、金属检测仪、pH计等CCP相关设备进行校准。\n5. **环境微生物监测**：每季度对生产车间进行环境微生物监测。\n6. **HACCP体系年度复审**：每年由HACCP小组进行完整的体系复审，修订HACCP计划。",
+            "verificationFrequency": "每日/每周/每月/每季度/每年（按上述各项分别执行）",
+            "verificationPersonnel": "HACCP小组组长、品控主管、QC检验员"
+        }}
+
+    try:
+        data = _call_deepseek(VERIFICATION_PROMPT, user_content)
+        return {"ok": True, "data": data}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
 # ===== 兼容旧接口（用户端使用）=====
 
 @app.get("/api/template")
