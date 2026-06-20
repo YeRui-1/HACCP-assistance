@@ -640,7 +640,8 @@ const Questionnaire15min = (() => {
     var editIdx = data.currentEditingStep;
     var stepData = (editIdx >= 0 && editIdx < data.processSteps.length) ? data.processSteps[editIdx] : { stepName: '', equipmentName: '', operationMethod: '', parameters: '' };
     
-    var html = '<div class="q15-step-form">';
+    var html = '<div class="ccp-step-hint" style="margin-bottom:16px;padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">' + I18n.t('ccp.stepHint') + '</div>';
+    html += '<div class="q15-step-form">';
     html += '<div class="q15-field-group"><label>步骤名称</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName) + '" placeholder="如：清洗"></div>';
     html += '<div class="q15-field-group"><label>设备名称</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName) + '" placeholder="如：清洗机"></div>';
     html += '<div class="q15-field-group"><label>操作方法</label><textarea id="stepFormMethod" rows="2" placeholder="描述操作方法">' + esc(stepData.operationMethod) + '</textarea></div>';
@@ -666,7 +667,6 @@ const Questionnaire15min = (() => {
       html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请填写上方表单并点击确认保存添加步骤。</p>';
     }
     
-    html += '<div class="ccp-step-hint" style="margin-top:12px;padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">' + I18n.t('ccp.stepHint') + '</div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">';
     html += '<button class="btn btn-sm" id="aiCcpJudgeBtn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;">' + I18n.t('ccp.aiBtn') + '</button>';
     html += '<button class="btn btn-secondary btn-sm" id="ccpJudgeBtn">' + I18n.t('ccp.manualBtn') + '</button>';
