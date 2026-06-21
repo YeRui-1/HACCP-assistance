@@ -78,14 +78,15 @@ const Results = (() => {
   function render15minSidebar(nav) {
     const lang = I18n.getLang();
     const items = [
-      { key: 'aiReport', label: 'AI 分析报告' },
-      { key: 'q15-company', label: '一、企业信息' },
-      { key: 'q15-product', label: '二、产品信息' },
-      { key: 'q15-process', label: '三、生产流程' },
-      { key: 'q15-hazard', label: '四、危害分析' },
-      { key: 'q15-limits', label: '五、关键限制' },
-      { key: 'q15-verification', label: '六、验证程序' },
-      { key: 'q15-records', label: '七、记录与报表' },
+      { key: 'aiReport', label: I18n.t('r15.aiReport') },
+      { key: 'q15-company', label: I18n.t('r15.section1') },
+      { key: 'q15-product', label: I18n.t('r15.section2') },
+      { key: 'q15-process', label: I18n.t('r15.section3') },
+      { key: 'q15-ccp', label: I18n.t('result.ccp.title') },
+      { key: 'q15-hazard', label: I18n.t('r15.section4') },
+      { key: 'q15-limits', label: I18n.t('r15.section5') },
+      { key: 'q15-verification', label: I18n.t('r15.section6') },
+      { key: 'q15-records', label: I18n.t('r15.section7') },
     ];
 
     nav.innerHTML = items.map(item => `
@@ -114,10 +115,10 @@ const Results = (() => {
 
     const fcTemplate = loadFcTemplate();
     const items = [
-      { key: 'aiReport', label: { zh: 'AI 分析报告', en: 'AI Analysis Report' } },
+      { key: 'aiReport', label: { zh: I18n.t('r15.aiReport'), en: 'AI Analysis Report' } },
     ];
     // 流程图始终显示（使用 draw.io SVG）
-    items.push({ key: 'flowchart', label: { zh: '生产流程图', en: 'Process Flow Chart' } });
+    items.push({ key: 'flowchart', label: { zh: I18n.t('r15.flowchart'), en: 'Process Flow Chart' } });
 
     items.push({ key: 'productDescription', label: mockHaccpPlan.productDescription.title });
     sectionOrder.forEach(key => {
@@ -141,7 +142,8 @@ const Results = (() => {
 
   // ===== 15min结果展示 =====
   function render15minContent(container, data, lang) {
-    const fieldValue = (val) => val ? esc(val) : '<span style="color:var(--gray-400);font-style:italic;">未填写</span>';
+    const emptyLabel = I18n.t('common.empty');
+    const fieldValue = (val) => val ? esc(val) : '<span style="color:var(--gray-400);font-style:italic;">' + emptyLabel + '</span>';
     const boolYes = (val) => val ? '\u2713 是' : '\u2717 否';
 
     let html = '<a class="back-link" href="javascript:App.navigateTo(\'home\')">\u2190 ' + I18n.t('nav.back') + '</a>';
@@ -153,7 +155,7 @@ const Results = (() => {
         <div id="aiReportBody">
           <div class="report-loading">
             <span class="spinner" style="width:20px;height:20px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
-            <span>${lang === 'en' ? 'Generating AI report...' : '正在生成 AI 报告...'}</span>
+            <span>${lang === 'en' ? 'Generating AI report...' : I18n.t('r15.generating')}</span>
           </div>
         </div>
       </div>
@@ -222,6 +224,51 @@ const Results = (() => {
     });
     html += '<div class="result-item"><span class="ri-label">流程图现场确认</span><span class="ri-value">' + boolYes(data.flowConfirmed) + '</span></div></div>';
 
+    // 3.5 - CCP判定结果
+    if (data.ccpSteps && data.ccpSteps.length > 0) {
+      html += '<div class="results-section" id="section-q15-ccp"><h2>' + I18n.t('result.ccp.title') + '</h2>';
+      html += '<p style="font-size:13px;color:var(--gray-400);margin-bottom:12px;">' + I18n.t('result.ccp.desc') + '</p>';
+      html += '<div style="overflow-x:auto;"><table style="min-width:900px;"><thead><tr>';
+      html += '<th>' + I18n.t('ccp.summary.step') + '</th><th>' + I18n.t('result.ccp.colHazardType') + '</th><th>' + I18n.t('result.ccp.colHazardDesc') + '</th>';
+      html += '<th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th>';
+      html += '<th>' + I18n.t('result.ccp.colResult') + '</th><th>' + I18n.t('result.ccp.colReasoning') + '</th>';
+      html += '</tr></thead><tbody>';
+      var hazardTypes = ['bio', 'chem', 'phys'];
+      var hazardTypeNames = { bio: I18n.t('result.ccp.bio'), chem: I18n.t('result.ccp.chem'), phys: I18n.t('result.ccp.phys') };
+      data.ccpSteps.forEach(function(s, si) {
+        if (!s.hazards) return;
+        hazardTypes.forEach(function(ht, hi) {
+          var h = s.hazards[ht] || {};
+          var isCCP = h.isCCP;
+          var resultText = '';
+          var resultColor = '';
+          if (isCCP === true) { resultText = I18n.t('ccp.result.ccp'); resultColor = '#dc2626'; }
+          else if (isCCP === false) { resultText = I18n.t('ccp.result.nonCcp'); resultColor = '#16a34a'; }
+          else if (isCCP === 'modify') { resultText = I18n.t('ccp.result.modify'); resultColor = '#d97706'; }
+          else { resultText = I18n.t('ccp.result.undetermined'); resultColor = '#6b7280'; }
+          var reasoningHtml = '';
+          if (h.aiReasoning) {
+            reasoningHtml = '<span style="font-size:11px;color:#6b7280;" title="' + esc(h.aiReasoning) + '">' + esc(h.aiReasoning.substring(0, 60) + (h.aiReasoning.length > 60 ? '...' : '')) + '</span>';
+            if (h.aiOverridden) reasoningHtml += ' <span style="color:#d97706;font-size:9px;font-weight:500;">' + I18n.t('ccp.userModified') + '</span>';
+            else reasoningHtml += ' <span style="color:#7c3aed;font-size:9px;">' + I18n.t('ccp.aiLabel') + '</span>';
+          }
+          html += '<tr>';
+          if (hi === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:500;">' + esc(s.stepName || '步骤' + (si+1)) + '</td>';
+          html += '<td style="white-space:nowrap;">' + hazardTypeNames[ht] + '</td>';
+          html += '<td style="font-size:12px;">' + esc(h.hazardDesc || '') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q1 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q2 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q3 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q4 || '—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q5 || '—') + '</td>';
+          html += '<td style="color:' + resultColor + ';font-weight:bold;text-align:center;">' + resultText + '</td>';
+          html += '<td>' + reasoningHtml + '</td>';
+          html += '</tr>';
+        });
+      });
+      html += '</tbody></table></div></div>';
+    }
+
     // 四、危害分析 - 合并所有危害到统一表格，按文档格式展示
     html += '<div class="results-section" id="section-q15-hazard"><h2>四、危害分析</h2>';
     var allHazards = [];
@@ -254,7 +301,7 @@ const Results = (() => {
     html += '<div class="result-item"><span class="ri-label">团队确认</span><span class="ri-value">' + boolYes(data.hazardConfirmed) + '</span></div></div>';
 
     // 五、关键限制
-    var stdLabels = { 'gb': '国标（GB）', 'industry': '行业标准', 'enterprise': '企业标准', 'international': '国际标准' };
+    var stdLabels = { 'gb': I18n.t('limits.gb'), 'industry': I18n.t('limits.industry'), 'enterprise': I18n.t('limits.enterprise'), 'international': I18n.t('limits.international') };
     html += '<div class="results-section" id="section-q15-limits"><h2>五、关键限制</h2>' +
       '<div class="result-item"><span class="ri-label">执行标准</span><span class="ri-value">' + (stdLabels[data.execStandard] || fieldValue(data.execStandard)) + '</span></div>' +
       '<div class="result-item"><span class="ri-label">关键限制说明</span><span class="ri-value">' + fieldValue(data.criticalLimits) + '</span></div></div>';

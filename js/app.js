@@ -9,6 +9,10 @@ const App = (() => {
   function getEl(id) { return document.getElementById(id); }
 
   function translatePage() {
+    // HTML title
+    const titleEl = document.querySelector('title[data-i18n]');
+    if (titleEl) titleEl.textContent = I18n.t(titleEl.dataset.i18n);
+    // Elements with data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
       el.textContent = I18n.t(el.dataset.i18n);
     });
@@ -17,7 +21,7 @@ const App = (() => {
     });
     getEl('htmlRoot').setAttribute('lang', I18n.getLang() === 'en' ? 'en' : 'zh-CN');
     const btnLang = getEl('btnLang');
-    if (btnLang) btnLang.textContent = I18n.getLang() === 'zh' ? 'EN' : '中';
+    if (btnLang) btnLang.textContent = I18n.getLang() === 'zh' ? 'EN' : I18n.getLang() === 'en' ? '中' : 'EN';
   }
 
   function toggleLang() {
