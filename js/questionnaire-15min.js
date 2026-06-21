@@ -599,175 +599,140 @@ const Questionnaire15min = (() => {
     return html;
   }
 
-  // ===== 步骤2: 确定关键控制点 - 全新实现 =====
+  // ===== 步骤2: 确定关键控制点 - 重新设计版 =====
+  function normalizeCcpSteps(data) {
+    if (!data.processSteps || !Array.isArray(data.processSteps)) data.processSteps = [];
+    if (!data.ccpSteps || !Array.isArray(data.ccpSteps)) data.ccpSteps = [];
+    var hazardTypes = ['bio', 'chem', 'phys'];
+    data.processSteps.forEach(function(step, si) {
+      if (!data.ccpSteps[si]) data.ccpSteps[si] = { stepName: step.stepName || '', hazards: {}, completed: false };
+      data.ccpSteps[si].stepName = step.stepName || data.ccpSteps[si].stepName || '';
+      if (!data.ccpSteps[si].hazards) data.ccpSteps[si].hazards = {};
+      hazardTypes.forEach(function(ht) {
+        if (!data.ccpSteps[si].hazards[ht]) data.ccpSteps[si].hazards[ht] = {};
+      });
+    });
+    if (data.ccpSteps.length > data.processSteps.length) data.ccpSteps = data.ccpSteps.slice(0, data.processSteps.length);
+  }
+
   function renderHazardAnalysis(data) {
-    // 初始化状态
-    if (!data.ccpPageMode) {
-      data.processSteps = [];
-      data.ccpSteps = [];
-      data.ccpCompleted = false;
-      data.ccpPageMode = 'form';
-      data.currentEditingStep = -1;
-      data.ccpStepIndex = 0;
-      data.ccpHazardType = 'bio';
-      data.ccpCurrentQ = 1;
+    try {
+      if (!data.ccpPageMode || ['form', 'judging', 'summary'].indexOf(data.ccpPageMode) === -1) data.ccpPageMode = 'form';
+      if (data.currentEditingStep === undefined || data.currentEditingStep === null) data.currentEditingStep = -1;
+      if (!data.ccpHazardType || ['bio', 'chem', 'phys'].indexOf(data.ccpHazardType) === -1) data.ccpHazardType = 'bio';
+      if (!data.ccpCurrentQ) data.ccpCurrentQ = 1;
+      normalizeCcpSteps(data);
       saveData(data);
-    }
-    
-    if (data.ccpPageMode === 'judging') {
-      return renderCCPJudgingPage(data);
-    } else if (data.ccpPageMode === 'summary') {
-      var summaryHtml = renderCcpSummary(data);
-      summaryHtml += '<div style="margin-top:16px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回</button></div>';
-      summaryHtml += renderCcpFooter(data);
-      return summaryHtml;
-    } else {
+      if (data.ccpPageMode === 'judging') return renderCCPJudgingPage(data);
+      if (data.ccpPageMode === 'summary') return renderCcpSummary(data);
       return renderStepFormPage(data);
+    } catch (err) {
+      console.error('renderHazardAnalysis failed:', err);
+      data.ccpPageMode = 'form';
+      saveData(data);
+      return '<div style="padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;">关键控制点页面加载异常，已自动恢复。请重新填写。</div>' + renderStepFormPage(data);
     }
   }
   
   // ===== 步骤填写表单页面 =====
   function renderStepFormPage(data) {
-    var editIdx = data.currentEditingStep;
+    normalizeCcpSteps(data);
+    var editIdx = parseInt(data.currentEditingStep);
+    if (isNaN(editIdx)) editIdx = -1;
     var stepData = (editIdx >= 0 && editIdx < data.processSteps.length) ? data.processSteps[editIdx] : { stepName: '', equipmentName: '', operationMethod: '', parameters: '' };
-    
+    var savedSteps = data.processSteps || [];
     var html = '<div class="q15-step-form">';
-    html += '<div class="q15-field-group"><label>步骤名称</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName) + '" placeholder="如：清洗"></div>';
-    html += '<div class="q15-field-group"><label>设备名称</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName) + '" placeholder="如：清洗机"></div>';
-    html += '<div class="q15-field-group"><label>操作方法</label><textarea id="stepFormMethod" rows="2" placeholder="描述操作方法">' + esc(stepData.operationMethod) + '</textarea></div>';
-    html += '<div class="q15-field-group"><label>工艺参数</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters) + '" placeholder="如：温度85\u2103，时间15分钟"></div>';
+    html += '<div class="q15-field-group"><label>步骤名称</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName || '') + '" placeholder="如：清洗"></div>';
+    html += '<div class="q15-field-group"><label>设备名称</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName || '') + '" placeholder="如：清洗机"></div>';
+    html += '<div class="q15-field-group"><label>操作方法</label><textarea id="stepFormMethod" rows="2" placeholder="描述操作方法">' + esc(stepData.operationMethod || '') + '</textarea></div>';
+    html += '<div class="q15-field-group"><label>工艺参数</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters || '') + '" placeholder="如：温度85℃，时间15分钟"></div>';
     html += '<button class="btn btn-primary btn-sm" id="stepFormSaveBtn">确认保存</button>';
     html += '</div>';
-    
-    var savedSteps = data.processSteps || [];
     if (savedSteps.length > 0) {
       html += '<div style="margin-top:20px;"><h3>已添加步骤</h3><ul style="list-style:none;padding:0;margin:8px 0;">';
       savedSteps.forEach(function(s, i) {
-        html += '<li style="padding:6px 10px;margin:4px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" data-step-edit="' + i + '">';
+        html += '<li style="padding:8px 10px;margin:6px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;" data-step-edit="' + i + '">';
         html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || '未命名') + '</strong>';
-        if (s.equipmentName) html += ' | 设备: ' + esc(s.equipmentName);
-        if (s.operationMethod) html += ' | 方法: ' + esc(s.operationMethod);
-        if (s.parameters) html += ' | 参数: ' + esc(s.parameters);
+        if (s.equipmentName) html += ' | 设备：' + esc(s.equipmentName);
+        if (s.operationMethod) html += ' | 方法：' + esc(s.operationMethod);
+        if (s.parameters) html += ' | 参数：' + esc(s.parameters);
         html += '</span>';
         html += '<button class="btn btn-xs btn-secondary" data-step-delete="' + i + '" style="color:#dc2626;border-color:#fecaca;padding:2px 8px;font-size:12px;flex-shrink:0;">删除</button>';
         html += '</li>';
       });
       html += '</ul></div>';
     } else {
-      html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请填写上方表单并点击确认保存添加步骤。</p>';
+      html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请先填写上方表单并点击“确认保存”。</p>';
     }
-    
-    html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpJudgeBtn">CCP判断</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn">完成</button>';
+    html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">';
+    html += '<button class="btn btn-primary btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>CCP判断</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">新增步骤</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>完成</button>';
     html += '</div>';
-    
     return html;
   }
   
-  // ===== CCP判定流程页面（单个步骤的生物/化学/物理危害判定）=====
-  function renderCCPJudgingPage(data) {
-    var steps = data.processSteps || [];
-    if (steps.length === 0) {
-      data.ccpPageMode = 'form';
-      saveData(data);
-      return renderStepFormPage(data);
-    }
-    
-    var idx = data.ccpStepIndex;
-    if (idx >= steps.length) idx = 0;
-    var step = steps[idx];
-    
-    if (!data.ccpSteps) data.ccpSteps = [];
-    if (!data.ccpSteps[idx]) {
-      data.ccpSteps[idx] = { stepName: step.stepName || '', hazards: {}, completed: false };
-    }
-    if (!data.ccpSteps[idx].hazards) data.ccpSteps[idx].hazards = {};
-    
-    var hazardType = data.ccpHazardType || 'bio';
-    var hazardTypes = ['bio', 'chem', 'phys'];
+  function getCcpQuestionText(hazardType, currentQ) {
     var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
-    var hazardTypeIdx = hazardTypes.indexOf(hazardType);
-    var currentQ = data.ccpCurrentQ || 1;
-    var currentHazard = data.ccpSteps[idx].hazards[hazardType] || {};
-    
-    // 如果当前危害已判定完成，自动跳到下一个
-    if (currentHazard.isCCP !== undefined && currentHazard.isCCP !== null) {
-      var nextHazardIdx = hazardTypeIdx + 1;
-      if (nextHazardIdx < hazardTypes.length) {
-        data.ccpHazardType = hazardTypes[nextHazardIdx];
-        data.ccpCurrentQ = 1;
-        saveData(data);
-        return renderCCPJudgingPage(data);
-      } else {
-        var nextStep = idx + 1;
-        if (nextStep < steps.length) {
-          data.ccpStepIndex = nextStep;
-          data.ccpHazardType = 'bio';
-          data.ccpCurrentQ = 1;
-          saveData(data);
-          return renderCCPJudgingPage(data);
-        } else {
-          data.ccpCompleted = true;
-          data.ccpPageMode = 'form';
-          saveData(data);
-          return renderStepFormPage(data);
-        }
-      }
-    }
-    
-    var qTexts = {
-      1: 'Q1：该加工步骤是否存在' + hazardFull[hazardType] + '？危害是什么？',
-      2: 'Q2：是否存在针对已识别' + hazardFull[hazardType] + '的控制措施？',
-      3: 'Q3：该步骤是否经过专门设计，可消除' + hazardFull[hazardType] + '或将其发生的可能性降低至可接受水平？',
-      4: 'Q4：该步骤是否会发生' + hazardFull[hazardType] + '污染，或污染水平升高至不可接受的程度？',
-      5: 'Q5：后续步骤或操作是否会消除该' + hazardFull[hazardType] + '，或将其降低至可接受水平？'
+    var name = hazardFull[hazardType] || '危害';
+    var map = {
+      1: 'Q1：该加工步骤是否存在' + name + '？危害是什么？',
+      2: 'Q2：是否存在针对已识别' + name + '的控制措施？',
+      3: 'Q3：该步骤是否经过专门设计，可消除' + name + '或将其发生的可能性降低至可接受水平？',
+      4: 'Q4：该步骤是否会发生' + name + '污染，或污染水平升高至不可接受的程度？',
+      5: 'Q5：后续步骤或操作是否会消除该' + name + '，或将其降低至可接受水平？'
     };
-    
-    var html = '<div class="ccp-judging-flow">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
-    html += '<span style="color:var(--gray-500);font-size:13px;">步骤' + (idx + 1) + ': ' + esc(step.stepName || '') + ' - ' + hazardFull[hazardType] + ' (' + (hazardTypeIdx + 1) + '/3) 问题' + currentQ + '/5</span>';
-    html += '</div>';
-    
-    if (currentQ === 1) {
-      html += '<div class="q15-field-group" style="margin-bottom:12px;">';
-      html += '<label>' + qTexts[1] + '</label>';
-      html += '<textarea id="ccpHazardDescInput" rows="2" placeholder="请描述该危害">' + esc(currentHazard.hazardDesc || '') + '</textarea>';
-      html += '</div>';
-      html += '<div style="margin-bottom:12px;">';
-      html += '<label class="ccp-radio-inline" style="margin-right:16px;"><input type="radio" name="ccpQAnswer" value="是"' + (currentHazard.q1 === '是' ? ' checked' : '') + '> 存在危害</label>';
-      html += '<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"' + (currentHazard.q1 === '否' ? ' checked' : '') + '> 无危害</label>';
-      html += '</div>';
-    } else if (currentQ === 'q2_need') {
-      html += '<div class="q15-field-group"><label>Q2（续）：是否有必要在此步骤进行安全控制？</label></div>';
-      html += '<div style="margin-bottom:12px;">';
-      html += '<label class="ccp-radio-inline" style="margin-right:16px;"><input type="radio" name="ccpQAnswer" value="是"> 是，需修改后重新评估</label>';
-      html += '<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"> 否，非关键控制点</label>';
-      html += '</div>';
-    } else {
-      html += '<div class="q15-field-group" style="margin-bottom:12px;">';
-      html += '<label>' + qTexts[currentQ] + '</label>';
-      html += '</div>';
-      html += '<div style="margin-bottom:12px;">';
-      html += '<label class="ccp-radio-inline" style="margin-right:16px;"><input type="radio" name="ccpQAnswer" value="是"' + (currentHazard['q' + currentQ] === '是' ? ' checked' : '') + '> 是</label>';
-      html += '<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"' + (currentHazard['q' + currentQ] === '否' ? ' checked' : '') + '> 否</label>';
-      html += '</div>';
+    if (currentQ === 'q2_need') return 'Q2（续）：是否有必要在此步骤进行安全控制？';
+    return map[currentQ] || '';
+  }
+  function renderCcpResultBlock(data, hazard, hazardType) {
+    if (!hazard || hazard.isCCP === undefined || hazard.isCCP === null) return '';
+    var hts = ['bio','chem','phys']; var hti = hts.indexOf(hazardType);
+    var lastH = hti === hts.length-1;
+    var label = hazard.isCCP===true?'是（CCP）':(hazard.isCCP==='modify'?'需修改后重新评估':'否（非CCP）');
+    var c = hazard.isCCP===true?'#dc2626':(hazard.isCCP==='modify'?'#d97706':'#16a34a');
+    var bg = hazard.isCCP===true?'#fef2f2':(hazard.isCCP==='modify'?'#fffbeb':'#f0fdf4');
+    var path=[];[1,2,3,4,5].forEach(function(qn){if(hazard['q'+qn]!==undefined)path.push('Q'+qn+':'+hazard['q'+qn]);});
+    if(hazard.q2_need!==undefined)path.push('Q2续:'+hazard.q2_need);
+    var h='<div style="margin-top:16px;padding:12px;background:'+bg+';border:1px solid '+c+';border-radius:8px;color:'+c+';">';
+    h+='<div style="font-weight:600;margin-bottom:6px;">判定结果：'+label+'</div>';
+    h+='<div style="font-size:13px;color:#475569;">判定路径：'+(path.length?path.join(' → '):'—')+'</div>';
+    h+='<button class="btn btn-primary btn-sm" id="ccpNextHazardBtn" style="margin-top:10px;">'+(lastH?'完成':'下一步')+'</button></div>';
+    return h;
+  }
+  function renderCCPJudgingPage(data) {
+    normalizeCcpSteps(data);
+    var steps=data.processSteps||[];
+    if(steps.length===0){data.ccpPageMode='form';saveData(data);return renderStepFormPage(data);}
+    var idx=parseInt(data.ccpStepIndex);
+    if(isNaN(idx)||idx<0||idx>=steps.length)idx=0;
+    data.ccpStepIndex=idx;var step=steps[idx]||{};
+    var hts=['bio','chem','phys'];var hf={bio:'生物危害',chem:'化学危害',phys:'物理危害'};
+    var ht=data.ccpHazardType||'bio';if(hts.indexOf(ht)===-1)ht='bio';
+    data.ccpHazardType=ht;var hti=hts.indexOf(ht);var cq=data.ccpCurrentQ||1;
+    if(!data.ccpSteps[idx])data.ccpSteps[idx]={stepName:step.stepName||'',hazards:{},completed:false};
+    if(!data.ccpSteps[idx].hazards)data.ccpSteps[idx].hazards={};
+    if(!data.ccpSteps[idx].hazards[ht])data.ccpSteps[idx].hazards[ht]={};
+    var ch=data.ccpSteps[idx].hazards[ht];
+    var html='<div class="ccp-judging-flow"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">';
+    html+='<span style="color:var(--gray-500);font-size:13px;">步骤 '+(idx+1)+'/'+steps.length+'：'+esc(step.stepName||'未命名')+' — '+hf[ht]+'（'+(hti+1)+'/3）</span>';
+    html+='<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;">'+{bio:'B',chem:'C',phys:'P'}[ht]+'</span></div>';
+    if(ch.isCCP!==undefined&&ch.isCCP!==null){
+      html+=renderCcpResultBlock(data,ch,ht);
+      html+='<div style="margin-top:10px;"><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">返回步骤填写</button></div></div>';
+      return html;
     }
-    
-    // 判定路径摘要
-    var pathHtml = buildCCPPathSummary(currentHazard);
-    
-    html += '<div style="display:flex;gap:10px;margin-top:8px;">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确定</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">返回</button>';
-    html += '</div>';
-    
-    if (pathHtml) html += pathHtml;
-    
-    html += '</div>';
+    var sv=cq==='q2_need'?ch.q2_need:ch['q'+cq];
+    html+='<div class="q15-field-group" style="margin-bottom:12px;"><label>'+getCcpQuestionText(ht,cq)+'</label>';
+    if(cq===1)html+='<textarea id="ccpHazardDescInput" rows="2" placeholder="请描述该危害">'+esc(ch.hazardDesc||'')+'</textarea>';
+    html+='</div><div style="margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;">';
+    if(cq===1){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 存在危害</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 无危害</label>';}
+    else if(cq==='q2_need'){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是，需要修改后重新评估</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否，非关键控制点</label>';}
+    else{html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
+    html+='</div><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确定</button><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">返回步骤填写</button></div></div>';
     return html;
   }
-  
+
   // ===== CCP判定路径摘要 =====
   function buildCCPPathSummary(hazard) {
     if (!hazard || hazard.q1 === undefined) return '';
@@ -1210,41 +1175,25 @@ const Questionnaire15min = (() => {
   }
 
   function renderCcpSummary(data) {
-    var steps = data.ccpSteps || [];
-    if (steps.length === 0) return '<p style="color:var(--gray-400);text-align:center;padding:20px;">暂无CCP判定数据</p>';
-    var hazardLabels = { bio: 'B', chem: 'C', phys: 'P' };
-    var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
-    var hazardTypes = ['bio', 'chem', 'phys'];
-    var rows = [];
-    steps.forEach(function(s, si) {
-      if (!s.hazards) {
-        rows.push('<tr><td style="text-align:center;vertical-align:middle;">' + esc(s.stepName || '步骤' + (si+1)) + '</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>');
-        return;
-      }
-      var stepName = esc(s.stepName || '步骤' + (si+1));
-      hazardTypes.forEach(function(ht, hi) {
-        var h = s.hazards[ht] || {};
-        var hazardDesc = hazardLabels[ht] + ':' + hazardFull[ht];
-        var hd = h.hazardDesc || '';
-        var q1 = h.q1 || '-';
-        var q2 = h.q2 || '-';
-        var q3 = h.q3 || '-';
-        var q4 = h.q4 || '-';
-        var q5 = h.q5 || '-';
-        var isCCP = '';
-        if (h.isCCP === true) isCCP = '是(CCP)';
-        else if (h.isCCP === false) isCCP = '否';
-        else if (h.isCCP === 'modify') isCCP = '需修改';
-        else isCCP = '未判定';
-        if (hi === 0) {
-          rows.push('<tr><td rowspan="3" style="text-align:center;vertical-align:middle;">' + stepName + '</td><td>' + hazardDesc + (hd ? '<br><span style="font-size:11px;color:#666;">' + esc(hd) + '</span>' : '') + '</td><td>' + q1 + '</td><td>' + q2 + '</td><td>' + q3 + '</td><td>' + q4 + '</td><td>' + q5 + '</td><td>' + isCCP + '</td></tr>');
-        } else {
-          rows.push('<tr><td>' + hazardDesc + (hd ? '<br><span style="font-size:11px;color:#666;">' + esc(hd) + '</span>' : '') + '</td><td>' + q1 + '</td><td>' + q2 + '</td><td>' + q3 + '</td><td>' + q4 + '</td><td>' + q5 + '</td><td>' + isCCP + '</td></tr>');
-        }
-      });
-    });
-    return '<h3 style="margin-bottom:12px;">CCP判定汇总表</h3>' +
-      '<table class="q15-table"><thead><tr><th>加工步骤</th><th>潜在危害</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>是否为CCP</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+    normalizeCcpSteps(data);
+    var steps=data.processSteps||[];var ccpSteps=data.ccpSteps||[];
+    if(steps.length===0)return '<p style="color:var(--gray-400);text-align:center;padding:20px;">暂无步骤数据，请先返回填写步骤。</p><div style="margin-top:16px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
+    var hts=['bio','chem','phys'];var hf={bio:'B:生物危害',chem:'C:化学危害',phys:'P:物理危害'};var rows=[];
+    steps.forEach(function(step,si){hts.forEach(function(ht,hi){
+      var h=(ccpSteps[si]&&ccpSteps[si].hazards&&ccpSteps[si].hazards[ht])?ccpSteps[si].hazards[ht]:{};
+      var ccp='未判定';if(h.isCCP===true)ccp='<span style="color:#dc2626;font-weight:600;">是（CCP）</span>';
+      else if(h.isCCP===false)ccp='<span style="color:#16a34a;font-weight:600;">否</span>';
+      else if(h.isCCP==='modify')ccp='<span style="color:#d97706;font-weight:600;">需修改</span>';
+      rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(step.stepName||('步骤'+(si+1)))+'</td>':'')+
+      '<td>'+hf[ht]+(h.hazardDesc?'<br><span style="font-size:12px;color:#64748b;">'+esc(h.hazardDesc)+'</span>':'')+'</td>'+
+      '<td style="text-align:center;">'+esc(h.q1||'—')+'</td>'+
+      '<td style="text-align:center;">'+esc(h.q2||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">续:'+esc(h.q2_need)+'</span>':'')+'</td>'+
+      '<td style="text-align:center;">'+esc(h.q3||'—')+'</td><td style="text-align:center;">'+esc(h.q4||'—')+'</td><td style="text-align:center;">'+esc(h.q5||'—')+'</td><td style="text-align:center;">'+ccp+'</td></tr>');
+    });});
+    var html='<h3 style="margin-bottom:12px;">CCP判定汇总表</h3>';
+    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:820px;"><thead><tr><th>加工步骤</th><th>潜在危害</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+    html+='<div style="margin-top:16px;display:flex;gap:10px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
+    return html;
   }
 
   function renderCcpFooter(data) {
@@ -1614,269 +1563,37 @@ const Questionnaire15min = (() => {
 
   // ===== 新CCP页面按钮事件绑定 =====
   function bindNewCcpButtons(content, data) {
-    // 步骤表单 - 确认保存
-    var saveBtn = content.querySelector('#stepFormSaveBtn');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', function() {
-        var name = content.querySelector('#stepFormName')?.value.trim();
-        var equipment = content.querySelector('#stepFormEquipment')?.value.trim();
-        var method = content.querySelector('#stepFormMethod')?.value.trim();
-        var params = content.querySelector('#stepFormParams')?.value.trim();
-        if (!name) { alert('请输入步骤名称'); return; }
-        
-        var editIdx = data.currentEditingStep;
-        if (editIdx >= 0 && editIdx < data.processSteps.length) {
-          // 编辑已有步骤
-          data.processSteps[editIdx].stepName = name;
-          data.processSteps[editIdx].equipmentName = equipment;
-          data.processSteps[editIdx].operationMethod = method;
-          data.processSteps[editIdx].parameters = params;
-        } else {
-          // 新增步骤
-          data.processSteps.push({
-            id: genId(),
-            stepName: name,
-            equipmentName: equipment,
-            operationMethod: method,
-            parameters: params,
-            controlPoint: ''
-          });
-        }
-        // 重置当前编辑索引
-        data.currentEditingStep = -1;
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // 步骤列表 - 点击编辑
-    content.querySelectorAll('[data-step-edit]').forEach(function(el) {
-      el.addEventListener('click', function(e) {
-        // 如果点击的是删除按钮，不触发编辑
-        if (e.target.dataset.stepDelete !== undefined) return;
-        var idx = parseInt(this.dataset.stepEdit);
-        if (!isNaN(idx) && idx >= 0 && idx < data.processSteps.length) {
-          data.currentEditingStep = idx;
-          saveData(data);
-          renderActiveSection();
-          renderSectionNav();
-        }
-      });
+    normalizeCcpSteps(data);
+    var saveBtn=content.querySelector('#stepFormSaveBtn');
+    if(saveBtn)saveBtn.addEventListener('click',function(){
+      var n=content.querySelector('#stepFormName'),e=content.querySelector('#stepFormEquipment'),m=content.querySelector('#stepFormMethod'),pp=content.querySelector('#stepFormParams');
+      var name=n?n.value.trim():'',eq=e?e.value.trim():'',mt=m?m.value.trim():'',params=pp?pp.value.trim():'';
+      if(!name){alert('请输入步骤名称');return;}
+      if(!data.processSteps||!Array.isArray(data.processSteps))data.processSteps=[];
+      var ei=parseInt(data.currentEditingStep);
+      if(!isNaN(ei)&&ei>=0&&ei<data.processSteps.length){
+        data.processSteps[ei].stepName=name;data.processSteps[ei].equipmentName=eq;data.processSteps[ei].operationMethod=mt;data.processSteps[ei].parameters=params;
+        if(data.ccpSteps&&data.ccpSteps[ei])data.ccpSteps[ei].stepName=name;
+      }else data.processSteps.push({id:genId(),stepName:name,equipmentName:eq,operationMethod:mt,parameters:params,controlPoint:''});
+      data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();
     });
-    
-    // 步骤列表 - 删除按钮
-    content.querySelectorAll('[data-step-delete]').forEach(function(el) {
-      el.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var idx = parseInt(this.dataset.stepDelete);
-        if (isNaN(idx) || idx < 0 || idx >= data.processSteps.length) return;
-        if (data.processSteps.length <= 1) { alert('至少保留一个步骤'); return; }
-        if (!confirm('确定要删除步骤 "' + esc(data.processSteps[idx].stepName || '步骤' + (idx + 1)) + '" 吗？')) return;
-        data.processSteps.splice(idx, 1);
-        if (data.ccpSteps && data.ccpSteps.length > idx) data.ccpSteps.splice(idx, 1);
-        // 调整编辑索引和CCP步骤索引
-        if (data.currentEditingStep >= data.processSteps.length) data.currentEditingStep = -1;
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
+    content.querySelectorAll('[data-step-edit]').forEach(function(el){el.addEventListener('click',function(e){if(e.target&&e.target.dataset&&e.target.dataset.stepDelete!==undefined)return;var idx=parseInt(this.dataset.stepEdit);if(!isNaN(idx)&&idx>=0&&idx<data.processSteps.length){data.currentEditingStep=idx;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();}});});
+    content.querySelectorAll('[data-step-delete]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.stepDelete);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)return;if(!confirm('确定要删除步骤 "'+esc(data.processSteps[idx].stepName||('步骤'+(idx+1)))+'" 吗？'))return;data.processSteps.splice(idx,1);if(data.ccpSteps&&data.ccpSteps.length>idx)data.ccpSteps.splice(idx,1);data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();});});
+    var aBtn=content.querySelector('#addNewStepBtn');if(aBtn)aBtn.addEventListener('click',function(){data.currentEditingStep=-1;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
+    var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);data.ccpPageMode='judging';data.ccpStepIndex=0;data.ccpHazardType='bio';data.ccpCurrentQ=1;saveData(data);renderActiveSection();renderSectionNav();});
+    var cBtn=content.querySelector('#completeStepsBtn');if(cBtn)cBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);data.ccpPageMode='summary';saveData(data);renderActiveSection();renderSectionNav();});
+    var aBtn2=content.querySelector('#ccpAnswerBtn');if(aBtn2)aBtn2.addEventListener('click',function(){
+      normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)idx=0;
+      var ht=data.ccpHazardType||'bio';var cq=data.ccpCurrentQ||1;var sel=content.querySelector('input[name="ccpQAnswer"]:checked');
+      if(!sel){alert('请选择一个选项');return;}var ans=sel.value;var hz=data.ccpSteps[idx].hazards[ht];
+      if(cq===1){var di=content.querySelector('#ccpHazardDescInput');hz.hazardDesc=di?di.value.trim():(hz.hazardDesc||'');hz.q1=ans;}
+      else if(cq==='q2_need')hz.q2_need=ans;else hz['q'+cq]=ans;
+      var isCCP=evaluateCCPFromQA(hz);if(isCCP!==null)hz.isCCP=isCCP;else{var nq=getNextCCPQuestion(hz);if(nq==='q2_reset'){hz.isCCP='modify';data.ccpCurrentQ=2;}else if(nq==='q2_need')data.ccpCurrentQ='q2_need';else if(nq>0)data.ccpCurrentQ=nq;}
+      saveData(data);renderActiveSection();renderSectionNav();
     });
-
-    // CCP判断按钮
-    var judgeBtn = content.querySelector('#ccpJudgeBtn');
-    if (judgeBtn) {
-      judgeBtn.addEventListener('click', function() {
-        var steps = data.processSteps || [];
-        if (steps.length === 0) { alert('请先添加至少一个步骤'); return; }
-        data.ccpPageMode = 'judging';
-        data.ccpStepIndex = 0;
-        data.ccpHazardType = 'bio';
-        data.ccpCurrentQ = 1;
-        // 确保有ccpSteps数据
-        if (!data.ccpSteps) data.ccpSteps = [];
-        steps.forEach(function(step, si) {
-          if (!data.ccpSteps[si]) {
-            data.ccpSteps[si] = { stepName: step.stepName || '', hazards: {}, completed: false };
-          }
-          ['bio', 'chem', 'phys'].forEach(function(ht) {
-            if (!data.ccpSteps[si].hazards) data.ccpSteps[si].hazards = {};
-            if (!data.ccpSteps[si].hazards[ht]) data.ccpSteps[si].hazards[ht] = {};
-          });
-        });
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // 新增步骤按钮
-    var addStepBtn = content.querySelector('#addNewStepBtn');
-    if (addStepBtn) {
-      addStepBtn.addEventListener('click', function() {
-        // 设置当前编辑索引为新增模式（-1）
-        data.currentEditingStep = -1;
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // 完成按钮
-    var completeBtn = content.querySelector('#completeStepsBtn');
-    if (completeBtn) {
-      completeBtn.addEventListener('click', function() {
-        var steps = data.processSteps || [];
-        if (steps.length === 0) { alert('请先添加至少一个步骤'); return; }
-        // 如果有步骤但没有进行完全部CCP判定，允许查看汇总表
-        data.ccpPageMode = 'summary';
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // CCP判定 - 确定按钮
-    var answerBtn = content.querySelector('#ccpAnswerBtn');
-    if (answerBtn) {
-      answerBtn.addEventListener('click', function() {
-        var idx = data.ccpStepIndex;
-        var hazardType = data.ccpHazardType || 'bio';
-        var currentQ = data.ccpCurrentQ || 1;
-        
-        // 如果是Q1，先保存危害描述
-        if (currentQ === 1) {
-          var descInput = content.querySelector('#ccpHazardDescInput');
-          if (descInput && descInput.value.trim()) {
-            if (!data.ccpSteps) data.ccpSteps = [];
-            if (!data.ccpSteps[idx]) data.ccpSteps[idx] = { stepName: data.processSteps[idx]?.stepName || '', hazards: {}, completed: false };
-            if (!data.ccpSteps[idx].hazards) data.ccpSteps[idx].hazards = {};
-            if (!data.ccpSteps[idx].hazards[hazardType]) data.ccpSteps[idx].hazards[hazardType] = {};
-            data.ccpSteps[idx].hazards[hazardType].hazardDesc = descInput.value.trim();
-          }
-        }
-        
-        var selected = content.querySelector('input[name="ccpQAnswer"]:checked');
-        if (!selected) { alert('请选择一个选项'); return; }
-        var answer = selected.value;
-        
-        if (!data.ccpSteps) data.ccpSteps = [];
-        if (!data.ccpSteps[idx]) data.ccpSteps[idx] = { stepName: data.processSteps[idx]?.stepName || '', hazards: {}, completed: false };
-        if (!data.ccpSteps[idx].hazards) data.ccpSteps[idx].hazards = {};
-        if (!data.ccpSteps[idx].hazards[hazardType]) data.ccpSteps[idx].hazards[hazardType] = {};
-        
-        if (currentQ === 'q2_need') {
-          data.ccpSteps[idx].hazards[hazardType].q2_need = answer;
-        } else {
-          data.ccpSteps[idx].hazards[hazardType]['q' + currentQ] = answer;
-        }
-        
-        var hazard = data.ccpSteps[idx].hazards[hazardType];
-        var isCCP = evaluateCCPFromQA(hazard);
-        
-        if (isCCP !== null) {
-          hazard.isCCP = isCCP;
-          // 自动前进到下一步
-          var hazardTypes = ['bio', 'chem', 'phys'];
-          var hazardTypeIdx = hazardTypes.indexOf(hazardType);
-          if (isCCP === true || isCCP === false) {
-            var nextHazardIdx = hazardTypeIdx + 1;
-            if (nextHazardIdx < hazardTypes.length) {
-              data.ccpHazardType = hazardTypes[nextHazardIdx];
-              data.ccpCurrentQ = 1;
-            } else {
-              // 当前步骤的所有危害已判定完成
-              data.ccpSteps[idx].completed = true;
-              var nextStep = idx + 1;
-              if (nextStep < data.processSteps.length) {
-                data.ccpStepIndex = nextStep;
-                data.ccpHazardType = 'bio';
-                data.ccpCurrentQ = 1;
-              } else {
-                // 所有步骤所有危害判定完成
-                data.ccpCompleted = true;
-                data.ccpPageMode = 'form';
-                saveData(data);
-                renderActiveSection();
-                renderSectionNav();
-                return;
-              }
-            }
-          } else if (isCCP === 'modify') {
-            data.ccpCurrentQ = 2;
-          }
-        } else {
-          var nextQ = getNextCCPQuestion(hazard);
-          if (nextQ === 'q2_reset') {
-            hazard.isCCP = 'modify';
-            data.ccpCurrentQ = 2;
-          } else if (nextQ > 0) {
-            data.ccpCurrentQ = nextQ;
-          } else if (nextQ === 'q2_need') {
-            data.ccpCurrentQ = 'q2_need';
-          }
-        }
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // CCP判定 - 返回按钮
-    var backBtn = content.querySelector('#ccpJudgingBackBtn');
-    if (backBtn) {
-      backBtn.addEventListener('click', function() {
-        data.ccpPageMode = 'form';
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // CCP判定结果 - 下一步/完成按钮
-    var nextHazardBtn = content.querySelector('#ccpNextHazardBtn');
-    if (nextHazardBtn) {
-      nextHazardBtn.addEventListener('click', function() {
-        var idx = data.ccpStepIndex;
-        var hazardType = data.ccpHazardType || 'bio';
-        var hazardTypes = ['bio', 'chem', 'phys'];
-        var hazardTypeIdx = hazardTypes.indexOf(hazardType);
-        
-        var nextHazardIdx = hazardTypeIdx + 1;
-        if (nextHazardIdx < hazardTypes.length) {
-          data.ccpHazardType = hazardTypes[nextHazardIdx];
-          data.ccpCurrentQ = 1;
-        } else {
-          var nextStep = idx + 1;
-          if (nextStep < data.processSteps.length) {
-            data.ccpStepIndex = nextStep;
-            data.ccpHazardType = 'bio';
-            data.ccpCurrentQ = 1;
-          } else {
-            data.ccpCompleted = true;
-            data.ccpPageMode = 'form';
-            saveData(data);
-            renderActiveSection();
-            renderSectionNav();
-            return;
-          }
-        }
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
-
-    // 汇总表 - 返回按钮
-    var summaryBackBtn = content.querySelector('#summaryBackBtn');
-    if (summaryBackBtn) {
-      summaryBackBtn.addEventListener('click', function() {
-        data.ccpPageMode = 'form';
-        saveData(data);
-        renderActiveSection();
-        renderSectionNav();
-      });
-    }
+    var nBtn=content.querySelector('#ccpNextHazardBtn');if(nBtn)nBtn.addEventListener('click',function(){normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx))idx=0;var hts=['bio','chem','phys'];var ht=data.ccpHazardType||'bio';var hti=hts.indexOf(ht);if(hti<0)hti=0;if(hti<hts.length-1){data.ccpHazardType=hts[hti+1];data.ccpCurrentQ=1;}else{if(data.ccpSteps[idx])data.ccpSteps[idx].completed=true;data.ccpPageMode='form';data.ccpHazardType='bio';data.ccpCurrentQ=1;}saveData(data);renderActiveSection();renderSectionNav();});
+    var bBtn=content.querySelector('#ccpJudgingBackBtn');if(bBtn)bBtn.addEventListener('click',function(){data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
+    var sBtn=content.querySelector('#summaryBackBtn');if(sBtn)sBtn.addEventListener('click',function(){data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
   }
 
   function bindCcpStepButtons(content, data) {
