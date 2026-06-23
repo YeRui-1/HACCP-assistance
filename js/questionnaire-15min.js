@@ -4,7 +4,7 @@ const Questionnaire15min = (() => {
 
   // 如果是通过 file:// 打开的，自动补全后端地址
   var API_HOST = '';
-  if (window.location.protocol === 'file:') {
+  if (window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
     API_HOST = 'http://localhost:8000';
   }
   const SECTION_COMPLETED_KEY = 'haccp_15min_completed';
@@ -54,6 +54,7 @@ const Questionnaire15min = (() => {
       ccpCompleted: false,// 是否已全部完成
       execStandard: '',
       criticalLimits: '',
+      criticalLimitsData: [],
       monitoring: [{ id: genId(), ccp: '', object: '', method: '', frequency: '', personnel: '', remark: '' }],
       correctiveActions: [{ id: genId(), ccp: '', cl: '', corrective: '', verification: '', record: '' }],
       recordPeriod: '',
@@ -1217,6 +1218,9 @@ const Questionnaire15min = (() => {
   }
 
   function renderCriticalLimits(data) {
+    // 初始化关键限值数据结构
+    if (!data.criticalLimitsData || !Array.isArray(data.criticalLimitsData)) data.criticalLimitsData = [];
+    
     // 从CCP判定结果中提取被判定为CCP的步骤
     var ccpSteps = data.ccpSteps || [];
     var processSteps = data.processSteps || [];
@@ -1225,45 +1229,119 @@ const Questionnaire15min = (() => {
       if (!cs || !cs.hazards) return;
       var hasCCP = false;
       var ccpNames = [];
+      var ccpHazardTypes = [];
       ['bio', 'chem', 'phys'].forEach(function(ht) {
         var h = cs.hazards[ht];
         if (h && h.isCCP === true) {
           hasCCP = true;
           ccpNames.push(h.hazardDesc || ht);
+          ccpHazardTypes.push(ht);
         }
       });
       if (hasCCP) {
+        var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
         ccpList.push({
-          stepName: cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1)),
+          stepName: stepName,
           stepIndex: si,
-          ccpNames: ccpNames
+          ccpNames: ccpNames,
+          ccpHazardTypes: ccpHazardTypes
         });
+        // 确保每个CCP在criticalLimitsData中有对应的条目
+        var existing = data.criticalLimitsData.find(function(d) { return d.stepName === stepName; });
+        if (!existing) {
+          data.criticalLimitsData.push({
+            stepName: stepName,
+            limits: [{ param: '', value: '', unit: '', basis: '' }],
+            operatingLimits: [{ param: '', value: '', unit: '' }]
+          });
+        }
       }
     });
 
-    // 同步CCP到data.criticalLimits文本框（自动生成CCP列表描述）
-    if (ccpList.length > 0 && !data.criticalLimits) {
-      var clParts = [];
-      ccpList.forEach(function(c) {
-        clParts.push(c.stepName + '：待设定关键限值');
-      });
-      data.criticalLimits = clParts.join('\n');
-    }
+    var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
 
-    var ccpListHtml = '';
+    var html = '';
+
+    // CCP列表展示
     if (ccpList.length > 0) {
-      ccpListHtml = '<div style="margin-bottom:16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">';
-      ccpListHtml += '<div style="font-weight:600;color:#dc2626;margin-bottom:8px;">已确定的CCP（关键控制点）</div>';
-      ccpListHtml += '<ul style="margin:0;padding-left:20px;">';
+      html += '<div style="margin-bottom:16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">';
+      html += '<div style="font-weight:600;color:#dc2626;margin-bottom:8px;">已确定的CCP（关键控制点）</div>';
+      html += '<ul style="margin:0;padding-left:20px;">';
       ccpList.forEach(function(c) {
-        ccpListHtml += '<li style="margin:4px 0;font-size:14px;"><strong>' + esc(c.stepName) + '</strong> <span style="color:var(--gray-400);font-size:12px;">（' + c.ccpNames.length + '项危害被判定为CCP）</span></li>';
+        var hazardLabels = c.ccpHazardTypes.map(function(ht) { return hazardFull[ht]; }).join('、');
+        html += '<li style="margin:4px 0;font-size:14px;"><strong>' + esc(c.stepName) + '</strong> <span style="color:var(--gray-400);font-size:12px;">（' + hazardLabels + '）</span></li>';
       });
-      ccpListHtml += '</ul></div>';
+      html += '</ul></div>';
+      
+      // 每个CCP的关键限值卡片
+      html += '<div class="q15-critical-limits-cards">';
+      ccpList.forEach(function(c, ci) {
+        var clData = data.criticalLimitsData.find(function(d) { return d.stepName === c.stepName; });
+        if (!clData) return;
+        var li = data.criticalLimitsData.indexOf(clData);
+        
+        html += '<div class="q15-cl-card" style="margin-bottom:16px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
+        html += '<div style="background:#fef2f2;padding:10px 16px;font-weight:600;color:#dc2626;border-bottom:1px solid #fecaca;">' + esc(c.stepName) + '</div>';
+        
+        // 关键限值表
+        html += '<div style="padding:12px 16px;">';
+        html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;">📊 关键限值（CL）</div>';
+        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th style="width:120px;">参数</th><th style="width:100px;">限值</th><th style="width:60px;">单位</th><th style="min-width:120px;">法规依据</th><th style="width:50px;"></th></tr></thead><tbody id="clBody_' + li + '">';
+        clData.limits.forEach(function(lim, li2) {
+          html += '<tr data-cl-idx="' + li + '" data-cl-lim="' + li2 + '">' +
+            '<td><input type="text" class="cl-input cl-param" value="' + esc(lim.param) + '" placeholder="如：中心温度" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-value" value="' + esc(lim.value) + '" placeholder="如：≥85" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-unit" value="' + esc(lim.unit) + '" placeholder="如：℃" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-basis" value="' + esc(lim.basis) + '" placeholder="如：GB 14881" style="width:100%;"></td>' +
+            '<td><button class="btn btn-xs btn-secondary cl-del-limit" data-cl-idx="' + li + '" data-lim-idx="' + li2 + '" style="color:#dc2626;border-color:#fecaca;">✕</button></td>' +
+          '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '<button class="btn btn-xs btn-secondary cl-add-limit" data-cl-idx="' + li + '" style="margin-bottom:12px;">+ 添加关键限值</button>';
+        
+        // 操作限值表
+        html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;color:#6366f1;">⚙️ 操作限值（OL）<span style="font-weight:400;font-size:11px;color:var(--gray-400);"> — 为防止偏离关键限值而设立更严格的内控限值</span></div>';
+        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th style="width:120px;">参数</th><th style="width:100px;">操作限值</th><th style="width:60px;">单位</th><th style="width:50px;"></th></tr></thead><tbody id="olBody_' + li + '">';
+        clData.operatingLimits.forEach(function(ol, oli) {
+          html += '<tr data-ol-idx="' + li + '" data-ol-lim="' + oli + '">' +
+            '<td><input type="text" class="ol-input ol-param" value="' + esc(ol.param) + '" placeholder="如：中心温度" style="width:100%;"></td>' +
+            '<td><input type="text" class="ol-input ol-value" value="' + esc(ol.value) + '" placeholder="如：86-90" style="width:100%;"></td>' +
+            '<td><input type="text" class="ol-input ol-unit" value="' + esc(ol.unit) + '" placeholder="如：℃" style="width:100%;"></td>' +
+            '<td><button class="btn btn-xs btn-secondary ol-del-limit" data-ol-idx="' + li + '" data-ol-lim="' + oli + '" style="color:#dc2626;border-color:#fecaca;">✕</button></td>' +
+          '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '<button class="btn btn-xs btn-secondary ol-add-limit" data-cl-idx="' + li + '" style="margin-bottom:8px;">+ 添加操作限值</button>';
+        
+        html += '</div></div>';
+      });
+      html += '</div>';
+      
+      // 汇总文本框
+      html += '<div class="q15-field-group" style="margin-top:12px;"><label>关键限值汇总说明</label>';
+      html += '<textarea data-q15-field="criticalLimits" rows="4" placeholder="关键限值汇总文本（会自动从上方表格生成）">' + esc(data.criticalLimits || '') + '</textarea></div>';
+      
     } else {
-      ccpListHtml = '<div style="margin-bottom:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:13px;">⚠️ 尚未完成CCP判定，请先完成「确定关键控制点」步骤</div>';
+      html = '<div style="margin-bottom:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:13px;">⚠️ 尚未完成CCP判定，请先完成「确定关键控制点」步骤</div>';
     }
 
-    return ccpListHtml + '<p class="q15-table-hint">得到关键控制点CCP以后，根据用户选择的执行标准，系统将提出相应的关键限制的设立。需要有科学依据（如法规标准、文献数据、实验验证结果）</p><div class="q15-field-group"><label>选择执行标准 <span class="required">*</span></label><select data-q15-field="execStandard"><option value="">请选择</option><option value="gb"' + (data.execStandard === 'gb' ? ' selected' : '') + '>国标（GB）</option><option value="industry"' + (data.execStandard === 'industry' ? ' selected' : '') + '>行业标准</option><option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>企业标准</option><option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>国际标准</option></select></div><div class="q15-ai-btn-wrapper"><button class="btn btn-secondary btn-sm" id="aiCriticalBtn">\u{1F916} AI建议关键限制</button><span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><div id="aiCriticalResult" style="margin-top:12px;"></div><div class="q15-field-group"><label>关键限制说明</label><textarea data-q15-field="criticalLimits" rows="5" placeholder="描述关键限制的科学依据和具体数值">' + esc(data.criticalLimits) + '</textarea></div>';
+    // 执行标准和AI按钮
+    html += '<p class="q15-table-hint">得到关键控制点CCP以后，根据用户选择的执行标准，系统将提出相应的关键限制的设立。需要有科学依据（如法规标准、文献数据、实验验证结果）</p>' +
+      '<div class="q15-field-group"><label>选择执行标准 <span class="required">*</span></label>' +
+      '<select data-q15-field="execStandard">' +
+        '<option value="">请选择</option>' +
+        '<option value="gb"' + (data.execStandard === 'gb' ? ' selected' : '') + '>国标（GB）</option>' +
+        '<option value="industry"' + (data.execStandard === 'industry' ? ' selected' : '') + '>行业标准</option>' +
+        '<option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>企业标准</option>' +
+        '<option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>国际标准</option>' +
+      '</select></div>' +
+      '<div class="q15-ai-btn-wrapper">' +
+        '<button class="btn btn-secondary btn-sm" id="aiCriticalBtn">\u{1F916} AI建议关键限制</button>' +
+        '<span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>' +
+      '</div>' +
+      '<div id="aiCriticalResult" style="margin-top:12px;"></div>';
+
+    return html;
   }
 
   function renderMonitoring(data) {
@@ -1440,8 +1518,84 @@ const Questionnaire15min = (() => {
     }
     ['Bio', 'Chem', 'Phys'].forEach(function(type) { var body = content.querySelector('#hazard' + type + 'Body'); if (body) { body.querySelectorAll('input, select').forEach(function(el) { el.addEventListener('change', function() { collectHazardTableData(content, data); saveData(data); }); el.addEventListener('input', function() { collectHazardTableData(content, data); saveData(data); }); }); } });
 
-    const aiCriticalBtn = content.querySelector('#aiCriticalBtn');
-    if (aiCriticalBtn) { aiCriticalBtn.addEventListener('click', function() { aiCriticalBtn.disabled = true; var hint = content.querySelector('#aiCriticalHint'); if (hint) hint.textContent = 'AI分析中...'; var result = content.querySelector('#aiCriticalResult'); setTimeout(function() { var standard = data.execStandard || '国标'; var demoResult = '根据' + (standard === 'gb' ? 'GB 14881-2013 食品安全国家标准 食品生产通用卫生规范' : standard) + '，建议关键限制如下：\n\n1. 杀菌工序 CCP-3：\n   - 中心温度：\u226585\u2103\n   - 保持时间：\u226515秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n2. 金属检测 CCP-4：\n   - Fe：\u22641.5mm\n   - SUS：\u22642.0mm\n   - 依据：GB/T 25346-2010\n\n3. 原料验收 CCP-1：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022'; if (result) result.innerHTML = '<div class="q15-ai-result">' + demoResult.replace(/\n/g, '<br>') + '</div>'; if (hint) hint.textContent = '\u2713 AI建议已生成'; aiCriticalBtn.disabled = false; }, 800); }); }
+    // AI建议关键限制按钮
+    var aiCriticalBtn = content.querySelector('#aiCriticalBtn');
+    if (aiCriticalBtn) {
+      aiCriticalBtn.addEventListener('click', async function() {
+        aiCriticalBtn.disabled = true;
+        var hint = content.querySelector('#aiCriticalHint');
+        if (hint) hint.textContent = 'AI分析中...';
+        var resultEl = content.querySelector('#aiCriticalResult');
+        
+        // 收集当前数据
+        collectSectionData(content, data);
+        // 从关键限值卡片收集数据
+        collectCriticalLimitsCardData(content, data);
+        
+        // 构建CCP列表
+        var ccpSteps = data.ccpSteps || [];
+        var processSteps = data.processSteps || [];
+        var ccpList = [];
+        ccpSteps.forEach(function(cs, si) {
+          if (!cs || !cs.hazards) return;
+          var isCCP = false;
+          ['bio', 'chem', 'phys'].forEach(function(ht) {
+            var h = cs.hazards[ht];
+            if (h && h.isCCP === true) isCCP = true;
+          });
+          if (isCCP) {
+            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+            ccpList.push({ stepName: stepName, isCCP: true, operationMethod: processSteps[si] ? processSteps[si].operationMethod : '', parameters: processSteps[si] ? processSteps[si].parameters : '' });
+          }
+        });
+        
+        if (ccpList.length === 0) {
+          if (hint) hint.textContent = '⚠️ 请先完成CCP判定';
+          aiCriticalBtn.disabled = false;
+          return;
+        }
+        
+        try {
+          var resp = await fetch(API_HOST + '/api/ai/critical-limits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_name: data.productName || '',
+              ccp_steps: ccpList,
+              exec_standard: data.execStandard || 'gb'
+            })
+          });
+          if (!resp.ok) throw new Error('API响应异常: ' + resp.status);
+          var result = await resp.json();
+          if (result.ok && result.data) {
+            applyAiCriticalLimitsResult(data, result.data, ccpList);
+            if (hint) hint.textContent = '✅ AI建议已生成';
+            renderActiveSection();
+          } else {
+            throw new Error('返回数据格式异常');
+          }
+        } catch (err) {
+          console.warn('后端不可用，使用前端模拟:', err.message);
+          // 前端模拟
+          var limitsText = '';
+          ccpList.forEach(function(s) {
+            var name = (s.stepName || '').toLowerCase();
+            if (name.indexOf('杀菌') !== -1 || name.indexOf('热处理') !== -1 || name.indexOf('灭菌') !== -1) {
+              limitsText += '1. **' + s.stepName + '**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n';
+            } else if (name.indexOf('金属') !== -1 || name.indexOf('异物') !== -1) {
+              limitsText += '2. **' + s.stepName + '**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n';
+            } else if (name.indexOf('验收') !== -1 || name.indexOf('接收') !== -1) {
+              limitsText += '3. **' + s.stepName + '**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n';
+            } else {
+              limitsText += '**' + s.stepName + '**：\n   - 需根据实际工艺参数确定\n   - 依据：企业内控标准\n\n';
+            }
+          });
+          if (resultEl) resultEl.innerHTML = '<div class="q15-ai-result"><pre style="white-space:pre-wrap;font-size:13px;">' + limitsText + '</pre></div>';
+          if (hint) hint.textContent = '✅ 前端模拟建议已生成（后端API不可用时）';
+        }
+        aiCriticalBtn.disabled = false;
+      });
+    }
 
     const addMonitorBtn = content.querySelector('#addMonitorRow');
     if (addMonitorBtn) { addMonitorBtn.addEventListener('click', function() { data.monitoring.push({ id: genId(), ccp: '', object: '', method: '', frequency: '', personnel: '', remark: '' }); saveData(data); renderActiveSection(); }); }
@@ -1454,7 +1608,47 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('#correctiveBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.caIdx), inputs = row.querySelectorAll('input'); if (data.correctiveActions[idx]) { data.correctiveActions[idx].ccp = inputs[0].value; data.correctiveActions[idx].cl = inputs[1].value; data.correctiveActions[idx].corrective = inputs[2].value; data.correctiveActions[idx].verification = inputs[3].value; data.correctiveActions[idx].record = inputs[4].value; saveData(data); } }); });
 
     const aiMonitorBtn = content.querySelector('#aiMonitorBtn');
-    if (aiMonitorBtn) { aiMonitorBtn.addEventListener('click', function() { aiMonitorBtn.disabled = true; var hint = content.querySelector('#aiMonitorHint'); if (hint) hint.textContent = 'AI分析中...'; setTimeout(function() { data.monitoring = [{ id: genId(), ccp: 'CCP-3 杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013，温度偏差需\u2264\u00B11\u2103' }, { id: genId(), ccp: 'CCP-4 金属检测', object: '金属异物', method: '在线金属检测仪自动检测', frequency: '连续监控', personnel: '设备维护人员+品控专员', remark: '依据GB/T 25346-2010' }, { id: genId(), ccp: 'CCP-1 原料验收', object: '农药残留、重金属', method: '供应商检测报告+抽检验证', frequency: '每批次审核', personnel: '经培训的采购专员', remark: '依据GB 2763-2021、GB 2762-2022' }]; saveData(data); if (hint) hint.textContent = '\u2713 AI规划完成'; aiMonitorBtn.disabled = false; renderActiveSection(); }, 1000); }); }
+    if (aiMonitorBtn) {
+      aiMonitorBtn.addEventListener('click', async function() {
+        aiMonitorBtn.disabled = true;
+        var hint = content.querySelector('#aiMonitorHint');
+        if (hint) hint.textContent = 'AI分析中...';
+        collectSectionData(content, data);
+        
+        // 构建CCP列表
+        var ccpSteps = data.ccpSteps || [];
+        var processSteps = data.processSteps || [];
+        var ccpList = [];
+        ccpSteps.forEach(function(cs, si) {
+          if (!cs || !cs.hazards) return;
+          var isCCP = false;
+          ['bio', 'chem', 'phys'].forEach(function(ht) { var h = cs.hazards[ht]; if (h && h.isCCP === true) isCCP = true; });
+          if (isCCP) {
+            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+            ccpList.push({ stepName: stepName, isCCP: true, operationMethod: processSteps[si] ? processSteps[si].operationMethod : '', parameters: processSteps[si] ? processSteps[si].parameters : '' });
+          }
+        });
+        if (ccpList.length === 0) { if (hint) hint.textContent = '⚠️ 请先完成CCP判定'; aiMonitorBtn.disabled = false; return; }
+        
+        try {
+          var resp = await fetch(API_HOST + '/api/ai/monitoring', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_name: data.productName || '', ccp_steps: ccpList, process_description: '' })
+          });
+          if (!resp.ok) throw new Error('API响应异常: ' + resp.status);
+          var result = await resp.json();
+          if (result.ok && result.data && result.data.monitoring) {
+            data.monitoring = result.data.monitoring.map(function(m) { return { id: genId(), ccp: m.ccp || '', object: m.object || '', method: m.method || '', frequency: m.frequency || '', personnel: m.personnel || '', remark: m.remark || '' }; });
+            if (hint) hint.textContent = '✅ AI方案已生成';
+            saveData(data); renderActiveSection();
+          } else throw new Error('返回数据格式异常');
+        } catch (err) {
+          console.warn('后端不可用，使用前端模拟:', err.message);
+          setTimeout(function() { data.monitoring = [{ id: genId(), ccp: '杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013' }, { id: genId(), ccp: '金属检测', object: '金属异物', method: '在线金属检测仪自动检测', frequency: '连续监控', personnel: '品控专员', remark: '依据GB/T 25346-2010' }]; saveData(data); if (hint) hint.textContent = '✅ 前端模拟完成（后端不可用时）'; aiMonitorBtn.disabled = false; renderActiveSection(); }, 800);
+          aiMonitorBtn.disabled = false;
+        }
+      });
+    }
 
     // 绑定精简版上传区域事件
     bindCompactUploadEvents(content);
@@ -1701,7 +1895,7 @@ const Questionnaire15min = (() => {
           data.ccpSteps[idx].hazards[hazardType].hazardDesc = desc;
         }
       }
-    }
+    
 
     // 确认回答按钮
     var answerBtn = content.querySelector('#ccpAnswerBtn');
@@ -3098,6 +3292,66 @@ const Questionnaire15min = (() => {
     
     // 收集完成后，自动同步显著危害的步骤到 processSteps（确定关键控制点步骤）
     syncSignificantStepsToProcessSteps(data);
+  }
+
+  // ===== 收集关键限值卡片数据（从DOM输入框）=====
+  function collectCriticalLimitsCardData(content, data) {
+    if (!data.criticalLimitsData) data.criticalLimitsData = [];
+    content.querySelectorAll('.q15-cl-card').forEach(function(card) {
+      var headerEl = card.querySelector('div:first-child');
+      if (!headerEl) return;
+      var stepName = headerEl.textContent.trim();
+      var clData = data.criticalLimitsData.find(function(d) { return d.stepName === stepName; });
+      if (!clData) return;
+      // 收集关键限值
+      var clRows = card.querySelectorAll('#clBody_' + data.criticalLimitsData.indexOf(clData) + ' tr');
+      clData.limits = [];
+      clRows.forEach(function(tr) {
+        var inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 4) {
+          clData.limits.push({ param: inputs[0].value, value: inputs[1].value, unit: inputs[2].value, basis: inputs[3].value });
+        }
+      });
+      // 收集操作限值
+      var olRows = card.querySelectorAll('#olBody_' + data.criticalLimitsData.indexOf(clData) + ' tr');
+      clData.operatingLimits = [];
+      olRows.forEach(function(tr) {
+        var inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 3) {
+          clData.operatingLimits.push({ param: inputs[0].value, value: inputs[1].value, unit: inputs[2].value });
+        }
+      });
+    });
+  }
+
+  // ===== 应用AI关键限值结果到数据 =====
+  function applyAiCriticalLimitsResult(data, aiResult, ccpList) {
+    if (!data.criticalLimitsData) data.criticalLimitsData = [];
+    var criticalLimitsText = aiResult.criticalLimits || '';
+    data.criticalLimits = criticalLimitsText;
+    var details = aiResult.details || [];
+    
+    details.forEach(function(d) {
+      var stepName = d.ccp || '';
+      if (!stepName) return;
+      var clData = data.criticalLimitsData.find(function(cd) { return cd.stepName === stepName; });
+      if (!clData) {
+        clData = { stepName: stepName, limits: [], operatingLimits: [] };
+        data.criticalLimitsData.push(clData);
+      }
+      // 解析limit字段，如"中心温度≥85℃，保持时间≥15秒" -> 拆分
+      var limitStr = d.limit || '';
+      var parts = limitStr.split(/[，,]/).filter(Boolean);
+      clData.limits = parts.map(function(p) {
+        p = p.trim();
+        // 尝试匹配"参数+数值+单位"模式
+        var m = p.match(/^([\u4e00-\u9fa5a-zA-Z]+)([<>=≤≥\d.~-]+)(.*)$/);
+        if (m) {
+          return { param: m[1], value: m[2], unit: m[3] || '', basis: d.basis || '' };
+        }
+        return { param: p, value: '', unit: '', basis: d.basis || '' };
+      });
+    });
   }
 
   // ===== 显示危害分析工作单（跳转到新页面）=====
