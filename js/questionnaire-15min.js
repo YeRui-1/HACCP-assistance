@@ -2439,25 +2439,47 @@ const Questionnaire15min = (() => {
   // 保持原有的 renderProcessFlow 函数名，但内部委托到子函数
   // 注意：这会在加载时覆盖 renderProcessFlow 函数定义
 
-  // 步骤危害数据库缓存
+  // 步骤危害数据库缓存 + Map索引
   var _stepHazardsCache = null;
+  var _stepHazardsMap = null;
 
-  // 加载步骤危害数据库
+  // 构建Map索引（步骤名→条目 + 别名→条目）
+  function buildStepHazardsMap(data) {
+    _stepHazardsMap = new Map();
+    if (!data || !Array.isArray(data)) return;
+    data.forEach(function(entry) {
+      if (!entry.step) return;
+      _stepHazardsMap.set(entry.step.toLowerCase(), entry);
+      if (entry.aliases && Array.isArray(entry.aliases)) {
+        entry.aliases.forEach(function(alias) {
+          if (alias) _stepHazardsMap.set(alias.toLowerCase(), entry);
+        });
+      }
+    });
+  }
+
+  // 加载步骤危害数据库（加载后自动构建Map索引，带超时）
   function loadStepHazards(forceRefresh) {
     if (_stepHazardsCache && !forceRefresh) return Promise.resolve(_stepHazardsCache);
     // 如果强制刷新，清除缓存
-    if (forceRefresh) _stepHazardsCache = null;
+    if (forceRefresh) { _stepHazardsCache = null; _stepHazardsMap = null; }
     var url = 'data/step_hazards.json';
-    return fetch(url)
+    // 使用 AbortController 实现 5 秒超时
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
+    return fetch(url, { signal: controller.signal })
       .then(function(resp) {
+        clearTimeout(timeoutId);
         if (!resp.ok) throw new Error('加载失败');
         return resp.json();
       })
       .then(function(data) {
         _stepHazardsCache = data;
+        buildStepHazardsMap(data);
         return data;
       })
       .catch(function(err) {
+        clearTimeout(timeoutId);
         console.warn('步骤危害数据库加载失败:', err);
         return [];
       });
@@ -2531,23 +2553,30 @@ const Questionnaire15min = (() => {
     });
   }
 
-  // 步骤名称模糊匹配
+  // saveData防抖：避免频繁序列化大对象
+  var _saveDataTimer = null;
+  function debouncedSaveData(data) {
+    if (_saveDataTimer) clearTimeout(_saveDataTimer);
+    _saveDataTimer = setTimeout(function() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+      _saveDataTimer = null;
+    }, 50);
+  }
+
+  // 步骤名称模糊匹配（优先使用Map索引）
   function matchStepName(userStepName, stepDb) {
-    if (!userStepName || !stepDb) return null;
+    if (!userStepName) return null;
     var name = userStepName.trim().toLowerCase();
+    // 优先使用Map索引（O(1)精确匹配）
+    if (_stepHazardsMap) {
+      var mapEntry = _stepHazardsMap.get(name);
+      if (mapEntry) return mapEntry;
+    }
+    if (!stepDb) return null;
+    // 回退：包含匹配（用户步骤名包含数据库步骤名，或反之）
     for (var i = 0; i < stepDb.length; i++) {
       var entry = stepDb[i];
-      // 精确匹配
-      if (entry.step.toLowerCase() === name) return entry;
-      // 别名匹配
-      if (entry.aliases) {
-        for (var j = 0; j < entry.aliases.length; j++) {
-          if (entry.aliases[j].toLowerCase() === name) return entry;
-        }
-      }
-      // 包含匹配（用户步骤名包含数据库步骤名，或反之）
       if (name.indexOf(entry.step.toLowerCase()) !== -1 || entry.step.toLowerCase().indexOf(name) !== -1) return entry;
-      // 别名包含匹配
       if (entry.aliases) {
         for (var k = 0; k < entry.aliases.length; k++) {
           if (name.indexOf(entry.aliases[k].toLowerCase()) !== -1 || entry.aliases[k].toLowerCase().indexOf(name) !== -1) return entry;
@@ -2581,10 +2610,23 @@ const Questionnaire15min = (() => {
   // 自动匹配步骤危害（从档案的流程图编辑器读取步骤）
   function autoMatchStepHazards(data) {
     var fcSteps = getFcStepsFromProfile();
-    if (fcSteps.length === 0) return;
+    if (fcSteps.length === 0) {
+      renderActiveSection();
+      renderSectionNav();
+      return;
+    }
     
     loadStepHazards().then(function(stepDb) {
-      if (!stepDb || stepDb.length === 0) return;
+      // 无论 stepDb 是否为空，都要重新渲染页面（移除"正在匹配中"状态）
+      if (!stepDb || stepDb.length === 0) {
+        data.hazardWorksheet = [];
+        data._hazardStepFingerprint = 'none';
+        data._unmatchedSteps = fcSteps;
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+        return;
+      }
       
       var ws = [];
       var matchedCount = 0;
@@ -2650,6 +2692,9 @@ const Questionnaire15min = (() => {
       
       data.hazardWorksheet = ws;
       data._unmatchedSteps = unmatchedSteps;
+      // 保存步骤指纹，下次进入时无需重新匹配
+      var currentFcSteps = getFcStepsFromProfile();
+      data._hazardStepFingerprint = currentFcSteps.join(',');
       saveData(data);
       
       // 重新渲染
@@ -2657,16 +2702,23 @@ const Questionnaire15min = (() => {
       renderSectionNav();
     });
   }
-
-  // 危害识别子步骤（只显示按步骤匹配的危害，去掉了配方/原料分析）
   function renderHazardIdentify(data) {
     // 检查是否有hazardWorksheet数据；如果为空则检查档案中是否有流程图步骤
     var ws = data.hazardWorksheet || [];
     var fcSteps = getFcStepsFromProfile();
     var autoTriggered = false;
     
-    // 如果worksheet为空，但档案中有流程图步骤，触发自动匹配
-    if (ws.length === 0 && fcSteps.length > 0) {
+    // 计算当前步骤的版本指纹（用于判断步骤是否变更）
+    var currentStepFingerprint = fcSteps.join(',');
+    var cachedFingerprint = data._hazardStepFingerprint || '';
+    
+    // 如果worksheet为空，或步骤指纹不匹配（步骤已变更），触发自动匹配
+    if ((ws.length === 0 || currentStepFingerprint !== cachedFingerprint) && fcSteps.length > 0) {
+      // 如果数据已存在但步骤变更，先清空旧数据
+      if (ws.length > 0 && currentStepFingerprint !== cachedFingerprint) {
+        data.hazardWorksheet = [];
+        data._hazardStepFingerprint = '';
+      }
       autoTriggered = true;
       // 立即触发匹配
       setTimeout(function() {
