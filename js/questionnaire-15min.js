@@ -604,6 +604,8 @@ const Questionnaire15min = (() => {
   function normalizeCcpSteps(data) {
     if (!data.processSteps || !Array.isArray(data.processSteps)) data.processSteps = [];
     if (!data.ccpSteps || !Array.isArray(data.ccpSteps)) data.ccpSteps = [];
+    // 从危害分析同步显著危害的步骤到 processSteps（兜底同步）
+    syncSignificantStepsToProcessSteps(data);
     var hazardTypes = ['bio', 'chem', 'phys'];
     data.processSteps.forEach(function(step, si) {
       if (!data.ccpSteps[si]) data.ccpSteps[si] = { stepName: step.stepName || '', hazards: {}, completed: false };
@@ -741,7 +743,7 @@ const Questionnaire15min = (() => {
     html+='<div class="q15-field-group" style="margin-bottom:12px;"><label>'+getCcpQuestionText(ht,cq)+'</label>';
     if(cq===1)html+='<textarea id="ccpHazardDescInput" rows="2" placeholder="请描述该危害">'+esc(ch.hazardDesc||'')+'</textarea>';
     html+='</div><div style="margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;">';
-    if(cq===1){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 存在危害</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 无危害</label>';}
+    if(cq===1){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
     else if(cq==='q2_need'){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是，需要修改后重新评估</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否，非关键控制点</label>';}
     else{html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
     html+='</div><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确定</button><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">返回步骤填写</button></div></div>';
@@ -1035,8 +1037,8 @@ const Questionnaire15min = (() => {
       qHtml += '<div class="ccp-dt-q-help">' + qHelps[1] + '</div>';
       qHtml += '<textarea class="ccp-dt-textarea" id="ccpHazardDescInput" placeholder="请描述该步骤存在的具体危害..." rows="3">' + esc(hazardDescVal) + '</textarea>';
       qHtml += '<div class="ccp-dt-options">';
-      qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>有危害</span></label>';
-      qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>无危害</span></label>';
+      qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>是</span></label>';
+      qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>否</span></label>';
       qHtml += '</div>';
       qHtml += '<div class="ccp-dt-actions">';
       qHtml += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确认回答</button>';
@@ -1215,7 +1217,53 @@ const Questionnaire15min = (() => {
   }
 
   function renderCriticalLimits(data) {
-    return '<p class="q15-table-hint">得到关键控制点CCP以后，根据用户选择的执行标准，系统将提出相应的关键限制的设立。需要有科学依据（如法规标准、文献数据、实验验证结果）</p><div class="q15-field-group"><label>选择执行标准 <span class="required">*</span></label><select data-q15-field="execStandard"><option value="">请选择</option><option value="gb"' + (data.execStandard === 'gb' ? ' selected' : '') + '>国标（GB）</option><option value="industry"' + (data.execStandard === 'industry' ? ' selected' : '') + '>行业标准</option><option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>企业标准</option><option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>国际标准</option></select></div><div class="q15-ai-btn-wrapper"><button class="btn btn-secondary btn-sm" id="aiCriticalBtn">\u{1F916} AI建议关键限制</button><span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><div id="aiCriticalResult" style="margin-top:12px;"></div><div class="q15-field-group"><label>关键限制说明</label><textarea data-q15-field="criticalLimits" rows="5" placeholder="描述关键限制的科学依据和具体数值">' + esc(data.criticalLimits) + '</textarea></div>';
+    // 从CCP判定结果中提取被判定为CCP的步骤
+    var ccpSteps = data.ccpSteps || [];
+    var processSteps = data.processSteps || [];
+    var ccpList = [];
+    ccpSteps.forEach(function(cs, si) {
+      if (!cs || !cs.hazards) return;
+      var hasCCP = false;
+      var ccpNames = [];
+      ['bio', 'chem', 'phys'].forEach(function(ht) {
+        var h = cs.hazards[ht];
+        if (h && h.isCCP === true) {
+          hasCCP = true;
+          ccpNames.push(h.hazardDesc || ht);
+        }
+      });
+      if (hasCCP) {
+        ccpList.push({
+          stepName: cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1)),
+          stepIndex: si,
+          ccpNames: ccpNames
+        });
+      }
+    });
+
+    // 同步CCP到data.criticalLimits文本框（自动生成CCP列表描述）
+    if (ccpList.length > 0 && !data.criticalLimits) {
+      var clParts = [];
+      ccpList.forEach(function(c) {
+        clParts.push(c.stepName + '：待设定关键限值');
+      });
+      data.criticalLimits = clParts.join('\n');
+    }
+
+    var ccpListHtml = '';
+    if (ccpList.length > 0) {
+      ccpListHtml = '<div style="margin-bottom:16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">';
+      ccpListHtml += '<div style="font-weight:600;color:#dc2626;margin-bottom:8px;">已确定的CCP（关键控制点）</div>';
+      ccpListHtml += '<ul style="margin:0;padding-left:20px;">';
+      ccpList.forEach(function(c) {
+        ccpListHtml += '<li style="margin:4px 0;font-size:14px;"><strong>' + esc(c.stepName) + '</strong> <span style="color:var(--gray-400);font-size:12px;">（' + c.ccpNames.length + '项危害被判定为CCP）</span></li>';
+      });
+      ccpListHtml += '</ul></div>';
+    } else {
+      ccpListHtml = '<div style="margin-bottom:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:13px;">⚠️ 尚未完成CCP判定，请先完成「确定关键控制点」步骤</div>';
+    }
+
+    return ccpListHtml + '<p class="q15-table-hint">得到关键控制点CCP以后，根据用户选择的执行标准，系统将提出相应的关键限制的设立。需要有科学依据（如法规标准、文献数据、实验验证结果）</p><div class="q15-field-group"><label>选择执行标准 <span class="required">*</span></label><select data-q15-field="execStandard"><option value="">请选择</option><option value="gb"' + (data.execStandard === 'gb' ? ' selected' : '') + '>国标（GB）</option><option value="industry"' + (data.execStandard === 'industry' ? ' selected' : '') + '>行业标准</option><option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>企业标准</option><option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>国际标准</option></select></div><div class="q15-ai-btn-wrapper"><button class="btn btn-secondary btn-sm" id="aiCriticalBtn">\u{1F916} AI建议关键限制</button><span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><div id="aiCriticalResult" style="margin-top:12px;"></div><div class="q15-field-group"><label>关键限制说明</label><textarea data-q15-field="criticalLimits" rows="5" placeholder="描述关键限制的科学依据和具体数值">' + esc(data.criticalLimits) + '</textarea></div>';
   }
 
   function renderMonitoring(data) {
@@ -2975,6 +3023,42 @@ const Questionnaire15min = (() => {
     }
   }
 
+  // ===== 同步显著危害对应的步骤到 processSteps（确定关键控制点）=====
+  function syncSignificantStepsToProcessSteps(data) {
+    if (!data.hazardWorksheet || !Array.isArray(data.hazardWorksheet)) return;
+    if (!data.processSteps || !Array.isArray(data.processSteps)) data.processSteps = [];
+    
+    // 收集包含显著危害的步骤名（保持顺序、去重）
+    var stepNames = [];
+    var seen = {};
+    data.hazardWorksheet.forEach(function(step) {
+      if (!step.hazards || !step.stepName) return;
+      var hasSignificant = step.hazards.some(function(h) { return h.isSignificant; });
+      if (hasSignificant && !seen[step.stepName]) {
+        stepNames.push(step.stepName);
+        seen[step.stepName] = true;
+      }
+    });
+    
+    // 去重保留已有的 processSteps
+    var existingNames = {};
+    data.processSteps.forEach(function(s) { existingNames[s.stepName] = true; });
+    
+    // 添加不存在的步骤
+    stepNames.forEach(function(name) {
+      if (!existingNames[name]) {
+        data.processSteps.push({
+          id: genId(),
+          stepName: name,
+          operationMethod: '',
+          parameters: '',
+          controlPoint: '',
+          equipmentName: ''
+        });
+      }
+    });
+  }
+
   // ===== 收集危害工作单数据 =====
   function collectHazardWorksheetData(content, data) {
     // 从子步骤UI收集数据到 data.hazardWorksheet
@@ -3011,6 +3095,9 @@ const Questionnaire15min = (() => {
         data.hazardWorksheet[si].hazards[hi].isSignificant = cb.checked;
       }
     });
+    
+    // 收集完成后，自动同步显著危害的步骤到 processSteps（确定关键控制点步骤）
+    syncSignificantStepsToProcessSteps(data);
   }
 
   // ===== 显示危害分析工作单（跳转到新页面）=====
