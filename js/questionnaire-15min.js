@@ -668,6 +668,14 @@ const Questionnaire15min = (() => {
     html += '<hr class="q15-divider"><div class="q15-field-group"><label>CCP判断树版本</label>';
     html += '<div style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">标准版</div>';
     html += '<div style="margin-top:4px;font-size:12px;color:var(--gray-400);">Q1有控制措施存在吗？→Q1.1控制对安全必要吗？→Q2专门设计消除/降低？→Q3污染超标？→Q4后续消除？</div>';
+    html += '<div style="margin-top:12px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#475569;line-height:1.7;">';
+    html += '<div style="font-weight:500;margin-bottom:4px;font-size:13px;color:#1e293b;">CCP判断树使用说明</div>';
+    html += '<div style="padding-left:0;list-style:none;">';
+    html += '<div style="margin-bottom:2px;">a) 判断树表在危害分析后和显著危害被确定的步骤中使用；</div>';
+    html += '<div style="margin-bottom:2px;">b) CCP判断树仅有助于确定CCP，但不能代替专业知识；</div>';
+    html += '<div style="margin-bottom:2px;">c) 随后的加工步骤对控制危害可能更有效，可能是更应该选择的CCP；</div>';
+    html += '<div>d) 加工中一个以上的步骤可以控制一种危害。</div>';
+    html += '</div></div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">';
     html += '<button class="btn btn-primary btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>CCP判断</button>';
     html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">新增步骤</button>';
