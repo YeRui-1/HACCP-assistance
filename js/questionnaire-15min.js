@@ -46,10 +46,11 @@ const Questionnaire15min = (() => {
       hazardWorksheet: [],
       hazardWorksheetStep: 'identify', // 'identify' | 'assess' | 'control'
       hazardConfirmed: false,
-      ccpSteps: [],       // 存储每个步骤的CCP判定结果: { stepName, completed, hazards: { bio: { q1, q2_control, q2_need, q3, q4, q5, isCCP, hazardDesc }, chem: {...}, phys: {...} } }
+      ccpSteps: [],       // 存储每个步骤的CCP判定结果: { stepName, completed, hazards: { bio: { q1, q1_need, q2, q3, q4, isCCP, hazardDesc }, chem: {...}, phys: {...} } }
       ccpStepIndex: 0,    // 当前正在判定的步骤索引
       ccpHazardType: 'bio', // 当前判定的危害类型: 'bio'|'chem'|'phys'
       ccpCurrentQ: 1,     // 当前问题编号: 1|2|3|4|5
+      ccpDecisionTreeVersion: 'v1', // 标准版
       ccpCompleted: false,// 是否已全部完成
       execStandard: '',
       criticalLimits: '',
@@ -664,6 +665,9 @@ const Questionnaire15min = (() => {
     } else {
       html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请先填写上方表单并点击“确认保存”。</p>';
     }
+    html += '<hr class="q15-divider"><div class="q15-field-group"><label>CCP判断树版本</label>';
+    html += '<div style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">标准版</div>';
+    html += '<div style="margin-top:4px;font-size:12px;color:var(--gray-400);">Q1有控制措施存在吗？→Q1.1控制对安全必要吗？→Q2专门设计消除/降低？→Q3污染超标？→Q4后续消除？</div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">';
     html += '<button class="btn btn-primary btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>CCP判断</button>';
     html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">新增步骤</button>';
@@ -676,13 +680,12 @@ const Questionnaire15min = (() => {
     var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
     var name = hazardFull[hazardType] || '危害';
     var map = {
-      1: 'Q1：该加工步骤是否存在' + name + '？危害是什么？',
-      2: 'Q2：是否存在针对已识别' + name + '的控制措施？',
-      3: 'Q3：该步骤是否经过专门设计，可消除' + name + '或将其发生的可能性降低至可接受水平？',
-      4: 'Q4：该步骤是否会发生' + name + '污染，或污染水平升高至不可接受的程度？',
-      5: 'Q5：后续步骤或操作是否会消除该' + name + '，或将其降低至可接受水平？'
+      1: 'Q1：针对此加工步骤已识别的' + name + '，有控制措施存在吗？',
+      1.1: 'Q1（续）：该步骤上的控制对安全是必要的吗？',
+      2: 'Q2：该步骤是否专门设计用于把' + name + '的可能发生消除、降低到可接受水平？',
+      3: 'Q3：' + name + '产生的污染是否会超过可接受水平，或增加到不可接受水平？',
+      4: 'Q4：后续步骤可否消除' + name + '或将' + name + '的发生降低到可接受水平？'
     };
-    if (currentQ === 'q2_need') return 'Q2（续）：是否有必要在此步骤进行安全控制？';
     return map[currentQ] || '';
   }
   function renderCcpResultBlock(data, hazard, hazardType) {
@@ -697,7 +700,11 @@ const Questionnaire15min = (() => {
     var h='<div style="margin-top:16px;padding:12px;background:'+bg+';border:1px solid '+c+';border-radius:8px;color:'+c+';">';
     h+='<div style="font-weight:600;margin-bottom:6px;">判定结果：'+label+'</div>';
     h+='<div style="font-size:13px;color:#475569;">判定路径：'+(path.length?path.join(' → '):'—')+'</div>';
-    h+='<button class="btn btn-primary btn-sm" id="ccpNextHazardBtn" style="margin-top:10px;">'+(lastH?'完成':'下一步')+'</button></div>';
+    h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="ccpNextHazardBtn">'+(lastH?'完成':'下一步')+'</button>';
+    // 添加上一步按钮，回退到当前问题的上一个问题
+    h+='<button class="btn btn-secondary btn-sm" id="ccpPrevStepBtn">← 上一步</button>';
+    // 添加重新判定按钮，清除当前危害所有答案重新判断
+    h+='<button class="btn btn-secondary btn-sm" id="ccpResetAllBtn">🔄 重新判定本危害</button></div></div>';
     return h;
   }
   function renderCCPJudgingPage(data) {
@@ -738,28 +745,27 @@ const Questionnaire15min = (() => {
     if (!hazard || hazard.q1 === undefined) return '';
     var html = '<div style="margin-top:16px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;">';
     html += '<div style="font-weight:500;margin-bottom:6px;">判定路径</div>';
-    var qVals = [1, 2, 3, 4, 5];
     var resultText = '';
-    for (var qi = 0; qi < qVals.length; qi++) {
-      var qn = qVals[qi];
-      var qv = hazard['q' + qn];
-      if (qv === undefined) break;
-      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q' + qn + ': ' + qv + '</span>';
-      if (qn === 1 && qv === '否') {
-        resultText = '非CCP（Q1=否，该危害不存在）';
-        break;
+    if (hazard.q1 !== undefined) {
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1: ' + hazard.q1 + '</span>';
+      if (hazard.q1 === '否') {
+        if (hazard.q1_need === '否') resultText = '非CCP（Q1=否且无需控制）';
+        else if (hazard.q1_need === '是') resultText = '需修改步骤重新评估';
+        html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1.1: ' + (hazard.q1_need || '—') + '</span>';
       }
-      if (qn === 2 && qv === '否') {
-        if (hazard.q2_need === '否') resultText = '非CCP（Q2=否且无需控制）';
-        else if (hazard.q2_need === '是') resultText = '需修改步骤重新评估';
-        break;
-      }
-      if (qn === 3 && qv === '是') { resultText = 'CCP（Q3=是，步骤可消除危害）'; break; }
-      if (qn === 4 && qv === '否') { resultText = '非CCP（Q4=否，无污染风险）'; break; }
-      if (qn === 5) {
-        resultText = qv === '是' ? '非CCP（Q5=是，后续可消除）' : 'CCP（Q5=否，后续无法消除）';
-        break;
-      }
+    }
+    if (hazard.q2 !== undefined) {
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q2: ' + hazard.q2 + '</span>';
+      if (hazard.q2 === '是') resultText = 'CCP（Q2=是，步骤专门设计消除/降低危害）';
+    }
+    if (hazard.q3 !== undefined) {
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q3: ' + hazard.q3 + '</span>';
+      if (hazard.q3 === '否') resultText = '非CCP（Q3=否，污染不超标）';
+    }
+    if (hazard.q4 !== undefined) {
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q4: ' + hazard.q4 + '</span>';
+      if (hazard.q4 === '是') resultText = '非CCP（Q4=是，后续可消除）';
+      else if (hazard.q4 === '否') resultText = 'CCP（Q4=否，后续无法消除）';
     }
     if (resultText) {
       var isCCPResult = resultText.indexOf('CCP') !== -1 && resultText.indexOf('非') === -1 && resultText.indexOf('需修改') === -1;
@@ -1498,66 +1504,57 @@ const Questionnaire15min = (() => {
     if (exportBtn) { exportBtn.addEventListener('click', function() { alert('导出功能：将生成空白记录表格供打印使用（此功能为占位，后续可实现为PDF/Excel导出）'); }); }
   }
 
-  // ===== CCP决策树辅助函数 (5问题版本) =====
+  // ===== CCP决策树辅助函数 (标准版) =====
   // 决策树逻辑：
-  // Q1: 该加工步骤是否存在危害？ 
-  //   → 否: 非CCP
-  //   → 是: → Q2
-  // Q2: 是否存在针对已识别危害的控制措施？
-  //   → 是: → Q3
-  //   → 否: q2_need(是否有必要在此步骤进行安全控制？)
-  //         → 是: 标记"需修改步骤/工艺/产品" → 重置Q2重新评估
-  //         → 否: 非CCP
-  // Q3: 该步骤是否经过专门设计，可消除危害或将其降低至可接受水平？
+  // Q1: 有控制措施存在吗？
+  //   → 否 → Q1.1: 该步骤上的控制对安全是必要的吗？
+  //         → 是: 标记"需修改步骤/工艺/产品" → 回到Q1起点
+  //         → 否: 非CCP → 停止
+  //   → 是 → Q2
+  // Q2: 该步骤是否专门设计用于把危害的可能发生消除、降低到可接受水平？
   //   → 是: CCP
-  //   → 否: → Q4
-  // Q4: 该步骤是否会发生污染，或污染水平升高至不可接受的程度？
-  //   → 否: 非CCP
-  //   → 是: → Q5
-  // Q5: 后续步骤或操作是否会消除该危害，或将其降低至可接受水平？
-  //   → 是: 非CCP
+  //   → 否 → Q3
+  // Q3: 危害产生的污染是否会超过可接受水平或增加到不可接受水平？
+  //   → 否: 非CCP → 停止
+  //   → 是 → Q4
+  // Q4: 后续步骤可否消除危害或将危害的发生降低到可接受水平？
+  //   → 是: 非CCP → 停止
   //   → 否: CCP
   function evaluateCCPFromQA(hazard) {
     if (!hazard) return null;
-    // Q1=否 → 非CCP
-    if (hazard.q1 === '否') return false;
-    if (hazard.q1 !== '是') return null;
-    // Q2: 存在控制措施？
-    if (hazard.q2 === undefined) return null;
-    if (hazard.q2 === '否') {
-      // 检查子判断：是否有必要在此步骤进行安全控制？
-      if (hazard.q2_need === undefined) return null; // 需要先回答子问题
-      if (hazard.q2_need === '是') return 'modify'; // 需要修改，返回特殊状态
-      if (hazard.q2_need === '否') return false; // 非CCP
+    // Q1: 有控制措施存在吗？
+    if (hazard.q1 === undefined) return null;
+    if (hazard.q1 === '否') {
+      // Q1.1: 控制对安全必要吗？
+      if (hazard.q1_need === undefined) return null;
+      if (hazard.q1_need === '是') return 'modify'; // 需修改
+      if (hazard.q1_need === '否') return false; // 非CCP
     }
-    // Q2=是，进入Q3
+    // Q1=是，进入Q2
+    if (hazard.q2 === undefined) return null;
+    if (hazard.q2 === '是') return true; // CCP
+    // Q2=否，进入Q3
     if (hazard.q3 === undefined) return null;
-    if (hazard.q3 === '是') return true; // CCP
-    // Q3=否，进入Q4
+    if (hazard.q3 === '否') return false; // 非CCP
+    // Q3=是，进入Q4
     if (hazard.q4 === undefined) return null;
-    if (hazard.q4 === '否') return false; // 非CCP
-    // Q4=是，进入Q5
-    if (hazard.q5 === undefined) return null;
-    if (hazard.q5 === '是') return false; // 非CCP
-    if (hazard.q5 === '否') return true; // CCP
+    if (hazard.q4 === '是') return false; // 非CCP
+    if (hazard.q4 === '否') return true; // CCP
     return null;
   }
 
   function getNextCCPQuestion(hazard) {
     if (!hazard || hazard.q1 === undefined) return 1;
-    if (hazard.q1 === '否') return -1;
-    if (hazard.q2 === undefined) return 2;
-    if (hazard.q2 === '否') {
-      // Q2=否，需要先回答 q2_need 子问题
-      if (hazard.q2_need === undefined) return 'q2_need';
-      if (hazard.q2_need === '是') return 'q2_reset'; // 需要修改后重新评估Q2
-      if (hazard.q2_need === '否') return -1;
+    if (hazard.q1 === '否') {
+      if (hazard.q1_need === undefined) return 'q1_need';
+      if (hazard.q1_need === '是') return 'q1_reset'; // 修改后回到Q1
+      if (hazard.q1_need === '否') return -1;
     }
+    if (hazard.q2 === undefined) return 2;
+    if (hazard.q2 === '是') return -1;
     if (hazard.q3 === undefined) return 3;
-    if (hazard.q3 === '是') return -1;
+    if (hazard.q3 === '否') return -1;
     if (hazard.q4 === undefined) return 4;
-    if (hazard.q4 === '否') return -1;
-    if (hazard.q5 === undefined) return 5;
     return -1;
   }
 
@@ -1580,20 +1577,59 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('[data-step-edit]').forEach(function(el){el.addEventListener('click',function(e){if(e.target&&e.target.dataset&&e.target.dataset.stepDelete!==undefined)return;var idx=parseInt(this.dataset.stepEdit);if(!isNaN(idx)&&idx>=0&&idx<data.processSteps.length){data.currentEditingStep=idx;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();}});});
     content.querySelectorAll('[data-step-delete]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.stepDelete);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)return;if(!confirm('确定要删除步骤 "'+esc(data.processSteps[idx].stepName||('步骤'+(idx+1)))+'" 吗？'))return;data.processSteps.splice(idx,1);if(data.ccpSteps&&data.ccpSteps.length>idx)data.ccpSteps.splice(idx,1);data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();});});
     var aBtn=content.querySelector('#addNewStepBtn');if(aBtn)aBtn.addEventListener('click',function(){data.currentEditingStep=-1;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
-    var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);data.ccpPageMode='judging';data.ccpStepIndex=0;data.ccpHazardType='bio';data.ccpCurrentQ=1;saveData(data);renderActiveSection();renderSectionNav();});
+    var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);var stepCount=data.processSteps.length;var prevStepCount=data.ccpSteps?data.ccpSteps.length:0;if(stepCount!==prevStepCount){data.ccpSteps=[];normalizeCcpSteps(data);}// 步骤数未变化时保留已有的判定数据，不清空记录
+    // 根据当前编辑的步骤确定起始判断步骤
+    var startIdx=parseInt(data.currentEditingStep);if(isNaN(startIdx)||startIdx<0||startIdx>=data.processSteps.length)startIdx=0;data.ccpPageMode='judging';data.ccpStepIndex=startIdx;data.ccpHazardType='bio';data.ccpCurrentQ=1;saveData(data);renderActiveSection();renderSectionNav();});
     var cBtn=content.querySelector('#completeStepsBtn');if(cBtn)cBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);data.ccpPageMode='summary';saveData(data);renderActiveSection();renderSectionNav();});
     var aBtn2=content.querySelector('#ccpAnswerBtn');if(aBtn2)aBtn2.addEventListener('click',function(){
       normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)idx=0;
       var ht=data.ccpHazardType||'bio';var cq=data.ccpCurrentQ||1;var sel=content.querySelector('input[name="ccpQAnswer"]:checked');
       if(!sel){alert('请选择一个选项');return;}var ans=sel.value;var hz=data.ccpSteps[idx].hazards[ht];
       if(cq===1){var di=content.querySelector('#ccpHazardDescInput');hz.hazardDesc=di?di.value.trim():(hz.hazardDesc||'');hz.q1=ans;}
-      else if(cq==='q2_need')hz.q2_need=ans;else hz['q'+cq]=ans;
-      var isCCP=evaluateCCPFromQA(hz);if(isCCP!==null)hz.isCCP=isCCP;else{var nq=getNextCCPQuestion(hz);if(nq==='q2_reset'){hz.isCCP='modify';data.ccpCurrentQ=2;}else if(nq==='q2_need')data.ccpCurrentQ='q2_need';else if(nq>0)data.ccpCurrentQ=nq;}
+      else if(cq==='q2_need'){
+        hz.q1_need=ans;
+        if(ans==='是'){
+          // Q1续选"是"：待判断，自动跳转到下一个危害类型
+          var hts=['bio','chem','phys'];var hti=hts.indexOf(ht);var steps=data.processSteps||[];
+          if(hti<hts.length-1){data.ccpHazardType=hts[hti+1];data.ccpCurrentQ=1;}
+          else{if(data.ccpSteps[idx])data.ccpSteps[idx].completed=true;data.ccpPageMode='form';data.ccpHazardType='bio';data.ccpCurrentQ=1;}
+          saveData(data);renderActiveSection();renderSectionNav();return;
+        }else{
+          // Q1续选"否"：非CCP，自动跳转到下一个危害类型
+          hz.isCCP=false;
+          var hts2=['bio','chem','phys'];var hti2=hts2.indexOf(ht);var steps2=data.processSteps||[];
+          if(hti2<hts2.length-1){data.ccpHazardType=hts2[hti2+1];data.ccpCurrentQ=1;}
+          else{if(data.ccpSteps[idx])data.ccpSteps[idx].completed=true;data.ccpPageMode='form';data.ccpHazardType='bio';data.ccpCurrentQ=1;}
+          saveData(data);renderActiveSection();renderSectionNav();return;
+        }
+      }else hz['q'+cq]=ans;
+      var isCCP=evaluateCCPFromQA(hz);if(isCCP!==null)hz.isCCP=isCCP;else{var nq=getNextCCPQuestion(hz);if(nq==='q2_reset'){hz.isCCP='modify';data.ccpCurrentQ=2;}else if(nq==='q1_need')data.ccpCurrentQ='q2_need';else if(nq==='q2_need')data.ccpCurrentQ='q2_need';else if(nq>0)data.ccpCurrentQ=nq;}
       saveData(data);renderActiveSection();renderSectionNav();
     });
     var nBtn=content.querySelector('#ccpNextHazardBtn');if(nBtn)nBtn.addEventListener('click',function(){normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx))idx=0;var hts=['bio','chem','phys'];var ht=data.ccpHazardType||'bio';var hti=hts.indexOf(ht);if(hti<0)hti=0;if(hti<hts.length-1){data.ccpHazardType=hts[hti+1];data.ccpCurrentQ=1;}else{if(data.ccpSteps[idx])data.ccpSteps[idx].completed=true;data.ccpPageMode='form';data.ccpHazardType='bio';data.ccpCurrentQ=1;}saveData(data);renderActiveSection();renderSectionNav();});
     var bBtn=content.querySelector('#ccpJudgingBackBtn');if(bBtn)bBtn.addEventListener('click',function(){data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
     var sBtn=content.querySelector('#summaryBackBtn');if(sBtn)sBtn.addEventListener('click',function(){data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
+    // ===== "重新判定本危害"按钮：清除当前危害所有答案 =====
+    var resetAllBtn=content.querySelector('#ccpResetAllBtn');if(resetAllBtn)resetAllBtn.addEventListener('click',function(){normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx))idx=0;var ht=data.ccpHazardType||'bio';if(data.ccpSteps&&data.ccpSteps[idx]&&data.ccpSteps[idx].hazards&&data.ccpSteps[idx].hazards[ht]){var hz=data.ccpSteps[idx].hazards[ht];hz.hazardDesc='';hz.q1=undefined;hz.q2=undefined;hz.q3=undefined;hz.q4=undefined;hz.q5=undefined;hz.q2_need=undefined;hz.isCCP=undefined;}data.ccpCurrentQ=1;saveData(data);renderActiveSection();renderSectionNav();});
+    // ===== "上一步"按钮：从结果展示页回退到上一个问题 =====
+    function clearCcpAnswersFrom(hazard, fromQ) {
+      if (!hazard) return;
+      var qn = parseInt(fromQ);
+      if (isNaN(qn)) qn = 0;
+      for (var q = qn; q <= 5; q++) delete hazard['q' + q];
+      if (qn <= 2) delete hazard['q2_need'];
+      if (qn <= 2) delete hazard['q3'];
+      if (qn <= 3) delete hazard['q4'];
+      if (qn <= 4) delete hazard['q5'];
+      delete hazard['isCCP'];
+    }
+    var prevStepBtn=content.querySelector('#ccpPrevStepBtn');if(prevStepBtn)prevStepBtn.addEventListener('click',function(){normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx))idx=0;var ht=data.ccpHazardType||'bio';var hts=['bio','chem','phys'];var hti=hts.indexOf(ht);var currentQ=data.ccpCurrentQ||1;var curHazard=null;if(data.ccpSteps&&data.ccpSteps[idx]&&data.ccpSteps[idx].hazards&&data.ccpSteps[idx].hazards[ht]){curHazard=data.ccpSteps[idx].hazards[ht];}
+      if(currentQ==='q2_need'){if(curHazard){delete curHazard['q2_need'];delete curHazard['isCCP'];delete curHazard['q3'];delete curHazard['q4'];delete curHazard['q5'];}data.ccpCurrentQ=2;}
+      else if(currentQ>1){if(curHazard)clearCcpAnswersFrom(curHazard,currentQ);data.ccpCurrentQ=currentQ-1;}
+      else if(hti>0){var prevHt=hts[hti-1];if(curHazard)clearCcpAnswersFrom(curHazard,1);var prevH=data.ccpSteps&&data.ccpSteps[idx]&&data.ccpSteps[idx].hazards&&data.ccpSteps[idx].hazards[prevHt];if(prevH){delete prevH['isCCP'];var lastQ=0;for(var qi=1;qi<=5;qi++){if(prevH['q'+qi]!==undefined)lastQ=qi;}if(prevH.q2_need!==undefined)lastQ='q2_need';data.ccpCurrentQ=lastQ>0?lastQ:5;if(data.ccpCurrentQ>5)data.ccpCurrentQ=5;}else{data.ccpCurrentQ=5;}data.ccpHazardType=prevHt;}
+      else if(idx>0){var prevIdx=idx-1;if(data.ccpSteps&&data.ccpSteps[idx]&&data.ccpSteps[idx].hazards){['bio','chem','phys'].forEach(function(ht2){var h=data.ccpSteps[idx].hazards[ht2];if(h)clearCcpAnswersFrom(h,1);});}data.ccpStepIndex=prevIdx;data.ccpHazardType='phys';data.ccpCurrentQ=5;var prevStepH=data.ccpSteps&&data.ccpSteps[prevIdx]&&data.ccpSteps[prevIdx].hazards&&data.ccpSteps[prevIdx].hazards['phys'];if(prevStepH){delete prevStepH['isCCP'];var lastQ=0;for(var qi=1;qi<=5;qi++){if(prevStepH['q'+qi]!==undefined)lastQ=qi;}if(prevStepH.q2_need!==undefined)lastQ='q2_need';data.ccpCurrentQ=lastQ>0?lastQ:5;if(data.ccpCurrentQ>5)data.ccpCurrentQ=5;}}
+      saveData(data);renderActiveSection();renderSectionNav();});
+    
   }
 
   function bindCcpStepButtons(content, data) {
@@ -1891,7 +1927,21 @@ const Questionnaire15min = (() => {
       });
     }
 
-    // ===== 改进的"上一步"按钮 =====
+    // ===== 改进的"上一步"按钮（支持级联清除后续答案和重新编辑）=====
+    function clearCcpAnswersFrom(hazard, fromQ) {
+      if (!hazard) return;
+      var qn = parseInt(fromQ);
+      if (isNaN(qn)) qn = 0;
+      for (var q = qn; q <= 5; q++) {
+        delete hazard['q' + q];
+      }
+      if (qn <= 2) delete hazard['q2_need'];
+      if (qn <= 2) delete hazard['q3'];
+      if (qn <= 3) delete hazard['q4'];
+      if (qn <= 4) delete hazard['q5'];
+      delete hazard['isCCP'];
+    }
+
     var prevStepBtn = content.querySelector('#ccpPrevStepBtn');
     if (prevStepBtn) {
       prevStepBtn.addEventListener('click', function() {
@@ -1901,25 +1951,74 @@ const Questionnaire15min = (() => {
         var hazardTypes = ['bio', 'chem', 'phys'];
         var hazardTypeIdx = hazardTypes.indexOf(hazardType);
         
+        // 获取当前危害数据对象
+        var curHazard = null;
+        if (data.ccpSteps && data.ccpSteps[idx] && data.ccpSteps[idx].hazards && data.ccpSteps[idx].hazards[hazardType]) {
+          curHazard = data.ccpSteps[idx].hazards[hazardType];
+        }
+        
         if (currentQ === 'q2_need') {
+          // 从 q2_need 回退到 Q2
+          if (curHazard) {
+            delete curHazard['q2_need'];
+            delete curHazard['isCCP'];
+            delete curHazard['q3'];
+            delete curHazard['q4'];
+            delete curHazard['q5'];
+          }
           data.ccpCurrentQ = 2;
         } else if (currentQ > 1) {
+          // 回退到上一个问题，清除当前问题及后续问题的答案
+          if (curHazard) clearCcpAnswersFrom(curHazard, currentQ);
           data.ccpCurrentQ = currentQ - 1;
         } else if (hazardTypeIdx > 0) {
+          // 回退到上一个危害类型
           var prevHazardType = hazardTypes[hazardTypeIdx - 1];
-          data.ccpHazardType = prevHazardType;
-          data.ccpCurrentQ = 5;
-          if (data.ccpSteps && data.ccpSteps[idx] && data.ccpSteps[idx].hazards && data.ccpSteps[idx].hazards[prevHazardType]) {
-            data.ccpSteps[idx].hazards[prevHazardType].isCCP = undefined;
+          // 清除当前危害的所有答案和 isCCP
+          if (curHazard) clearCcpAnswersFrom(curHazard, 1);
+          // 也清除上一个危害的 isCCP 和后续问题，允许重新编辑
+          var prevHazard = data.ccpSteps && data.ccpSteps[idx] && data.ccpSteps[idx].hazards && data.ccpSteps[idx].hazards[prevHazardType];
+          if (prevHazard) {
+            delete prevHazard['isCCP'];
+            // 找到上一个危害最后一个有答案的问题，跳到那个问题
+            var lastQ = 0;
+            for (var qi = 1; qi <= 5; qi++) {
+              if (prevHazard['q' + qi] !== undefined) lastQ = qi;
+            }
+            if (prevHazard.q2_need !== undefined) lastQ = 'q2_need';
+            data.ccpCurrentQ = lastQ > 0 ? lastQ : 5;
+            if (data.ccpCurrentQ > 5) data.ccpCurrentQ = 5;
+          } else {
+            data.ccpCurrentQ = 5;
           }
+          data.ccpHazardType = prevHazardType;
         } else if (idx > 0) {
-          data.ccpViewMode = 'edit';
-          data.ccpEditStepIdx = idx;
-          data.ccpStepIndex = idx;
-          saveData(data);
-          renderActiveSection();
-          renderSectionNav();
-          return;
+          // 回退到上一个步骤，清除当前步骤的所有答案
+          var prevIdx = idx - 1;
+          // 清除当前步骤所有危害的 isCCP 和答案
+          if (data.ccpSteps && data.ccpSteps[idx] && data.ccpSteps[idx].hazards) {
+            var allHTs = ['bio', 'chem', 'phys'];
+            allHTs.forEach(function(ht) {
+              var h = data.ccpSteps[idx].hazards[ht];
+              if (h) clearCcpAnswersFrom(h, 1);
+            });
+          }
+          // 回退到上一步
+          data.ccpStepIndex = prevIdx;
+          data.ccpHazardType = 'phys';
+          data.ccpCurrentQ = 5;
+          // 清除上一步的 isCCP，让用户可以重新编辑
+          var prevStepHazard = data.ccpSteps && data.ccpSteps[prevIdx] && data.ccpSteps[prevIdx].hazards && data.ccpSteps[prevIdx].hazards['phys'];
+          if (prevStepHazard) {
+            delete prevStepHazard['isCCP'];
+            var lastQ = 0;
+            for (var qi = 1; qi <= 5; qi++) {
+              if (prevStepHazard['q' + qi] !== undefined) lastQ = qi;
+            }
+            if (prevStepHazard.q2_need !== undefined) lastQ = 'q2_need';
+            data.ccpCurrentQ = lastQ > 0 ? lastQ : 5;
+            if (data.ccpCurrentQ > 5) data.ccpCurrentQ = 5;
+          }
         }
         saveData(data);
         renderActiveSection();
