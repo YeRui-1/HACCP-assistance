@@ -56,9 +56,11 @@ const Questionnaire15min = (() => {
       criticalLimits: '',
       criticalLimitsData: [],
       monitoring: [{ id: genId(), ccp: '', object: '', method: '', frequency: '', personnel: '', remark: '' }],
-      correctiveActions: [{ id: genId(), ccp: '', cl: '', corrective: '', verification: '', record: '' }],
+      correctiveActions: [{ id: genId(), ccp: '', personnel: '', causeAnalysis: '', productHandling: '' }],
       recordPeriod: '',
       recordFormat: '',
+      verification: { basis: '', frequency: '', personnel: '', content: '', result: '', record: '' },
+      verificationExtraItems: [],
     };
   }
 
@@ -363,7 +365,7 @@ const Questionnaire15min = (() => {
     if (!result.execStandard) { if (text.indexOf('GB 14881') !== -1 || text.indexOf('国标') !== -1 || text.indexOf('国家标准') !== -1) result.execStandard = 'gb'; else if (text.indexOf('行业标准') !== -1) result.execStandard = 'industry'; else if (text.indexOf('企业标准') !== -1) result.execStandard = 'enterprise'; }
     var planTables = []; for (var pt = 0; pt < tables.length; pt++) { var rows = tables[pt].rows; if (rows.length < 3) continue; var headerStr = rows[0].join(' ').toLowerCase(); if (headerStr.indexOf('关键控制点') !== -1 && (headerStr.indexOf('关键限值') !== -1 || headerStr.indexOf('cl') !== -1)) planTables.push(tables[pt]); }
     if (planTables.length > 0) { var clParts = []; for (var pti = 0; pti < planTables.length; pti++) { var table = planTables[pti]; for (var ri4 = 1; ri4 < table.rows.length; ri4++) { var row = table.rows[ri4]; if (row.length >= 2) { var ccpName = row[0], clVal = row[1]; if (ccpName && clVal) clParts.push(ccpName + '：' + clVal); } } } if (clParts.length > 0) result.criticalLimits = clParts.join('\n'); }
-    if (planTables.length > 0) { for (var pti2 = 0; pti2 < planTables.length; pti2++) { var table = planTables[pti2], headerRow = table.rows[0]; var ccpIdx = -1, clIdx = -1, objIdx = -1, methodIdx = -1, freqIdx = -1, personIdx = -1, remarkIdx = -1, correctiveIdx = -1, verificationIdx = -1, recordIdx = -1; for (var ci2 = 0; ci2 < headerRow.length; ci2++) { var h = headerRow[ci2].toLowerCase(); if (h.indexOf('关键控制点') !== -1 || h === 'ccp') ccpIdx = ci2; if (h.indexOf('关键限值') !== -1 || h.indexOf('cl') !== -1) clIdx = ci2; if (h.indexOf('监控对象') !== -1 || h.indexOf('对象') !== -1) objIdx = ci2; if (h.indexOf('监控方法') !== -1 || h.indexOf('方法') !== -1) methodIdx = ci2; if (h.indexOf('监控频率') !== -1 || h.indexOf('频率') !== -1) freqIdx = ci2; if (h.indexOf('监控人员') !== -1 || h.indexOf('人员') !== -1) personIdx = ci2; if (h.indexOf('备注') !== -1) remarkIdx = ci2; if (h.indexOf('纠偏') !== -1) correctiveIdx = ci2; if (h.indexOf('验证') !== -1) verificationIdx = ci2; if (h.indexOf('记录') !== -1) recordIdx = ci2; } for (var ri5 = 1; ri5 < table.rows.length; ri5++) { var row = table.rows[ri5], ccpName = ccpIdx !== -1 ? (row[ccpIdx] || '') : ''; if (ccpName) { result.monitoring.push({ ccp: ccpName, object: objIdx !== -1 ? (row[objIdx] || '') : '', method: methodIdx !== -1 ? (row[methodIdx] || '') : '', frequency: freqIdx !== -1 ? (row[freqIdx] || '') : '', personnel: personIdx !== -1 ? (row[personIdx] || '') : '', remark: remarkIdx !== -1 ? (row[remarkIdx] || '') : '' }); if (correctiveIdx !== -1) result.correctiveActions.push({ ccp: ccpName, cl: clIdx !== -1 ? (row[clIdx] || '') : '', corrective: correctiveIdx !== -1 ? (row[correctiveIdx] || '') : '', verification: verificationIdx !== -1 ? (row[verificationIdx] || '') : '', record: recordIdx !== -1 ? (row[recordIdx] || '') : '' }); } } } }
+    if (planTables.length > 0) { for (var pti2 = 0; pti2 < planTables.length; pti2++) { var table = planTables[pti2], headerRow = table.rows[0]; var ccpIdx = -1, clIdx = -1, objIdx = -1, methodIdx = -1, freqIdx = -1, personIdx = -1, remarkIdx = -1, correctiveIdx = -1, verificationIdx = -1, recordIdx = -1; for (var ci2 = 0; ci2 < headerRow.length; ci2++) { var h = headerRow[ci2].toLowerCase(); if (h.indexOf('关键控制点') !== -1 || h === 'ccp') ccpIdx = ci2; if (h.indexOf('关键限值') !== -1 || h.indexOf('cl') !== -1) clIdx = ci2; if (h.indexOf('监控对象') !== -1 || h.indexOf('对象') !== -1) objIdx = ci2; if (h.indexOf('监控方法') !== -1 || h.indexOf('方法') !== -1) methodIdx = ci2; if (h.indexOf('监控频率') !== -1 || h.indexOf('频率') !== -1) freqIdx = ci2; if (h.indexOf('监控人员') !== -1 || h.indexOf('人员') !== -1) personIdx = ci2; if (h.indexOf('备注') !== -1) remarkIdx = ci2; if (h.indexOf('纠偏') !== -1 || h.indexOf('实施人员') !== -1) correctiveIdx = ci2; if (h.indexOf('验证') !== -1 || h.indexOf('偏离原因') !== -1) verificationIdx = ci2; if (h.indexOf('记录') !== -1 || h.indexOf('产品处理') !== -1) recordIdx = ci2; } for (var ri5 = 1; ri5 < table.rows.length; ri5++) { var row = table.rows[ri5], ccpName = ccpIdx !== -1 ? (row[ccpIdx] || '') : ''; if (ccpName) { result.monitoring.push({ ccp: ccpName, object: objIdx !== -1 ? (row[objIdx] || '') : '', method: methodIdx !== -1 ? (row[methodIdx] || '') : '', frequency: freqIdx !== -1 ? (row[freqIdx] || '') : '', personnel: personIdx !== -1 ? (row[personIdx] || '') : '', remark: remarkIdx !== -1 ? (row[remarkIdx] || '') : '' }); if (correctiveIdx !== -1) result.correctiveActions.push({ ccp: ccpName, personnel: correctiveIdx !== -1 ? (row[correctiveIdx] || '') : '', causeAnalysis: verificationIdx !== -1 ? (row[verificationIdx] || '') : '', productHandling: recordIdx !== -1 ? (row[recordIdx] || '') : '' }); } } } }
     var recordMatch = text.match(/(?:记录保存|保存期限|记录期限)[：:。]?\s*(\d+\s*[年月])/);
     if (recordMatch) result.recordPeriod = recordMatch[1];
     if (text.indexOf('电子') !== -1 && text.indexOf('纸质') !== -1) result.recordFormat = '电子版+纸质版'; else if (text.indexOf('电子') !== -1) result.recordFormat = '电子版'; else if (text.indexOf('纸质') !== -1) result.recordFormat = '纸质版';
@@ -429,7 +431,7 @@ const Questionnaire15min = (() => {
     if (aiData.hazardChem && Array.isArray(aiData.hazardChem)) data.hazardChem = aiData.hazardChem.map(function(h) { return { desc: h.desc || '', severity: h.severity || '中', likelihood: h.likelihood || '中', control: h.control || '' }; });
     if (aiData.hazardPhys && Array.isArray(aiData.hazardPhys)) data.hazardPhys = aiData.hazardPhys.map(function(h) { return { desc: h.desc || '', severity: h.severity || '中', likelihood: h.likelihood || '中', control: h.control || '' }; });
     if (aiData.monitoring && Array.isArray(aiData.monitoring) && aiData.monitoring.length > 0) data.monitoring = aiData.monitoring.map(function(m) { return { id: genId(), ccp: m.ccp || '', object: m.object || '', method: m.method || '', frequency: m.frequency || '', personnel: m.personnel || '', remark: m.remark || '' }; });
-    if (aiData.correctiveActions && Array.isArray(aiData.correctiveActions) && aiData.correctiveActions.length > 0) data.correctiveActions = aiData.correctiveActions.map(function(c) { return { id: genId(), ccp: c.ccp || '', cl: c.cl || '', corrective: c.corrective || '', verification: c.verification || '', record: c.record || '' }; });
+    if (aiData.correctiveActions && Array.isArray(aiData.correctiveActions) && aiData.correctiveActions.length > 0) data.correctiveActions = aiData.correctiveActions.map(function(c) { return { id: genId(), ccp: c.ccp || '', personnel: c.personnel || '', causeAnalysis: c.causeAnalysis || '', productHandling: c.productHandling || '' }; });
     saveData(data); renderActiveSection();
   }
 
@@ -1328,7 +1330,7 @@ const Questionnaire15min = (() => {
         // 关键限值表
         html += '<div style="padding:12px 16px;">';
         html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;">📊 关键限值（CL）</div>';
-        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th style="width:120px;">参数</th><th style="width:100px;">限值</th><th style="width:60px;">单位</th><th style="min-width:120px;">法规依据</th><th style="width:50px;"></th></tr></thead><tbody id="clBody_' + li + '">';
+        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>参数</th><th>限值</th><th>单位</th><th>法规依据</th><th style="width:50px;"></th></tr></thead><tbody id="clBody_' + li + '">';
         clData.limits.forEach(function(lim, li2) {
           html += '<tr data-cl-idx="' + li + '" data-cl-lim="' + li2 + '">' +
             '<td><input type="text" class="cl-input cl-param" value="' + esc(lim.param) + '" placeholder="如：中心温度" style="width:100%;"></td>' +
@@ -1343,7 +1345,7 @@ const Questionnaire15min = (() => {
         
         // 操作限值表
         html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;color:#6366f1;">⚙️ 操作限值（OL）<span style="font-weight:400;font-size:11px;color:var(--gray-400);"> — 为防止偏离关键限值而设立更严格的内控限值</span></div>';
-        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th style="width:120px;">参数</th><th style="width:100px;">操作限值</th><th style="width:60px;">单位</th><th style="width:50px;"></th></tr></thead><tbody id="olBody_' + li + '">';
+        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>参数</th><th>操作限值</th><th>单位</th><th style="width:50px;"></th></tr></thead><tbody id="olBody_' + li + '">';
         clData.operatingLimits.forEach(function(ol, oli) {
           html += '<tr data-ol-idx="' + li + '" data-ol-lim="' + oli + '">' +
             '<td><input type="text" class="ol-input ol-param" value="' + esc(ol.param) + '" placeholder="如：中心温度" style="width:100%;"></td>' +
@@ -1386,16 +1388,118 @@ const Questionnaire15min = (() => {
     return html;
   }
 
+  // ===== CCP 判定结果自动同步到监控程序和纠正措施 =====
+  function syncCCPToMonitoringAndCorrective(data) {
+    // 从 ccpSteps 中找出所有被判定为 CCP 的步骤名称
+    var ccpStepNames = [];
+    (data.ccpSteps || []).forEach(function(cs, si) {
+      if (!cs || !cs.hazards) return;
+      var stepName = cs.stepName || ((data.processSteps[si] || {}).stepName || '');
+      if (!stepName) return;
+      var hasCCP = ['bio', 'chem', 'phys'].some(function(ht) {
+        return cs.hazards[ht] && cs.hazards[ht].isCCP === true;
+      });
+      if (hasCCP && ccpStepNames.indexOf(stepName) === -1) {
+        ccpStepNames.push(stepName);
+      }
+    });
+
+    if (ccpStepNames.length === 0) return;
+
+    // 同步到 monitoring（仅当该 CCP 尚未存在时追加）
+    ccpStepNames.forEach(function(name) {
+      var exists = data.monitoring.some(function(m) { return m.ccp === name; });
+      if (!exists) {
+        data.monitoring.push({
+          id: genId(), ccp: name, object: '',
+          method: '', frequency: '', personnel: '', remark: ''
+        });
+      }
+    });
+
+    // 同步到 correctiveActions（仅当该 CCP 尚未存在时追加）
+    ccpStepNames.forEach(function(name) {
+      var exists = data.correctiveActions.some(function(c) { return c.ccp === name; });
+      if (!exists) {
+        data.correctiveActions.push({
+          id: genId(), ccp: name,
+          personnel: '', causeAnalysis: '', productHandling: ''
+        });
+      }
+    });
+  }
+
   function renderMonitoring(data) {
-    return '<h3>监控程序设置</h3><p class="q15-table-hint">AI根据危害的严重性、发生概率、法规要求、企业历史数据给出建议</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">\u{1F916} AI规划监控方案</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>监控对象</th><th>监控方法</th><th>监控频率</th><th>监控人员</th><th>备注</th><th style="width:50px">操作</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="如：CCP-3杀菌工序"></td><td><input type="text" value="' + esc(m.object) + '" placeholder="杀菌的温度、时间"></td><td><input type="text" value="' + esc(m.method) + '" placeholder="推荐：在线温度传感器连续监控"></td><td><input type="text" value="' + esc(m.frequency) + '" placeholder="如：每批次实时记录"></td><td><input type="text" value="' + esc(m.personnel) + '" placeholder="经过HACCP培训的品控专员"></td><td><input type="text" value="' + esc(m.remark) + '" placeholder="依据 GB 14881-2013"></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">+ 添加监控项</button>';
+    syncCCPToMonitoringAndCorrective(data);
+    return '<h3>监控程序设置</h3><p class="q15-table-hint">AI根据危害的严重性、发生概率、法规要求、企业历史数据给出建议</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">\u{1F916} AI规划监控方案</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>监控对象</th><th>监控方法</th><th>监控频率</th><th>监控人员</th><th>备注</th><th style="width:50px">操作</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="如：CCP-3杀菌工序" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="杀菌的温度、时间">' + esc(m.object) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="推荐：在线温度传感器连续监控">' + esc(m.method) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="如：每批次实时记录">' + esc(m.frequency) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="经过HACCP培训的品控专员">' + esc(m.personnel) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="依据 GB 14881-2013">' + esc(m.remark) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">+ 添加监控项</button>';
   }
 
   function renderCorrective(data) {
-    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划</p><table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>关键限值(CL)</th><th>纠偏措施</th><th>验证</th><th>记录</th><th style="width:50px">操作</th></tr></thead><tbody id="correctiveBody">' + data.correctiveActions.map(function(c, i) { return '<tr data-ca-idx="' + i + '"><td><input type="text" value="' + esc(c.ccp) + '" placeholder="如：杀菌工序"></td><td><input type="text" value="' + esc(c.cl) + '" placeholder="如：90\u2103"></td><td><input type="text" value="' + esc(c.corrective) + '" placeholder="纠偏措施"></td><td><input type="text" value="' + esc(c.verification) + '" placeholder="验证方法"></td><td><input type="text" value="' + esc(c.record) + '" placeholder="记录表格"></td><td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addCorrectiveRow">+ 添加纠偏项</button>';
+    syncCCPToMonitoringAndCorrective(data);
+    var footerTips = '' +
+      '<div style="margin:16px 0;padding:14px 18px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#991b1b;line-height:1.6;">' +
+        '<div style="font-weight:600;margin-bottom:4px;">⚠️ 评估说明</div>' +
+        '<p style="margin:0;">在评估受影响产品时，可进行生物、化学或物理特性的测量或检验。若核查结果表明危害处于可接受指标之内，可放行产品至后续操作；否则，应返工、降级、改变用途、废弃等。</p>' +
+      '</div>' +
+      '<div style="margin:10px 0 16px 0;padding:14px 18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1e40af;line-height:1.6;">' +
+        '<div style="font-weight:600;margin-bottom:4px;">🔄 重新评估说明</div>' +
+        '<p style="margin:0;">当某个关键限值的监视结果反复发生偏离或偏离原因涉及相应控制措施的控制能力时，HACCP小组应重新评估相关控制措施的有效性和适宜性，必要时对其予以改进并更新。</p>' +
+      '</div>';
+    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划</p>' +
+      '<table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>实施人员</th><th>偏离原因</th><th>产品处理</th><th style="width:50px;">操作</th></tr></thead><tbody id="correctiveBody">' +
+      data.correctiveActions.map(function(c, i) {
+        return '<tr data-ca-idx="' + i + '">' +
+          '<td><input type="text" value="' + esc(c.ccp) + '" placeholder="如：杀菌工序" style="width:100%;"></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="实施纠偏措施和负责受影响产品放行的人员">' + esc(c.personnel) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="偏离原因的识别和消除">' + esc(c.causeAnalysis) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="受影响产品的隔离、评估和处理">' + esc(c.productHandling) + '</textarea></td>' +
+          '<td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<button class="btn btn-sm btn-secondary" id="addCorrectiveRow">+ 添加纠偏项</button>' +
+      footerTips;
   }
 
   function renderVerification(data) {
-    return '<div class="q15-field-group"><label>验证方法</label><textarea data-q15-field="verificationMethod" rows="4" placeholder="描述验证程序的方法，如：\n1. 每批次对CCP监控记录进行审核\n2. 每周对纠偏记录进行回顾\n3. 每月进行成品抽样检测\n4. 每季度进行环境微生物监测">' + (data.verificationMethod || '') + '</textarea></div><div class="q15-field-group"><label>验证频率</label><input type="text" data-q15-field="verificationFrequency" value="' + (data.verificationFrequency || '') + '" placeholder="如：每日、每周、每批次"></div><div class="q15-field-group"><label>验证人员</label><input type="text" data-q15-field="verificationPersonnel" value="' + (data.verificationPersonnel || '') + '" placeholder="如：HACCP小组组长、品控主管"></div><div class="q15-confirm-box" style="margin-top:16px;"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="verificationConfirmed"' + (data.verificationConfirmed ? ' checked' : '') + '> 验证程序已完成确认</label></div>';
+    if (typeof data.verification !== 'object') data.verification = { basis: '', frequency: '', personnel: '', content: '', result: '', record: '' };
+    if (!Array.isArray(data.verificationExtraItems)) data.verificationExtraItems = [];
+
+    var ver = data.verification;
+    var extraHtml = (data.verificationExtraItems || []).map(function(e, i) {
+      return '<tr data-vx-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="项目名称" style="width:100%;"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="项目内容" style="width:100%;"></td><td><button class="q15-del-row" data-vx-idx="' + i + '">&times;</button></td></tr>';
+    }).join('');
+
+    var fieldLabels = [
+      { key: 'basis', label: '验证的依据和方法', hint: '如：GB 14881-2013' },
+      { key: 'frequency', label: '验证的频次', hint: '如：每季度一次' },
+      { key: 'personnel', label: '验证的人员', hint: '如：HACCP小组组长' },
+      { key: 'content', label: '验证的内容', hint: '如：现场审核' },
+      { key: 'result', label: '验证结果及采取的措施', hint: '如：合格，无需整改' },
+      { key: 'record', label: '验证记录', hint: '如：记录表编号XXX' }
+    ];
+    var cardsHtml = fieldLabels.map(function(f, i) {
+      return '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-bottom:12px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+        '<span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-700));color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' + (i + 1) + '</span>' +
+        '<label style="font-size:14px;font-weight:600;color:var(--gray-800);">' + f.label + '</label></div>' +
+        '<textarea data-q15-field="verification.' + f.key + '" rows="2" style="width:100%;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;background:#fff;" placeholder="' + f.hint + '">' + esc(ver[f.key] || '') + '</textarea></div>';
+    }).join('');
+    var extraCardsHtml = (data.verificationExtraItems || []).map(function(e, i) {
+      return '<div class="pf-iu-row" data-vx-idx="' + i + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">' +
+        '<input type="text" value="' + esc(e.key) + '" class="vx-key" placeholder="项目名称" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
+        '<input type="text" value="' + esc(e.value) + '" class="vx-val" placeholder="项目内容" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
+        '<button class="q15-del-row" data-vx-idx="' + i + '" style="flex-shrink:0;">&times;</button></div>';
+    }).join('');
+    return '<h3>验证程序</h3>' +
+      '<p class="q15-table-hint">企业应建立并实施对HACCP计划的确认和验证程序，以证实HACCP计划的完整性、适宜性、有效性。确认程序应包括对HACCP计划所有要素有效性的证实。确认应在HACCP计划实施前或变更后。</p>' +
+      cardsHtml +
+      '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-top:16px;">' +
+      '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">📋 新增验证项目</h3>' +
+      '<div id="verificationExtraBody">' +
+      (extraCardsHtml || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">暂无新增项目</div>') +
+      '</div>' +
+      '<button class="btn btn-xs btn-secondary" id="addVerificationExtraRow" style="margin-top:4px;">+ 添加项目</button></div>';
   }
 
   function renderRecordKeeping(data) {
@@ -1642,12 +1746,12 @@ const Questionnaire15min = (() => {
     const addMonitorBtn = content.querySelector('#addMonitorRow');
     if (addMonitorBtn) { addMonitorBtn.addEventListener('click', function() { data.monitoring.push({ id: genId(), ccp: '', object: '', method: '', frequency: '', personnel: '', remark: '' }); saveData(data); renderActiveSection(); }); }
     content.querySelectorAll('#monitorBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.mnIdx); if (data.monitoring.length > 1) { data.monitoring.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
-    content.querySelectorAll('#monitorBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.mnIdx), inputs = row.querySelectorAll('input'); if (data.monitoring[idx]) { data.monitoring[idx].ccp = inputs[0].value; data.monitoring[idx].object = inputs[1].value; data.monitoring[idx].method = inputs[2].value; data.monitoring[idx].frequency = inputs[3].value; data.monitoring[idx].personnel = inputs[4].value; data.monitoring[idx].remark = inputs[5].value; saveData(data); } }); });
+    content.querySelectorAll('#monitorBody input, #monitorBody textarea').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.mnIdx), cells = row.querySelectorAll('input, textarea'); if (data.monitoring[idx]) { data.monitoring[idx].ccp = cells[0].value; data.monitoring[idx].object = cells[1].value; data.monitoring[idx].method = cells[2].value; data.monitoring[idx].frequency = cells[3].value; data.monitoring[idx].personnel = cells[4].value; data.monitoring[idx].remark = cells[5].value; saveData(data); } }); });
 
     const addCorrectiveBtn = content.querySelector('#addCorrectiveRow');
-    if (addCorrectiveBtn) { addCorrectiveBtn.addEventListener('click', function() { data.correctiveActions.push({ id: genId(), ccp: '', cl: '', corrective: '', verification: '', record: '' }); saveData(data); renderActiveSection(); }); }
+    if (addCorrectiveBtn) { addCorrectiveBtn.addEventListener('click', function() { data.correctiveActions.push({ id: genId(), ccp: '', personnel: '', causeAnalysis: '', productHandling: '' }); saveData(data); renderActiveSection(); }); }
     content.querySelectorAll('#correctiveBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.caIdx); if (data.correctiveActions.length > 1) { data.correctiveActions.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
-    content.querySelectorAll('#correctiveBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.caIdx), inputs = row.querySelectorAll('input'); if (data.correctiveActions[idx]) { data.correctiveActions[idx].ccp = inputs[0].value; data.correctiveActions[idx].cl = inputs[1].value; data.correctiveActions[idx].corrective = inputs[2].value; data.correctiveActions[idx].verification = inputs[3].value; data.correctiveActions[idx].record = inputs[4].value; saveData(data); } }); });
+    content.querySelectorAll('#correctiveBody input, #correctiveBody textarea').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.caIdx), cells = row.querySelectorAll('input, textarea'); if (data.correctiveActions[idx]) { data.correctiveActions[idx].ccp = cells[0].value; data.correctiveActions[idx].personnel = cells[1].value; data.correctiveActions[idx].causeAnalysis = cells[2].value; data.correctiveActions[idx].productHandling = cells[3].value; saveData(data); } }); });
 
     const aiMonitorBtn = content.querySelector('#aiMonitorBtn');
     if (aiMonitorBtn) {
@@ -1790,6 +1894,12 @@ const Questionnaire15min = (() => {
       bindCcpStepButtons(content, data);
     }
     bindNewCcpButtons(content, data);
+
+    // 验证程序 - 新增项目表格事件绑定
+    const addVerificationExtraBtn = content.querySelector('#addVerificationExtraRow');
+    if (addVerificationExtraBtn) { addVerificationExtraBtn.addEventListener('click', function() { data.verificationExtraItems.push({ id: genId(), key: '', value: '' }); saveData(data); renderActiveSection(); }); }
+    content.querySelectorAll('#verificationExtraBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.vxIdx); if (data.verificationExtraItems.length > 0) { data.verificationExtraItems.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
+    content.querySelectorAll('#verificationExtraBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('[data-vx-idx]'), idx = parseInt(row ? row.dataset.vxIdx : -1); if (!isNaN(idx) && data.verificationExtraItems[idx]) { var keyInput = row.querySelector('.vx-key'); var valInput = row.querySelector('.vx-val'); if (keyInput && valInput) { data.verificationExtraItems[idx].key = keyInput.value; data.verificationExtraItems[idx].value = valInput.value; saveData(data); } } }); });
 
     bindFlowchartButtons(data);
     const exportBtn = content.querySelector('#exportTableBtn');
