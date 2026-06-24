@@ -3,11 +3,16 @@ import hashlib
 import hmac
 import json
 import os
+import pathlib
 import random
 import re
+import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
+
+# 确保能找到 backend 目录下的模块
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 # 加载 .env 文件
 from dotenv import load_dotenv
@@ -17,7 +22,6 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-your-deepseek-api-key-here")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
-import pathlib
 from fastapi import FastAPI, HTTPException, Depends
 from typing import List
 from fastapi.responses import FileResponse

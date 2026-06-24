@@ -1,8 +1,11 @@
 import json
+import os
+import pathlib
 import sqlite3
 from datetime import datetime
 
-DB_PATH = "./haccp.db"
+# 数据库文件在项目根目录
+DB_PATH = str(pathlib.Path(__file__).resolve().parent.parent / "haccp.db")
 
 
 def get_conn():

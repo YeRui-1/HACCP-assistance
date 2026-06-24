@@ -461,9 +461,51 @@ const Questionnaire15min = (() => {
   function renderActiveSection() {
     const content = document.getElementById('q15Content');
     if (!content) return;
-    const data = loadData();
+    // 修复损坏的数据（如旧版本localStorage数据）
+    let data;
+    try {
+      data = loadData();
+      if (typeof data.processSteps === 'string') data.processSteps = [];
+      if (typeof data.hazardWorksheet === 'string') data.hazardWorksheet = [];
+      if (typeof data.ccpSteps === 'string') data.ccpSteps = [];
+      if (!Array.isArray(data.processSteps)) data.processSteps = [];
+      if (!Array.isArray(data.hazardWorksheet)) data.hazardWorksheet = [];
+      if (!Array.isArray(data.ccpSteps)) data.ccpSteps = [];
+      if (!Array.isArray(data.monitoring)) data.monitoring = [];
+      if (!Array.isArray(data.correctiveActions)) data.correctiveActions = [];
+    } catch (e) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SECTION_COMPLETED_KEY);
+      localStorage.removeItem('haccp_15min_submitted');
+      localStorage.removeItem('haccp_submitted');
+      data = getDefaultData();
+    }
     const sections = [renderProcessFlow, renderHazardAnalysis, renderCriticalLimits, renderMonitoring, renderCorrective, renderVerification, renderRecordKeeping];
-    const sectionHTML = sections[currentStep](data);
+    let sectionHTML = '';
+    try {
+      sectionHTML = sections[currentStep](data);
+    } catch (e) {
+      console.error('渲染章节失败:', e);
+      sectionHTML = '<div style="padding:24px;text-align:center;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin:20px 0;">' +
+        '<div style="font-size:40px;margin-bottom:12px;">⚠️</div>' +
+        '<h3 style="color:#991b1b;margin-bottom:8px;">页面加载出现异常</h3>' +
+        '<p style="color:#b91c1c;font-size:14px;margin-bottom:16px;">这可能是因为之前保存的数据格式不兼容。您可以尝试重置数据后重新开始。</p>' +
+        '<button class="btn btn-primary" id="resetDataBtn" style="background:#dc2626;border-color:#dc2626;">🔄 重置数据并重新开始</button>' +
+        '</div>';
+      setTimeout(() => {
+        document.getElementById('resetDataBtn')?.addEventListener('click', function() {
+          if (confirm('确定要重置所有问卷数据吗？此操作不可恢复！')) {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(SECTION_COMPLETED_KEY);
+            localStorage.removeItem('haccp_15min_submitted');
+            localStorage.removeItem('haccp_submitted');
+            currentStep = 0;
+            renderActiveSection();
+            renderSectionNav();
+          }
+        });
+      }, 50);
+    }
     content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + (currentStep < TOTAL_STEPS - 1 ? '<button class="btn btn-primary" id="q15NextBtn">下一步 \u2192</button>' : '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>') + '</div>';
     bindSectionEvents(content, data);
     document.getElementById('q15PrevBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep > 0) { currentStep--; renderActiveSection(); renderSectionNav(); } });
@@ -1895,7 +1937,7 @@ const Questionnaire15min = (() => {
           data.ccpSteps[idx].hazards[hazardType].hazardDesc = desc;
         }
       }
-    
+    }
 
     // 确认回答按钮
     var answerBtn = content.querySelector('#ccpAnswerBtn');
