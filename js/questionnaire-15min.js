@@ -1,4 +1,4 @@
-// 15分钟问卷 - 完整HACCP问卷填写模块
+// HACCP计划书创建模块 - 完整HACCP问卷填写模块
 const Questionnaire15min = (() => {
   const STORAGE_KEY = 'haccp_15min_data';
 
@@ -96,8 +96,8 @@ const Questionnaire15min = (() => {
     container.innerHTML = `
       <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
       <div class="q15-header">
-        <h1>15分钟快速问卷</h1>
-        <p class="q15-desc">请按照产品实际情况填写以下信息，系统将根据您的输入生成HACCP计划</p>
+        <h1>${I18n.t('q15.title')}</h1>
+        <p class="q15-desc">${I18n.t('q15.desc')}</p>
         <div class="q15-progress" id="q15Progress"></div>
       </div>
       <div id="q15Content"></div>
