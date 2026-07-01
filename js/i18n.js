@@ -30,8 +30,8 @@ const I18n = (() => {
     'home.btnStart':        ['开始创建', 'Start Creating'],
 
     // ===== 大厅 =====
-    'lobby.card1.title':    ['填写问卷', 'Fill Questionnaire'],
-    'lobby.card1.desc':     ['回答产品与工艺相关问题，为生成 HACCP 计划提供信息', 'Answer questions about your product and process to provide information for HACCP plan generation'],
+    'lobby.card1.title':    ['开始填写', 'Start Filling'],
+    'lobby.card1.desc':     ['根据问卷创建HACCP计划书', 'Create HACCP plan based on questionnaire'],
     'lobby.card2.title':    ['查看结果', 'View Results'],
     'lobby.card2.desc':     ['查看已生成的 HACCP 计划文档', 'View the generated HACCP plan document'],
     'lobby.card2.btn':      ['查看计划', 'View Plan'],
