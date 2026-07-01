@@ -437,7 +437,10 @@ const Questionnaire15min = (() => {
 
   let currentStep = 0;
   const TOTAL_STEPS = 7;
-  const SECTION_NAMES = ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立纠正措施', '建立验证程序', '建立记录保持程序'];
+  const SECTION_NAMES = (function() {
+    try { return [I18n.t('q15.step0'), I18n.t('q15.step1'), I18n.t('q15.step2'), I18n.t('q15.step3'), I18n.t('q15.step4'), I18n.t('q15.step5'), I18n.t('q15.step6')]; }
+    catch(e) { return ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立纠偏措施', '建立验证程序', '建立记录保持程序']; }
+  })();
 
   function renderSectionNav() {
     const data = loadData();
