@@ -556,7 +556,8 @@ const Profile = (() => {
     defs.innerHTML = '<marker id="pfM1" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#222"/></marker><marker id="pfM2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#e53935"/></marker><marker id="pfM3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#059669"/></marker>';
     svg.appendChild(defs);
     var cnt = ed.steps.length, totalH = Math.max(FC_TH, FC_SY + cnt * FC_YG + 30);
-    svg.setAttribute('width', 1600); svg.setAttribute('height', totalH);
+    svg.setAttribute('width', '100%'); svg.setAttribute('height', totalH);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
     svg.setAttribute('viewBox', '0 0 1600 ' + totalH);
     var ix = FC_CX - FC_NW/2 - FC_AL;
     // Input arrow
@@ -624,13 +625,13 @@ const Profile = (() => {
         '<div class="pf-fc-columns">' +
           '<div class="pf-fc-left">' +
             '<div class="pf-fc-editor-section"><h5>步骤编辑</h5>' +
-            '<ul class="fcp-step-list" id="pfFcStepList" style="max-height:250px;">' + stepItems + '</ul>' +
-            '<div class="fcp-add-step" style="margin-top:4px;"><input id="pfFcNewStep" placeholder="新步骤名称"><button class="btn btn-primary btn-sm" onclick="Profile.fcAddStep()">+ 添加</button></div></div>' +
-            '<div class="pf-fc-editor-section"><h5>↩️ 左侧输入箭头</h5><div class="fcp-arrow-list" id="pfFcLeftList" style="max-height:100px;">' + (leftArrowItems || leftEmpty) + '</div>' +
+            '<ul class="fcp-step-list" id="pfFcStepList">' + stepItems + '</ul>' +
+            '<div class="fcp-add-step" style="margin-top:8px;"><input id="pfFcNewStep" placeholder="新步骤名称"><button class="btn btn-primary btn-sm" onclick="Profile.fcAddStep()">+ 添加</button></div></div>' +
+            '<div class="pf-fc-editor-section"><h5>↩️ 左侧输入箭头</h5><div class="fcp-arrow-list" id="pfFcLeftList">' + (leftArrowItems || leftEmpty) + '</div>' +
             '<div class="fcp-arrow-add"><input id="pfFcLaS" placeholder="步号" style="width:40px;"><input id="pfFcLaA" placeholder="上方"><input id="pfFcLaB" placeholder="下方" style="width:60px;"><button class="btn btn-xs btn-primary" onclick="Profile.fcAddLeftNote()">+</button></div></div>' +
-            '<div class="pf-fc-editor-section"><h5>↪️ 右侧输出箭头</h5><div class="fcp-arrow-list" id="pfFcRightList" style="max-height:100px;">' + (rightArrowItems || rightEmpty) + '</div>' +
+            '<div class="pf-fc-editor-section"><h5>↪️ 右侧输出箭头</h5><div class="fcp-arrow-list" id="pfFcRightList">' + (rightArrowItems || rightEmpty) + '</div>' +
             '<div class="fcp-arrow-add"><input id="pfFcRaS" placeholder="步号" style="width:40px;"><input id="pfFcRaA" placeholder="上方"><input id="pfFcRaB" placeholder="下方" style="width:60px;"><button class="btn btn-xs btn-primary" onclick="Profile.fcAddRightNote()">+</button></div></div>' +
-            '<div class="pf-fc-editor-section"><h5>🔴 返工箭头</h5><div class="fcp-arrow-list" id="pfFcReworkList" style="max-height:80px;">' + (reworkItems || reworkEmpty) + '</div>' +
+            '<div class="pf-fc-editor-section"><h5>🔴 返工箭头</h5><div class="fcp-arrow-list" id="pfFcReworkList">' + (reworkItems || reworkEmpty) + '</div>' +
             '<div class="fcp-arrow-add"><input id="pfFcRwS" placeholder="源" style="width:40px;"><input id="pfFcRwT" placeholder="目标" style="width:40px;"><input id="pfFcRwL" placeholder="标签"><button class="btn btn-xs btn-primary" onclick="Profile.fcAddRework()">+</button></div></div>' +
           '</div>' +
           '<div class="pf-fc-right"><div class="pf-fc-svg-wrap" id="pfFcSvgWrap"></div>' +
@@ -801,5 +802,5 @@ const Profile = (() => {
   function fcResetDefault(){if(!confirm('确认恢复默认流程图？将丢失所有自定义修改。'))return;var d=loadData();d.fcEditor={steps:FC_DEFAULT_STEPS.slice(),ccp:FC_DEFAULT_CCP.slice(),leftNotes:JSON.parse(JSON.stringify(FC_DEFAULT_LEFT)),rightNotes:JSON.parse(JSON.stringify(FC_DEFAULT_RIGHT)),rework:JSON.parse(JSON.stringify(FC_DEFAULT_REWORK))};fcRenderAll(d);}
   function fcGenDrawioXml(){var d=loadData(),ed=fcLoadEditorData(d);var lines=['<mxfile host="HACCP-assistance" version="21.0.0">','  <diagram id="pf-haccp-flow" name="菊粉生产工艺流程图">'];var totalH=FC_SY+ed.steps.length*FC_YG+30;lines.push('    <mxGraphModel pageWidth="1600" pageHeight="'+totalH+'"><root><mxCell id="0"/><mxCell id="1" parent="0"/>');var yp=FC_SY;for(var i=0;i<ed.steps.length;i++){var isCCP=ed.ccp[i]===1;var fc=isCCP?'#dc2626':'#f5f5f5',sc=isCCP?'#991b1b':'#666666',fn=isCCP?'#ffffff':'#333333';lines.push('        <mxCell id="n'+(i+1)+'" value="'+esc(ed.steps[i])+'" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor='+fc+';strokeColor='+sc+';fontColor='+fn+';fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="'+(FC_CX-FC_NW/2)+'" y="'+yp+'" width="'+FC_NW+'" height="'+FC_NH+'" as="geometry"/></mxCell>');yp+=FC_YG;}for(var i=0;i<ed.steps.length-1;i++)lines.push('        <mxCell id="e'+(i+1)+'" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#000000;strokeWidth=2;" edge="1" source="n'+(i+1)+'" target="n'+(i+2)+'" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>');for(var r=0;r<ed.rework.length;r++){var s=ed.rework[r][0]+1,t=ed.rework[r][1]+1;var fY=fcNCY(ed.rework[r][0]),tY=fcNCY(ed.rework[r][1]),mx=FC_CX+FC_NW/2+140;if(ed.rework[r][2])lines.push('        <mxCell id="rw'+(r+1)+'" value="'+esc(ed.rework[r][2])+'" style="edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#e53935;strokeWidth=2;dashed=1;dashPattern=8 4;fillColor=#e53935;fontColor=#e53935;fontStyle=1;fontSize=11;" edge="1" source="n'+s+'" target="n'+t+'" parent="1"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="'+mx+'" y="'+fY+'"/><mxPoint x="'+mx+'" y="'+tY+'"/></Array></mxGeometry></mxCell>');}lines.push('      </root></mxGraphModel></diagram></mxfile>');window.open('https://app.diagrams.net/#xml='+encodeURIComponent(lines.join('\n')));}
 
-  return { init: init, loadData: loadData, fcEditStep: fcEditStep, fcToggleCCP: fcToggleCCP, fcMoveUp: fcMoveUp, fcMoveDown: fcMoveDown, fcAddStep: fcAddStep, fcDelStep: fcDelStep, fcEditLeftNote: fcEditLeftNote, fcEditRightNote: fcEditRightNote, fcEditRework: fcEditRework, fcAddLeftNote: fcAddLeftNote, fcAddRightNote: fcAddRightNote, fcAddRework: fcAddRework, fcDelLeftNote: fcDelLeftNote, fcDelRightNote: fcDelRightNote, fcDelRework: fcDelRework, fcResetDefault: fcResetDefault, fcGenDrawioXml: fcGenDrawioXml };
+  return { init: init, loadData: loadData, fcToggleCCP: fcToggleCCP, fcMoveUp: fcMoveUp, fcMoveDown: fcMoveDown, fcAddStep: fcAddStep, fcDelStep: fcDelStep, fcEditLeftNote: fcEditLeftNote, fcEditRightNote: fcEditRightNote, fcEditRework: fcEditRework, fcAddLeftNote: fcAddLeftNote, fcAddRightNote: fcAddRightNote, fcAddRework: fcAddRework, fcDelLeftNote: fcDelLeftNote, fcDelRightNote: fcDelRightNote, fcDelRework: fcDelRework, fcResetDefault: fcResetDefault, fcGenDrawioXml: fcGenDrawioXml };
 })();
