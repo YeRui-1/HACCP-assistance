@@ -747,9 +747,11 @@ const Questionnaire15min = (() => {
     html += '<div>d) 加工中一个以上的步骤可以控制一种危害。</div>';
     html += '</div></div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>CCP判断</button>';
+    html += '<button class="btn btn-primary btn-sm" id="aiCcpBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>🤖 AI辅助CCP判定</button>';
+    html += '<button class="btn btn-outline btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>📋 手动CCP判断</button>';
     html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">新增步骤</button>';
     html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>完成</button>';
+    html += '<span id="aiCcpHint" style="font-size:12px;color:var(--gray-400);margin-left:4px;align-self:center;"></span>';
     html += '</div>';
     return html;
   }
@@ -1263,19 +1265,31 @@ const Questionnaire15min = (() => {
     var steps=data.processSteps||[];var ccpSteps=data.ccpSteps||[];
     if(steps.length===0)return '<p style="color:var(--gray-400);text-align:center;padding:20px;">暂无步骤数据，请先返回填写步骤。</p><div style="margin-top:16px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
     var hts=['bio','chem','phys'];var hf={bio:'B:生物危害',chem:'C:化学危害',phys:'P:物理危害'};var rows=[];
+    var hasAI = ccpSteps.some(function(cs) {
+      return cs && cs.hazards && ['bio','chem','phys'].some(function(ht) { return cs.hazards[ht] && cs.hazards[ht].aiReasoning; });
+    });
     steps.forEach(function(step,si){hts.forEach(function(ht,hi){
       var h=(ccpSteps[si]&&ccpSteps[si].hazards&&ccpSteps[si].hazards[ht])?ccpSteps[si].hazards[ht]:{};
       var ccp='未判定';if(h.isCCP===true)ccp='<span style="color:#dc2626;font-weight:600;">是（CCP）</span>';
       else if(h.isCCP===false)ccp='<span style="color:#16a34a;font-weight:600;">否</span>';
       else if(h.isCCP==='modify')ccp='<span style="color:#d97706;font-weight:600;">需修改</span>';
+      var aiTag = h.aiReasoning ? '<span style="font-size:10px;color:#7c3aed;font-weight:500;">🤖 AI分析</span>' : '';
+      var reasoningCell = h.aiReasoning ? '<td style="font-size:11px;color:#6b7280;">' + esc(h.aiReasoning.length > 40 ? h.aiReasoning.substring(0, 40) + '...' : h.aiReasoning) + '</td>' : '<td></td>';
       rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(step.stepName||('步骤'+(si+1)))+'</td>':'')+
       '<td>'+hf[ht]+(h.hazardDesc?'<br><span style="font-size:12px;color:#64748b;">'+esc(h.hazardDesc)+'</span>':'')+'</td>'+
       '<td style="text-align:center;">'+esc(h.q1||'—')+'</td>'+
       '<td style="text-align:center;">'+esc(h.q2||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">续:'+esc(h.q2_need)+'</span>':'')+'</td>'+
-      '<td style="text-align:center;">'+esc(h.q3||'—')+'</td><td style="text-align:center;">'+esc(h.q4||'—')+'</td><td style="text-align:center;">'+esc(h.q5||'—')+'</td><td style="text-align:center;">'+ccp+'</td></tr>');
+      '<td style="text-align:center;">'+esc(h.q3||'—')+'</td><td style="text-align:center;">'+esc(h.q4||'—')+'</td><td style="text-align:center;">'+esc(h.q5||'—')+'</td><td style="text-align:center;">'+ccp+aiTag+'</td>'+
+      (hasAI ? reasoningCell : '') + '</tr>');
     });});
-    var html='<h3 style="margin-bottom:12px;">CCP判定汇总表</h3>';
-    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:820px;"><thead><tr><th>加工步骤</th><th>潜在危害</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+    var html = '';
+    if (hasAI) {
+      html += '<div style="margin-bottom:12px;padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:13px;color:#6d28d9;">';
+      html += '🤖 <strong>AI辅助判定完成</strong> — 以下结果由AI基于Codex判断树规则自动分析生成，请人工复核确认';
+      html += '</div>';
+    }
+    html+='<h3 style="margin-bottom:12px;">CCP判定汇总表</h3>';
+    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:' + (hasAI ? '960px' : '820px') + ';"><thead><tr><th>加工步骤</th><th>潜在危害</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th>' + (hasAI ? '<th>AI分析依据</th>' : '') + '</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
     html+='<div style="margin-top:16px;display:flex;gap:10px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
     return html;
   }
@@ -2246,6 +2260,75 @@ const Questionnaire15min = (() => {
   // Q4: 后续步骤可否消除危害或将危害的发生降低到可接受水平？
   //   → 是: 非CCP → 停止
   //   → 否: CCP
+  // ===== AI辅助CCP判定 =====
+  function aiCcpJudgment(data) {
+    var steps = data.processSteps || [];
+    if (steps.length === 0) { alert('请先保存至少一个步骤'); return; }
+    normalizeCcpSteps(data);
+
+    var stepPayload = steps.map(function(s) {
+      return { stepName: s.stepName || '', operationMethod: s.operationMethod || '', parameters: s.parameters || '', equipmentName: s.equipmentName || '' };
+    });
+
+    var hint = document.getElementById('aiCcpHint');
+    var aiBtn = document.getElementById('aiCcpBtn');
+    if (hint) hint.textContent = '⏳ AI正在根据Codex判断树判定CCP...';
+    if (aiBtn) aiBtn.disabled = true;
+
+    var apiUrl = (window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+      ? 'http://localhost:8000' : '';
+    apiUrl += '/api/ai/ccp-judgment';
+
+    fetch(apiUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product_name: data.productName || '',
+        raw_materials: data.rawMaterials || '',
+        process_description: (data.processSteps || []).map(function(s) { return s.stepName + (s.operationMethod ? ': ' + s.operationMethod : ''); }).join('; '),
+        steps: stepPayload
+      })
+    })
+    .then(function(resp) { if (!resp.ok) throw new Error('HTTP ' + resp.status); return resp.json(); })
+    .then(function(result) {
+      if (!result.ok || !result.data || !result.data.judgments) throw new Error('AI返回数据格式错误');
+      var judgments = result.data.judgments;
+      normalizeCcpSteps(data);
+      judgments.forEach(function(j) {
+        var si = j.stepIndex;
+        if (si < 0 || si >= data.processSteps.length) return;
+        if (!data.ccpSteps[si]) data.ccpSteps[si] = { stepName: data.processSteps[si].stepName || '', hazards: {}, completed: false };
+        if (!data.ccpSteps[si].hazards) data.ccpSteps[si].hazards = {};
+        if (!data.ccpSteps[si].hazards.bio) data.ccpSteps[si].hazards.bio = {};
+        if (!data.ccpSteps[si].hazards.chem) data.ccpSteps[si].hazards.chem = {};
+        if (!data.ccpSteps[si].hazards.phys) data.ccpSteps[si].hazards.phys = {};
+        ['bio','chem','phys'].forEach(function(ht) {
+          var h = (j.hazards && j.hazards[ht]) ? j.hazards[ht] : {};
+          var hz = data.ccpSteps[si].hazards[ht];
+          hz.hazardDesc = h.hazardDesc || hz.hazardDesc || '';
+          hz.q1 = h.q1 || hz.q1 || '';
+          hz.q2 = h.q2 || hz.q2 || '';
+          hz.q3 = h.q3 || hz.q3 || '';
+          hz.q4 = h.q4 || hz.q4 || '';
+          hz.q5 = h.q5 || hz.q5 || '';
+          if (h.q2_need) hz.q2_need = h.q2_need;
+          hz.isCCP = h.isCCP;
+          hz.aiReasoning = h.reasoning || '';
+        });
+        data.ccpSteps[si].completed = true;
+      });
+      data.ccpPageMode = 'summary';
+      saveData(data);
+      if (hint) hint.textContent = '✅ AI判定完成';
+      if (aiBtn) aiBtn.disabled = false;
+      renderActiveSection(); renderSectionNav();
+    })
+    .catch(function(err) {
+      console.error('AI CCP判定失败:', err);
+      if (hint) hint.textContent = '⚠️ AI不可用，请使用手动CCP判断';
+      if (aiBtn) aiBtn.disabled = false;
+    });
+  }
+
   function evaluateCCPFromQA(hazard) {
     if (!hazard) return null;
     // Q1: 有控制措施存在吗？
@@ -2303,6 +2386,7 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('[data-step-edit]').forEach(function(el){el.addEventListener('click',function(e){if(e.target&&e.target.dataset&&e.target.dataset.stepDelete!==undefined)return;var idx=parseInt(this.dataset.stepEdit);if(!isNaN(idx)&&idx>=0&&idx<data.processSteps.length){data.currentEditingStep=idx;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();}});});
     content.querySelectorAll('[data-step-delete]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.stepDelete);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)return;if(!confirm('确定要删除步骤 "'+esc(data.processSteps[idx].stepName||('步骤'+(idx+1)))+'" 吗？'))return;data.processSteps.splice(idx,1);if(data.ccpSteps&&data.ccpSteps.length>idx)data.ccpSteps.splice(idx,1);data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();});});
     var aBtn=content.querySelector('#addNewStepBtn');if(aBtn)aBtn.addEventListener('click',function(){data.currentEditingStep=-1;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
+    var aiBtn=content.querySelector('#aiCcpBtn');if(aiBtn)aiBtn.addEventListener('click',function(){collectSectionData(content,data);aiCcpJudgment(data);});
     var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);var stepCount=data.processSteps.length;var prevStepCount=data.ccpSteps?data.ccpSteps.length:0;if(stepCount!==prevStepCount){data.ccpSteps=[];normalizeCcpSteps(data);}// 步骤数未变化时保留已有的判定数据，不清空记录
     // 根据当前编辑的步骤确定起始判断步骤
     var startIdx=parseInt(data.currentEditingStep);if(isNaN(startIdx)||startIdx<0||startIdx>=data.processSteps.length)startIdx=0;data.ccpPageMode='judging';data.ccpStepIndex=startIdx;data.ccpHazardType='bio';data.ccpCurrentQ=1;saveData(data);renderActiveSection();renderSectionNav();});
