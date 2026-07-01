@@ -130,7 +130,24 @@ const Profile = (() => {
     const container = document.getElementById('profileContainer');
     if (!container) return;
     const data = loadData();
+    // 检测是否处于 HACCP 审查模式
+    var reviewActive = false;
+    var reviewedCount = 0;
+    var totalItems = 8;
+    try { reviewActive = sessionStorage.getItem('haccp_review_active') === 'true'; } catch(e) {}
+    try {
+      var reviewMap = JSON.parse(localStorage.getItem('haccp_review_status') || '{}');
+      reviewedCount = Object.keys(reviewMap).length;
+    } catch(e) {}
+    var reviewBanner = '';
+    if (reviewActive) {
+      reviewBanner = '<div class="haccp-review-banner" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📋</span><span style="font-size:13px;color:#166534;">HACCP确认审查中（已预览 <strong>' + reviewedCount + '</strong>/<strong>' + totalItems + '</strong>）</span></div>' +
+        '<button class="btn btn-sm btn-primary" id="backToHaccpReviewBtn" style="padding:5px 14px;font-size:12px;background:#16a34a;border-color:#16a34a;">← 返回HACCP确认</button>' +
+      '</div>';
+    }
     container.innerHTML = '' +
+      reviewBanner +
       '<a class="back-link" href="javascript:App.navigateTo(\'home\')">← 返回首页</a>' +
       '<div class="q15-header">' +
         '<h1>15-min快速问卷</h1>' +
@@ -140,6 +157,30 @@ const Profile = (() => {
       '<div id="profileContent"></div>';
     renderSectionNav();
     renderActiveSection();
+    // 绑定审查模式返回按钮
+    document.getElementById('backToHaccpReviewBtn')?.addEventListener('click', function() {
+      // 跳回HACCP计划书 - 步骤5（纠偏措施）
+      App.navigateTo('questionnaire');
+      setTimeout(function() {
+        if (typeof Questionnaire15min !== 'undefined') {
+          // 尝试打开审查弹窗
+          var data = Questionnaire15min.loadData();
+          if (typeof showHaccpConfirmationModal !== 'undefined' && typeof _haccpConfirmationData === 'undefined') {
+            // 通过模拟点击"生成计划"按钮来打开弹窗
+            var genBtn = document.getElementById('q15GeneratePlanBtn');
+            if (genBtn) genBtn.click();
+            else {
+              // 手动调用
+              var qData = Questionnaire15min.loadData();
+              qData._haccpSignerName = qData._haccpSignerName || '';
+              qData._haccpSignDate = qData._haccpSignDate || '';
+              // 导航到步骤5
+              try { currentStep = 4; renderActiveSection(); renderSectionNav(); } catch(e) {}
+            }
+          }
+        }
+      }, 200);
+    });
   }
 
   function renderSectionNav() {

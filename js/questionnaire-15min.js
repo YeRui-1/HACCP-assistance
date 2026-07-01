@@ -3710,6 +3710,7 @@ const Questionnaire15min = (() => {
 
         // 设置为审查模式，显示返回横幅
         _haccpReviewActive = true;
+        try { sessionStorage.setItem('haccp_review_active', 'true'); } catch(e) {}
 
         // 如果是 profile 相关项，跳转到首页档案
         if (item.step === 'profile') {
