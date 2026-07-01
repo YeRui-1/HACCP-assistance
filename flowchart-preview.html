@@ -110,7 +110,22 @@ function esx(s){return esc(s)}
 var cur=[];
 
 function init(){
-  cur=DS.slice();
+  try{
+    var savedSteps=localStorage.getItem('steps');
+    var savedCcp=localStorage.getItem('ccp');
+    var savedLN=localStorage.getItem('leftNotes');
+    var savedRN=localStorage.getItem('rightNotes');
+    var savedRW=localStorage.getItem('rework');
+    if(savedSteps&&savedCcp){
+      cur=JSON.parse(savedSteps);
+      DC=JSON.parse(savedCcp);
+      if(savedLN)LN=JSON.parse(savedLN);
+      if(savedRN)RN=JSON.parse(savedRN);
+      if(savedRW)RW=JSON.parse(savedRW);
+    }else{
+      cur=DS.slice();
+    }
+  }catch(e){cur=DS.slice();}
   renderAll();
 }
 
@@ -233,7 +248,7 @@ function gx(){
   l.push('      </root></mxGraphModel></diagram></mxfile>');return l.join('\n');
 }
 
-function updateXml(){var x=gx();try{localStorage.setItem('steps',JSON.stringify(cur));localStorage.setItem('ccp',JSON.stringify(DC));localStorage.setItem('xml',x)}catch(e){}}
+function updateXml(){var x=gx();try{localStorage.setItem('steps',JSON.stringify(cur));localStorage.setItem('ccp',JSON.stringify(DC));localStorage.setItem('leftNotes',JSON.stringify(LN));localStorage.setItem('rightNotes',JSON.stringify(RN));localStorage.setItem('rework',JSON.stringify(RW));localStorage.setItem('xml',x)}catch(e){}}
 document.getElementById('ob').addEventListener('click',function(){window.open('https://app.diagrams.net/#xml='+encodeURIComponent(gx()))});
 
 // 保存流程图到 localStorage（供HACCP报告读取）

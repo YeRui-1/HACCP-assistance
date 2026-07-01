@@ -1578,3 +1578,12 @@ async def serve_index():
     if index_path.exists():
         return FileResponse(str(index_path))
     return {"error": "index.html not found"}
+
+
+@app.get("/{filename:path}")
+async def serve_static(filename: str):
+    """提供根目录下的静态 HTML 文件（如 flowchart-preview.html, flowchart-v2.html 等）"""
+    file_path = PROJECT_ROOT / filename
+    if file_path.exists() and file_path.is_file() and file_path.suffix in (".html", ".json", ".xml", ".png", ".jpg", ".svg", ".ico"):
+        return FileResponse(str(file_path))
+    return FileResponse(str(PROJECT_ROOT / "index.html"))
