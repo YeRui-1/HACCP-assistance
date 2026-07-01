@@ -161,6 +161,32 @@ const Results = (() => {
       </div>
     `;
 
+    // 验证程序状态卡片（放在最上方，紧接AI报告之后）
+    var verSubmitted = data.verificationSubmitted || false;
+    var verSigner = data.verificationSignerName || '';
+    var verDate = data.verificationSignerDate || '';
+    if (verSubmitted) {
+      html += '<div class="results-section" style="background:#f0fdf4;border:1px solid #86efac;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:24px;">✅</span>' +
+        '<div><div style="font-weight:600;color:#166534;">验证程序已提交</div>' +
+        '<div style="font-size:12px;color:#475569;margin-top:2px;">组长签名：<strong>' + esc(verSigner) + '</strong> | 签名日期：<strong>' + esc(verDate) + '</strong></div></div>' +
+        '</div>' +
+        '<button class="btn btn-sm btn-secondary" id="resultEditVerBtn" style="border-color:#86efac;color:#166534;">📝 编辑验证程序</button>' +
+        '</div></div>';
+    } else {
+      html += '<div class="results-section" style="background:#fffbeb;border:1px solid #fde68a;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:24px;">⏰</span>' +
+        '<div><div style="font-weight:600;color:#92400e;">验证程序尚未填写</div>' +
+        '<div style="font-size:12px;color:#92400e;margin-top:2px;">请尽快完成HACCP验证程序的填写和组长签名提交</div></div>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm" id="resultEditVerBtn">📝 去填写验证程序</button>' +
+        '</div></div>';
+    }
+
     // 如果生产步骤有数据，展示可视化流程图（使用独立ID避免重复）
     const steps = data.processSteps || [];
     if (steps.some(s => s.stepName && s.stepName.trim())) {
@@ -323,6 +349,14 @@ const Results = (() => {
       '<div class="result-item"><span class="ri-label">记录格式要求</span><span class="ri-value">' + fieldValue(data.recordFormat) + '</span></div></div>';
 
     container.innerHTML = html;
+
+    // 绑定验证程序编辑按钮
+    var editVerBtn = document.getElementById('resultEditVerBtn');
+    if (editVerBtn) {
+      editVerBtn.addEventListener('click', function() {
+        App.navigateToVerification();
+      });
+    }
 
     // 15min 模式：用 Mermaid 渲染生产步骤流程图（若可用）
     var mermaidDiv = container.querySelector('#section-q15-flowchart .mermaid');

@@ -16,6 +16,7 @@
       </div>
       <div class="header-actions">
         <button class="btn-lang" id="btnLang" title="Switch Language">EN</button>
+        <button class="btn-header" id="btnVerification" style="display:none;" title="验证程序">🔐 验证程序</button>
         <button class="btn-header" id="btnAuth" style="display:none;"></button>
         <button class="btn-admin" id="btnAdmin" data-i18n="nav.admin">管理</button>
       </div>
@@ -76,6 +77,20 @@
             <div class="card-status" id="cardStatus"></div>
             <button class="btn btn-secondary" id="btnGoResults" data-i18n="lobby.card2.btn">查看计划</button>
           </div>
+          <div class="lobby-card" id="cardRecords">
+            <div class="card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <rect x="10" y="9" width="4" height="4" rx="1"/>
+              </svg>
+            </div>
+            <h2>记录管理</h2>
+            <p>管理HACCP运行记录，包括产品描述、监控、纠偏和验证记录</p>
+            <button class="btn btn-primary" id="btnGoRecords" style="background:linear-gradient(135deg,#0891b2,#06b6d4);">📋 记录管理</button>
+          </div>
         </div>
       </div>
     </section>
@@ -104,6 +119,16 @@
         </aside>
         <div class="results-content" id="resultsContent"></div>
       </div>
+    </section>
+
+    <!-- 验证程序页 -->
+    <section id="verification" class="page">
+      <div class="records-container" id="verificationContainer"></div>
+    </section>
+
+    <!-- 记录管理页 -->
+    <section id="records" class="page">
+      <div class="records-container" id="recordsContainer"></div>
     </section>
 
     <!-- 管理页 -->
@@ -295,6 +320,8 @@
         'js/questionnaire.js' + ver,
         'js/profile.js' + ver,
         'js/questionnaire-15min.js' + ver,
+        'js/verification.js' + ver,
+        'js/records.js' + ver,
         'js/results.js' + ver,
         'js/flowchart-viewer.js' + ver,
         'js/flowchart-parser.js' + ver,

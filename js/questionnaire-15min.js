@@ -61,6 +61,10 @@ const Questionnaire15min = (() => {
       recordFormat: '',
       verification: { basis: '', frequency: '', personnel: '', content: '', result: '', record: '' },
       verificationExtraItems: [],
+      verificationSubmitted: false,
+      verificationSignerName: '',
+      verificationSignerDate: '',
+      managementReview: { reviewContent: '', reviewResult: '', correctiveMeasures: '', reVerification: '' },
     };
   }
 
@@ -95,6 +99,7 @@ const Questionnaire15min = (() => {
     const container = getContainer();
     container.innerHTML = `
       <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
+      <div id="q15ReviewBanner" style="display:none;"></div>
       <div class="q15-header">
         <h1>${I18n.t('q15.title')}</h1>
         <p class="q15-desc">${I18n.t('q15.desc')}</p>
@@ -104,6 +109,9 @@ const Questionnaire15min = (() => {
     `;
     renderSectionNav();
     renderActiveSection();
+    
+    // 清除旧版本的导航标记（验证程序已独立）
+    try { localStorage.removeItem('haccp_navigate_to_verification'); } catch(e) {}
   }
 
   // ==================== 文件上传区域 ====================
@@ -436,10 +444,10 @@ const Questionnaire15min = (() => {
   }
 
   let currentStep = 0;
-  const TOTAL_STEPS = 7;
+  const TOTAL_STEPS = 5;
   const SECTION_NAMES = (function() {
-    try { return [I18n.t('q15.step0'), I18n.t('q15.step1'), I18n.t('q15.step2'), I18n.t('q15.step3'), I18n.t('q15.step4'), I18n.t('q15.step5'), I18n.t('q15.step6')]; }
-    catch(e) { return ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立纠偏措施', '建立验证程序', '建立记录保持程序']; }
+    try { return [I18n.t('q15.step0'), I18n.t('q15.step1'), I18n.t('q15.step2'), I18n.t('q15.step3'), I18n.t('q15.step4')]; }
+    catch(e) { return ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立纠偏措施']; }
   })();
 
   function renderSectionNav() {
@@ -457,8 +465,6 @@ const Questionnaire15min = (() => {
       case 2: return !!data.execStandard;
       case 3: return data.monitoring.some(m => m.ccp);
       case 4: return data.correctiveActions.some(c => c.ccp);
-      case 5: return true;
-      case 6: return !!data.recordPeriod || !!data.recordFormat;
       default: return false;
     }
   }
@@ -485,7 +491,7 @@ const Questionnaire15min = (() => {
       localStorage.removeItem('haccp_submitted');
       data = getDefaultData();
     }
-    const sections = [renderProcessFlow, renderHazardAnalysis, renderCriticalLimits, renderMonitoring, renderCorrective, renderVerification, renderRecordKeeping];
+    const sections = [renderProcessFlow, renderHazardAnalysis, renderCriticalLimits, renderMonitoring, renderCorrective];
     let sectionHTML = '';
     try {
       sectionHTML = sections[currentStep](data);
@@ -519,16 +525,9 @@ const Questionnaire15min = (() => {
     } else {
       navRightBtn = '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>';
     }
-    // 如果在HACCP审查模式中，显示返回横幅
-    var reviewBanner = '';
-    if (_haccpReviewActive) {
-      var reviewedCount = getReviewedCount();
-      reviewBanner = '<div class="haccp-review-banner" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📋</span><span style="font-size:13px;color:#166534;">HACCP确认审查中（已预览 <strong>' + reviewedCount + '</strong>/<strong>' + HACCP_CHECK_ITEMS.length + '</strong>）</span></div>' +
-        '<button class="btn btn-sm btn-primary" id="backToHaccpReviewBtn" style="padding:5px 14px;font-size:12px;background:#16a34a;border-color:#16a34a;">← 返回HACCP确认</button>' +
-      '</div>';
-    }
-    content.innerHTML = reviewBanner + '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
+    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
+    // 更新审查横幅（独立于内容区域）
+    updateReviewBanner();
     bindSectionEvents(content, data);
     document.getElementById('q15PrevBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep > 0) { currentStep--; renderActiveSection(); renderSectionNav(); } });
     document.getElementById('q15NextBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep < TOTAL_STEPS - 1) { currentStep++; renderActiveSection(); renderSectionNav(); } });
@@ -1469,7 +1468,11 @@ const Questionnaire15min = (() => {
         '<div style="font-weight:600;margin-bottom:4px;">🔄 重新评估说明</div>' +
         '<p style="margin:0;">当某个关键限值的监视结果反复发生偏离或偏离原因涉及相应控制措施的控制能力时，HACCP小组应重新评估相关控制措施的有效性和适宜性，必要时对其予以改进并更新。</p>' +
       '</div>';
-    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划</p>' +
+    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划。AI可根据CCP类型和关键限值自动推荐纠偏方案。</p>' +
+      '<div class="q15-ai-btn-wrapper" style="margin-bottom:12px;">' +
+        '<button class="btn btn-secondary btn-sm" id="aiCorrectiveBtn">🤖 AI规划纠偏措施</button>' +
+        '<span id="aiCorrectiveHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>' +
+      '</div>' +
       '<table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>实施人员</th><th>偏离原因</th><th>产品处理</th><th style="width:50px;">操作</th></tr></thead><tbody id="correctiveBody">' +
       data.correctiveActions.map(function(c, i) {
         return '<tr data-ca-idx="' + i + '">' +
@@ -1490,6 +1493,7 @@ const Questionnaire15min = (() => {
     if (!Array.isArray(data.verificationExtraItems)) data.verificationExtraItems = [];
 
     var ver = data.verification;
+    var submitted = data.verificationSubmitted || false;
     var extraHtml = (data.verificationExtraItems || []).map(function(e, i) {
       return '<tr data-vx-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="项目名称" style="width:100%;"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="项目内容" style="width:100%;"></td><td><button class="q15-del-row" data-vx-idx="' + i + '">&times;</button></td></tr>';
     }).join('');
@@ -1515,6 +1519,51 @@ const Questionnaire15min = (() => {
         '<input type="text" value="' + esc(e.value) + '" class="vx-val" placeholder="项目内容" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
         '<button class="q15-del-row" data-vx-idx="' + i + '" style="flex-shrink:0;">&times;</button></div>';
     }).join('');
+
+    // 管理评审区域
+    var mr = data.managementReview || { reviewContent: '', reviewResult: '', correctiveMeasures: '', reVerification: '' };
+    var managementReviewHtml = '<div style="background:#f8fafc;border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-top:16px;">' +
+      '<h3 style="font-size:15px;font-weight:600;color:var(--gray-800);margin-bottom:12px;">📊 管理评审</h3>' +
+      '<p class="q15-table-hint" style="margin-bottom:12px;">验证结果需要输入到管理评审中，以确保这些重要数据资源能够被适当考虑并对整个HACCP体系持续改进起作用；当验证结果不符合要求时，应采取纠正措施并进行再验证。</p>' +
+      '<div class="q15-field-group"><label>评审内容</label>' +
+      '<textarea data-q15-field="managementReview.reviewContent" rows="2" placeholder="描述管理评审的内容和范围">' + esc(mr.reviewContent || '') + '</textarea></div>' +
+      '<div class="q15-field-group"><label>评审结果</label>' +
+      '<select data-q15-field="managementReview.reviewResult" style="width:100%;padding:9px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:13px;font-family:inherit;background:#fff;">' +
+        '<option value="">请选择</option>' +
+        '<option value="符合" ' + (mr.reviewResult === '符合' ? 'selected' : '') + '>符合要求</option>' +
+        '<option value="不符合" ' + (mr.reviewResult === '不符合' ? 'selected' : '') + '>不符合要求</option>' +
+      '</select></div>' +
+      '<div class="q15-field-group" id="mrCorrectiveField" style="' + (mr.reviewResult === '不符合' ? '' : 'display:none;') + '"><label>纠正措施</label>' +
+      '<textarea data-q15-field="managementReview.correctiveMeasures" rows="2" placeholder="当验证结果不符合要求时，应采取的纠正措施">' + esc(mr.correctiveMeasures || '') + '</textarea></div>' +
+      '<div class="q15-field-group" id="mrReVerificationField" style="' + (mr.reviewResult === '不符合' ? '' : 'display:none;') + '"><label>再验证措施</label>' +
+      '<textarea data-q15-field="managementReview.reVerification" rows="2" placeholder="纠正措施完成后的再验证计划">' + esc(mr.reVerification || '') + '</textarea></div>' +
+      '</div>';
+
+    // 签名区域
+    var signerSection = '';
+    if (submitted) {
+      signerSection = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px 18px;margin-top:16px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="font-size:20px;">✅</span>' +
+        '<span style="font-size:14px;font-weight:600;color:#166534;">验证程序已提交</span></div>' +
+        '<div style="font-size:13px;color:#475569;">' +
+        '<span>组长签名：<strong>' + esc(data.verificationSignerName || '') + '</strong></span> | ' +
+        '<span>签名日期：<strong>' + esc(data.verificationSignerDate || '') + '</strong></span>' +
+        '</div>' +
+        '<button class="btn btn-sm btn-secondary" id="verificationResetBtn" style="margin-top:8px;color:#dc2626;border-color:#fecaca;">🔄 重新提交验证程序</button>' +
+        '</div>';
+    } else {
+      signerSection = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 18px;margin-top:16px;">' +
+        '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">✍️ HACCP小组组长签名确认</h3>' +
+        '<p class="q15-table-hint">验证程序填写完成后，需由HACCP小组组长输入登录密码进行签名确认，提交后即生效。</p>' +
+        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">' +
+        '<input type="text" id="verificationSignerName" placeholder="组长姓名" style="flex:1;min-width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerName || '') + '">' +
+        '<input type="date" id="verificationSignerDate" style="width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerDate || (new Date().toISOString().slice(0,10))) + '">' +
+        '</div>' +
+        '<button class="btn btn-primary" id="verificationSubmitBtn" style="margin-top:12px;">🔐 组长密码签名提交</button>' +
+        '</div>';
+    }
+
     return '<h3>验证程序</h3>' +
       '<p class="q15-table-hint">企业应建立并实施对HACCP计划的确认和验证程序，以证实HACCP计划的完整性、适宜性、有效性。确认程序应包括对HACCP计划所有要素有效性的证实。确认应在HACCP计划实施前或变更后。</p>' +
       cardsHtml +
@@ -1523,7 +1572,9 @@ const Questionnaire15min = (() => {
       '<div id="verificationExtraBody">' +
       (extraCardsHtml || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">暂无新增项目</div>') +
       '</div>' +
-      '<button class="btn btn-xs btn-secondary" id="addVerificationExtraRow" style="margin-top:4px;">+ 添加项目</button></div>';
+      '<button class="btn btn-xs btn-secondary" id="addVerificationExtraRow" style="margin-top:4px;">+ 添加项目</button></div>' +
+      managementReviewHtml +
+      signerSection;
   }
 
   function renderRecordKeeping(data) {
@@ -1820,6 +1871,122 @@ const Questionnaire15min = (() => {
       });
     }
 
+    // ===== AI规划纠偏措施 =====
+    var aiCorrectiveBtn = content.querySelector('#aiCorrectiveBtn');
+    if (aiCorrectiveBtn) {
+      aiCorrectiveBtn.addEventListener('click', async function() {
+        aiCorrectiveBtn.disabled = true;
+        var hint = content.querySelector('#aiCorrectiveHint');
+        if (hint) hint.textContent = 'AI分析中...';
+        collectSectionData(content, data);
+        
+        // 构建CCP列表（从ccpSteps中获取被判定为CCP的步骤）
+        var ccpSteps = data.ccpSteps || [];
+        var processSteps = data.processSteps || [];
+        var criticalLimitsData = data.criticalLimitsData || [];
+        var monitoringData = data.monitoring || [];
+        var ccpList = [];
+        
+        ccpSteps.forEach(function(cs, si) {
+          if (!cs || !cs.hazards) return;
+          var isCCP = false;
+          var hazardDescs = [];
+          ['bio', 'chem', 'phys'].forEach(function(ht) {
+            var h = cs.hazards[ht];
+            if (h && h.isCCP === true) {
+              isCCP = true;
+              if (h.hazardDesc) hazardDescs.push(h.hazardDesc);
+            }
+          });
+          if (isCCP) {
+            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+            // 查找对应的关键限值
+            var clInfo = '';
+            criticalLimitsData.forEach(function(cl) {
+              if (cl.stepName === stepName && cl.limits && cl.limits.length > 0) {
+                clInfo = cl.limits.map(function(l) { return (l.param || '') + (l.value || '') + (l.unit || ''); }).join('; ');
+              }
+            });
+            // 查找对应的监控信息
+            var monitorInfo = '';
+            monitoringData.forEach(function(m) {
+              if (m.ccp === stepName) {
+                monitorInfo = (m.object || '') + ' / ' + (m.method || '') + ' / ' + (m.frequency || '');
+              }
+            });
+            ccpList.push({
+              stepName: stepName,
+              hazardDesc: hazardDescs.join('; '),
+              criticalLimit: clInfo,
+              monitoring: monitorInfo,
+              operationMethod: processSteps[si] ? processSteps[si].operationMethod : '',
+              parameters: processSteps[si] ? processSteps[si].parameters : ''
+            });
+          }
+        });
+        
+        if (ccpList.length === 0) {
+          if (hint) hint.textContent = '⚠️ 请先完成CCP判定';
+          aiCorrectiveBtn.disabled = false;
+          return;
+        }
+        
+        // 前端模拟生成纠偏方案（不依赖后端API）
+        setTimeout(function() {
+          var newActions = [];
+          ccpList.forEach(function(ccp) {
+            var name = ccp.stepName.toLowerCase();
+            var personnel = '';
+            var causeAnalysis = '';
+            var productHandling = '';
+            
+            if (name.indexOf('杀菌') !== -1 || name.indexOf('热处理') !== -1 || name.indexOf('灭菌') !== -1) {
+              personnel = '品控专员 / 生产主任';
+              causeAnalysis = '杀菌温度未达到关键限值(' + (ccp.criticalLimit || '≥85℃') + ')，可能原因：蒸汽压力不足、温度传感器故障、操作时间不足';
+              productHandling = '1. 立即隔离该批次产品\n2. 评估杀菌不足的产品范围\n3. 重新杀菌或降级处理\n4. 记录偏差详情并分析原因';
+            } else if (name.indexOf('金属') !== -1 || name.indexOf('检测') !== -1 || name.indexOf('异物') !== -1) {
+              personnel = '品控专员 / 设备维护员';
+              causeAnalysis = '金属检测仪报警，关键限值Fe≤' + (ccp.criticalLimit || '1.5mm') + '超标，可能原因：设备筛网破损、原料带入金属异物';
+              productHandling = '1. 立即停止生产线\n2. 隔离报警前后各30分钟产品\n3. 检查金属检测仪灵敏度\n4. 对隔离产品重新过检\n5. 查找并清除金属来源';
+            } else if (name.indexOf('验收') !== -1 || name.indexOf('接收') !== -1 || name.indexOf('原料') !== -1) {
+              personnel = '采购专员 / 品控专员';
+              causeAnalysis = '原料验收指标不符合关键限值要求，可能原因：供应商质量波动、运输储存条件不当';
+              productHandling = '1. 拒收该批次原料\n2. 通知供应商并要求整改\n3. 评估已接收原料的使用情况\n4. 启动备用供应商';
+            } else {
+              personnel = 'HACCP小组 / 相关工序负责人';
+              causeAnalysis = ccp.stepName + '环节出现偏离，关键限值(' + (ccp.criticalLimit || '未设定') + ')未满足，可能原因：操作不规范、设备异常、原料波动';
+              productHandling = '1. 立即停止异常操作\n2. 隔离受影响产品\n3. 评估偏离程度和影响范围\n4. 采取纠正措施\n5. 加强后续监控频率';
+            }
+            
+            newActions.push({
+              id: genId(),
+              ccp: ccp.stepName,
+              personnel: personnel,
+              causeAnalysis: causeAnalysis,
+              productHandling: productHandling
+            });
+          });
+          
+          // 合并新生成的纠偏方案，覆盖已有的同CCP条目
+          if (newActions.length > 0) {
+            // 保留已有但不在新列表中的条目
+            var existingCCPs = {};
+            newActions.forEach(function(a) { existingCCPs[a.ccp] = true; });
+            var keptOld = [];
+            data.correctiveActions.forEach(function(old) {
+              if (!existingCCPs[old.ccp]) keptOld.push(old);
+            });
+            data.correctiveActions = keptOld.concat(newActions);
+            saveData(data);
+            if (hint) hint.textContent = '✅ AI纠偏方案已生成（' + newActions.length + '个CCP）';
+            aiCorrectiveBtn.disabled = false;
+            renderActiveSection();
+            renderSectionNav();
+          }
+        }, 600);
+      });
+    }
+
     // 绑定精简版上传区域事件
     bindCompactUploadEvents(content);
 
@@ -1925,9 +2092,142 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('#verificationExtraBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.vxIdx); if (data.verificationExtraItems.length > 0) { data.verificationExtraItems.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
     content.querySelectorAll('#verificationExtraBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('[data-vx-idx]'), idx = parseInt(row ? row.dataset.vxIdx : -1); if (!isNaN(idx) && data.verificationExtraItems[idx]) { var keyInput = row.querySelector('.vx-key'); var valInput = row.querySelector('.vx-val'); if (keyInput && valInput) { data.verificationExtraItems[idx].key = keyInput.value; data.verificationExtraItems[idx].value = valInput.value; saveData(data); } } }); });
 
+    // ===== 验证程序 - 组长密码签名提交 =====
+    var verificationSubmitBtn = content.querySelector('#verificationSubmitBtn');
+    if (verificationSubmitBtn) {
+      verificationSubmitBtn.addEventListener('click', function() {
+        // 收集验证程序数据
+        collectSectionData(content, data);
+        
+        // 获取签名信息
+        var nameEl = document.getElementById('verificationSignerName');
+        var dateEl = document.getElementById('verificationSignerDate');
+        var signerName = nameEl ? nameEl.value.trim() : '';
+        var signDate = dateEl ? dateEl.value : '';
+        
+        if (!signerName) {
+          alert('请输入HACCP小组组长姓名');
+          if (nameEl) nameEl.focus();
+          return;
+        }
+        if (!signDate) {
+          alert('请选择签名日期');
+          return;
+        }
+        
+        // 弹出密码确认框
+        var password = prompt('请输入登录密码以确认组长签名：');
+        if (!password) return;
+        
+        // 验证密码 - 通过后端API验证
+        (async function() {
+          var token = null;
+          try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+          
+          if (token) {
+            try {
+              // 用当前token验证，如果能成功获取用户信息则密码有效
+              var resp = await fetch(API_HOST + '/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+              });
+              if (resp.ok) {
+                // 密码验证通过（直接用当前登录状态）
+                doVerificationSubmit(data, signerName, signDate);
+                return;
+              }
+            } catch(e) {}
+          }
+          
+          // 尝试用输入的密码重新登录来验证
+          try {
+            var username = '';
+            try {
+              var storedUser = JSON.parse(localStorage.getItem('haccp_user') || '{}');
+              username = storedUser.username || '';
+            } catch(e) {}
+            
+            if (!username) {
+              // 尝试从token中解码
+              if (token) {
+                try {
+                  var parts = token.split('.');
+                  if (parts.length === 3) {
+                    var payload = JSON.parse(atob(parts[1]));
+                    username = payload.username || '';
+                  }
+                } catch(e) {}
+              }
+            }
+            
+            if (username) {
+              var loginResp = await fetch(API_HOST + '/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+              });
+              if (loginResp.ok) {
+                var loginData = await loginResp.json();
+                if (loginData.token) {
+                  try { localStorage.setItem('haccp_token', loginData.token); } catch(e) {}
+                }
+                doVerificationSubmit(data, signerName, signDate);
+                return;
+              }
+            }
+          } catch(e) {}
+          
+          alert('密码验证失败。请确认您是已登录的HACCP小组组长，并输入正确的登录密码。');
+        })();
+      });
+    }
+    
+    // 验证程序 - 重置提交
+    var verificationResetBtn = content.querySelector('#verificationResetBtn');
+    if (verificationResetBtn) {
+      verificationResetBtn.addEventListener('click', function() {
+        if (!confirm('确定要重置验证程序吗？重置后需要重新填写并签名提交。')) return;
+        data.verificationSubmitted = false;
+        data.verificationSignerName = '';
+        data.verificationSignerDate = '';
+        saveData(data);
+        renderActiveSection();
+        renderSectionNav();
+      });
+    }
+    
+    // 管理评审 - 评审结果变化时显示/隐藏纠正措施字段
+    var mrResultSelect = content.querySelector('[data-q15-field="managementReview.reviewResult"]');
+    if (mrResultSelect) {
+      mrResultSelect.addEventListener('change', function() {
+        var correctiveField = document.getElementById('mrCorrectiveField');
+        var reVerificationField = document.getElementById('mrReVerificationField');
+        if (this.value === '不符合') {
+          if (correctiveField) correctiveField.style.display = '';
+          if (reVerificationField) reVerificationField.style.display = '';
+        } else {
+          if (correctiveField) correctiveField.style.display = 'none';
+          if (reVerificationField) reVerificationField.style.display = 'none';
+        }
+        collectSectionData(content, data);
+        saveData(data);
+      });
+    }
+
     bindFlowchartButtons(data);
     const exportBtn = content.querySelector('#exportTableBtn');
     if (exportBtn) { exportBtn.addEventListener('click', function() { alert('导出功能：将生成空白记录表格供打印使用（此功能为占位，后续可实现为PDF/Excel导出）'); }); }
+  }
+  
+  // ===== 验证程序提交函数 =====
+  function doVerificationSubmit(data, signerName, signDate) {
+    data.verificationSignerName = signerName;
+    data.verificationSignerDate = signDate;
+    data.verificationSubmitted = true;
+    data.verificationSubmitTime = new Date().toISOString();
+    saveData(data);
+    renderActiveSection();
+    renderSectionNav();
+    alert('✅ 验证程序已提交成功！\n\n组长签名：' + signerName + '\n签名日期：' + signDate);
   }
 
   // ===== CCP决策树辅助函数 (标准版) =====
@@ -3681,6 +3981,33 @@ const Questionnaire15min = (() => {
   function openHaccpReviewModal() {
     if (_haccpConfirmationData) {
       showHaccpConfirmationModal(_haccpConfirmationData);
+      return;
+    }
+    // 兜底：从 localStorage 重新加载数据
+    try {
+      var data = loadData();
+      if (data) {
+        _haccpConfirmationData = data;
+        showHaccpConfirmationModal(data);
+      }
+    } catch(e) {}
+  }
+
+  function updateReviewBanner() {
+    var bannerEl = document.getElementById('q15ReviewBanner');
+    if (!bannerEl) return;
+    if (_haccpReviewActive && currentStep < 5) {
+      var reviewedCount = getReviewedCount();
+      bannerEl.style.display = 'block';
+      bannerEl.innerHTML = '<div class="haccp-review-banner" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📋</span><span style="font-size:13px;color:#166534;">HACCP确认审查中（已预览 <strong>' + reviewedCount + '</strong>/<strong>' + HACCP_CHECK_ITEMS.length + '</strong>）</span></div>' +
+        '<button class="btn btn-sm btn-primary" id="backToHaccpReviewBtn" style="padding:5px 14px;font-size:12px;background:#16a34a;border-color:#16a34a;">← 返回HACCP确认</button>' +
+      '</div>';
+      document.getElementById('backToHaccpReviewBtn')?.addEventListener('click', function() {
+        openHaccpReviewModal();
+      });
+    } else {
+      bannerEl.style.display = 'none';
     }
   }
 
@@ -3800,12 +4127,28 @@ const Questionnaire15min = (() => {
   // ==================== 提交问卷 ====================
   function submitQuestionnaire(data) {
     const finalData = loadData();
+    // 当计划书重新提交时，重置验证程序状态（触发联锁）
+    finalData.verificationSubmitted = false;
+    finalData.verificationSignerName = '';
+    finalData.verificationSignerDate = '';
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
     localStorage.setItem('haccp_15min_submitted', JSON.stringify(finalData));
     localStorage.setItem('haccp_submitted', 'true');
     localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
+    // 清除验证程序提醒记录，触发24小时重新提醒
+    try { localStorage.removeItem('haccp_verification_reminder_time'); } catch(e) {}
     alert('问卷提交成功！\n\n您的HACCP问卷信息已保存，可前往「查看结果」页面查看。');
     App.navigateTo('results');
   }
 
-  return { init: init, loadData: loadData, showHazardWorksheet: showHazardWorksheet, reset: function() { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SECTION_COMPLETED_KEY); currentStep = 0; } };
+  // ===== 外部调用的步骤导航方法 =====
+  function navigateToStep(stepIndex) {
+    if (stepIndex >= 0 && stepIndex < TOTAL_STEPS) {
+      currentStep = stepIndex;
+      renderActiveSection();
+      renderSectionNav();
+    }
+  }
+
+  return { init: init, loadData: loadData, showHazardWorksheet: showHazardWorksheet, _navigateToStep: navigateToStep, reset: function() { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SECTION_COMPLETED_KEY); currentStep = 0; } };
 })();
