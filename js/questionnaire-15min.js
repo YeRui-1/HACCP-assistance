@@ -519,12 +519,24 @@ const Questionnaire15min = (() => {
     } else {
       navRightBtn = '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>';
     }
-    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
+    // 如果在HACCP审查模式中，显示返回横幅
+    var reviewBanner = '';
+    if (_haccpReviewActive) {
+      var reviewedCount = getReviewedCount();
+      reviewBanner = '<div class="haccp-review-banner" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📋</span><span style="font-size:13px;color:#166534;">HACCP确认审查中（已预览 <strong>' + reviewedCount + '</strong>/<strong>' + HACCP_CHECK_ITEMS.length + '</strong>）</span></div>' +
+        '<button class="btn btn-sm btn-primary" id="backToHaccpReviewBtn" style="padding:5px 14px;font-size:12px;background:#16a34a;border-color:#16a34a;">← 返回HACCP确认</button>' +
+      '</div>';
+    }
+    content.innerHTML = reviewBanner + '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
     bindSectionEvents(content, data);
     document.getElementById('q15PrevBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep > 0) { currentStep--; renderActiveSection(); renderSectionNav(); } });
     document.getElementById('q15NextBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep < TOTAL_STEPS - 1) { currentStep++; renderActiveSection(); renderSectionNav(); } });
     document.getElementById('q15SubmitBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); submitQuestionnaire(data); });
     document.getElementById('q15GeneratePlanBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); showHaccpConfirmationModal(data); });
+    document.getElementById('backToHaccpReviewBtn')?.addEventListener('click', function() {
+      openHaccpReviewModal();
+    });
   }
 
   function collectSectionData(content, data) {
@@ -3589,6 +3601,8 @@ const Questionnaire15min = (() => {
   // ===== HACCP确认弹窗（检查清单 + 电子签署）=====
   var _haccpConfirmationData = null;
   var _haccpReviewMap = {};
+  var _haccpReviewActive = false; // 是否处于审查模式
+  var _haccpReviewFromStep = -1;  // 从哪个步骤过来的
 
   var HACCP_CHECK_ITEMS = [
     { key: 'profile', label: '企业信息和HACCP小组成员已填写完整', step: 'profile', icon: '🏢' },
@@ -3664,6 +3678,12 @@ const Questionnaire15min = (() => {
     return count;
   }
 
+  function openHaccpReviewModal() {
+    if (_haccpConfirmationData) {
+      showHaccpConfirmationModal(_haccpConfirmationData);
+    }
+  }
+
   function bindHaccpModalEvents(overlay, data) {
     // 检查项点击 - 跳转到对应步骤预览
     overlay.querySelectorAll('.haccp-check-item').forEach(function(el) {
@@ -3687,6 +3707,9 @@ const Questionnaire15min = (() => {
           confirmBtn.style.opacity = allDone ? '1' : '.5';
           confirmBtn.style.cursor = allDone ? 'pointer' : 'not-allowed';
         }
+
+        // 设置为审查模式，显示返回横幅
+        _haccpReviewActive = true;
 
         // 如果是 profile 相关项，跳转到首页档案
         if (item.step === 'profile') {
