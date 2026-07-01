@@ -1,4 +1,4 @@
-// 创建档案模块 - 分步导航式（仿照15分钟问卷样式）
+// 15-min快速问卷模块 - 分步导航式
 const Profile = (() => {
   const STORAGE_KEY = 'haccp_profile_data';
 

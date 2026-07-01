@@ -250,8 +250,8 @@ const I18n = (() => {
     'result.ccp.phys':        ['物理危害(P)', 'Physical (P)'],
 
     // ===== 用户档案 =====
-    'profile.title':          ['创建档案', 'Create Profile'],
-    'profile.desc':           ['填写企业和产品基本信息，完成后数据将自动同步到问卷', 'Fill in company and product info. Data will auto-sync to the questionnaire.'],
+    'profile.title':          ['15-min快速问卷', '15-min Quick Questionnaire'],
+    'profile.desc':           ['快速填写产品信息，在15分钟内完成快速问卷', 'Quickly complete a 15-minute rapid questionnaire'],
     'profile.save':           ['💾 保存档案', '💾 Save Profile'],
     'profile.saved':          ['✓ 已保存！', '✓ Saved!'],
     'profile.companyInfo':    ['企业信息', 'Company Info'],
@@ -285,8 +285,8 @@ const I18n = (() => {
     'profile.shelfLifePh':    ['如：12个月', 'e.g. 12 months'],
 
     // ===== 15分钟快速问卷 =====
-    'q15.title':              ['15分钟快速问卷', '15-Minute Quick Wizard'],
-    'q15.desc':               ['请按照产品实际情况填写以下信息，系统将根据您的输入生成HACCP计划', 'Fill in the following information based on your actual product. The system will generate a HACCP plan based on your input.'],
+    'q15.title':              ['HACCP计划书创建', 'HACCP Plan Creation'],
+    'q15.desc':               ['根据产品信息自动创建完整的HACCP计划书', 'Automatically create a complete HACCP plan based on product information'],
     'q15.prevBtn':            ['← 上一步', '← Previous'],
     'q15.nextBtn':            ['下一步 →', 'Next →'],
     'q15.submitBtn':          ['✓ 提交问卷', '✓ Submit'],
