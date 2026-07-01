@@ -511,11 +511,20 @@ const Questionnaire15min = (() => {
         });
       }, 50);
     }
-    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + (currentStep < TOTAL_STEPS - 1 ? '<button class="btn btn-primary" id="q15NextBtn">下一步 \u2192</button>' : '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>') + '</div>';
+    var navRightBtn = '';
+    if (currentStep === 4) {
+      navRightBtn = '<button class="btn btn-primary btn-lg" id="q15GeneratePlanBtn">生成计划</button>';
+    } else if (currentStep < TOTAL_STEPS - 1) {
+      navRightBtn = '<button class="btn btn-primary" id="q15NextBtn">下一步 \u2192</button>';
+    } else {
+      navRightBtn = '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>';
+    }
+    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
     bindSectionEvents(content, data);
     document.getElementById('q15PrevBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep > 0) { currentStep--; renderActiveSection(); renderSectionNav(); } });
     document.getElementById('q15NextBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); if (currentStep < TOTAL_STEPS - 1) { currentStep++; renderActiveSection(); renderSectionNav(); } });
     document.getElementById('q15SubmitBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); submitQuestionnaire(data); });
+    document.getElementById('q15GeneratePlanBtn')?.addEventListener('click', () => { collectSectionData(content, data); saveData(data); showHaccpConfirmationModal(data); });
   }
 
   function collectSectionData(content, data) {
@@ -3575,6 +3584,193 @@ const Questionnaire15min = (() => {
         window.print();
       });
     }
+  }
+
+  // ===== HACCP确认弹窗（检查清单 + 电子签署）=====
+  var _haccpConfirmationData = null;
+  var _haccpReviewMap = {};
+
+  var HACCP_CHECK_ITEMS = [
+    { key: 'profile', label: '企业信息和HACCP小组成员已填写完整', step: 'profile', icon: '🏢' },
+    { key: 'product', label: '产品描述和预期用途已确认', step: 'profile', icon: '📋' },
+    { key: 'flowchart', label: '工艺流程已制定并现场确认', step: 0, icon: '📊' },
+    { key: 'hazard', label: '危害分析已完成', step: 0, icon: '🔍' },
+    { key: 'ccp', label: 'CCP判定已完成', step: 1, icon: '🎯' },
+    { key: 'limits', label: '关键限值已设定', step: 2, icon: '📏' },
+    { key: 'monitor', label: '监控程序已建立', step: 3, icon: '📡' },
+    { key: 'corrective', label: '纠偏措施已建立', step: 4, icon: '🛠️' },
+  ];
+
+  function showHaccpConfirmationModal(data) {
+    _haccpConfirmationData = data;
+    // 初始化审查状态（从localStorage读取已保存的审查记录）
+    try {
+      var saved = localStorage.getItem('haccp_review_status');
+      if (saved) _haccpReviewMap = JSON.parse(saved);
+    } catch(e) { _haccpReviewMap = {}; }
+
+    var overlay = document.createElement('div');
+    overlay.className = 'q15-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+    overlay.innerHTML = '<div class="q15-haccp-confirm-modal" style="background:#fff;border-radius:12px;width:560px;max-width:94vw;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);">' +
+      '<div style="padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;">' +
+        '<span style="font-size:24px;">📋</span>' +
+        '<h2 style="margin:0;font-size:18px;font-weight:600;color:#1e293b;">HACCP 确认</h2>' +
+        '<span style="margin-left:auto;font-size:12px;color:#94a3b8;">请逐项预览确认</span>' +
+      '</div>' +
+      '<div style="padding:16px 24px;overflow-y:auto;flex:1;" id="haccpChecklistBody">' +
+        renderChecklistItems() +
+      '</div>' +
+      '<div style="padding:12px 24px 20px;border-top:1px solid #e2e8f0;">' +
+        '<div style="margin-bottom:14px;">' +
+          '<label style="font-size:13px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">授权人员签署</label>' +
+          '<div style="display:flex;gap:10px;">' +
+            '<input type="text" id="haccpSignerName" placeholder="签署人姓名（如：HACCP小组组长）" style="flex:1;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignerName || '') + '">' +
+            '<input type="date" id="haccpSignerDate" style="width:140px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignDate || (new Date().toISOString().slice(0,10))) + '">' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;">' +
+          '<button class="btn btn-secondary" id="haccpSaveDraftBtn" style="flex:1;padding:10px 16px;font-size:14px;">💾 保存草稿</button>' +
+          '<button class="btn btn-primary" id="haccpConfirmBtn" style="flex:1;padding:10px 16px;font-size:14px;' + (getReviewedCount() < HACCP_CHECK_ITEMS.length ? 'opacity:.5;cursor:not-allowed;' : '') + '">✅ 确认HACCP生成</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    document.body.appendChild(overlay);
+    bindHaccpModalEvents(overlay, data);
+  }
+
+  function renderChecklistItems() {
+    var allReviewed = true;
+    var html = '';
+    HACCP_CHECK_ITEMS.forEach(function(item, i) {
+      var reviewed = _haccpReviewMap[item.key] || false;
+      if (!reviewed) allReviewed = false;
+      html += '<div class="haccp-check-item" data-check-key="' + item.key + '" style="display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:6px;border:1px solid ' + (reviewed ? '#bbf7d0' : '#e2e8f0') + ';border-radius:8px;background:' + (reviewed ? '#f0fdf4' : '#fafbfc') + ';cursor:pointer;transition:all .2s;" title="' + (reviewed ? '✅ 已预览' : '点击预览此项') + '">' +
+        '<span style="font-size:18px;">' + (reviewed ? '✅' : item.icon) + '</span>' +
+        '<span style="flex:1;font-size:13px;color:' + (reviewed ? '#166534' : '#334155') + ';font-weight:' + (reviewed ? '500' : '400') + ';">' + item.label + '</span>' +
+        '<span data-check-action="preview" style="font-size:12px;color:' + (reviewed ? '#16a34a' : '#2563eb') + ';padding:3px 10px;border-radius:4px;background:' + (reviewed ? '#dcfce7' : '#eff6ff') + ';flex-shrink:0;">' + (reviewed ? '已预览' : '点击预览') + '</span>' +
+      '</div>';
+    });
+    return html;
+  }
+
+  function getReviewedCount() {
+    var count = 0;
+    HACCP_CHECK_ITEMS.forEach(function(item) {
+      if (_haccpReviewMap[item.key]) count++;
+    });
+    return count;
+  }
+
+  function bindHaccpModalEvents(overlay, data) {
+    // 检查项点击 - 跳转到对应步骤预览
+    overlay.querySelectorAll('.haccp-check-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var key = this.dataset.checkKey;
+        var item = HACCP_CHECK_ITEMS.find(function(i) { return i.key === key; });
+        if (!item) return;
+
+        // 标记为已预览
+        _haccpReviewMap[item.key] = true;
+        try { localStorage.setItem('haccp_review_status', JSON.stringify(_haccpReviewMap)); } catch(e) {}
+
+        // 刷新检查项显示
+        var body = document.getElementById('haccpChecklistBody');
+        if (body) body.innerHTML = renderChecklistItems();
+
+        // 更新确认按钮状态
+        var confirmBtn = document.getElementById('haccpConfirmBtn');
+        if (confirmBtn) {
+          var allDone = getReviewedCount() >= HACCP_CHECK_ITEMS.length;
+          confirmBtn.style.opacity = allDone ? '1' : '.5';
+          confirmBtn.style.cursor = allDone ? 'pointer' : 'not-allowed';
+        }
+
+        // 如果是 profile 相关项，跳转到首页档案
+        if (item.step === 'profile') {
+          overlay.remove();
+          App.navigateTo('home');
+          // 点击第一张卡片（15-min快速问卷）
+          setTimeout(function() {
+            var card = document.getElementById('btnGoProfile');
+            if (card) card.click();
+          }, 100);
+        } else {
+          // 跳转到对应的 HACCP 步骤
+          if (typeof currentStep !== 'undefined') {
+            currentStep = item.step;
+          }
+          overlay.remove();
+          // 重新导航到问卷页面并切换到指定步骤
+          App.navigateTo('questionnaire');
+          // 需要重新初始化并跳转到指定步骤
+          setTimeout(function() {
+            // 用renderActiveSection跳转到目标步骤
+            if (typeof currentStep !== 'undefined') {
+              currentStep = item.step;
+              renderActiveSection();
+              renderSectionNav();
+            }
+          }, 50);
+        }
+      });
+    });
+
+    // 保存草稿按钮
+    document.getElementById('haccpSaveDraftBtn')?.addEventListener('click', function() {
+      // 保存签署人信息到 data
+      var nameEl = document.getElementById('haccpSignerName');
+      var dateEl = document.getElementById('haccpSignerDate');
+      if (nameEl) data._haccpSignerName = nameEl.value;
+      if (dateEl) data._haccpSignDate = dateEl.value;
+      saveData(data);
+      overlay.remove();
+    });
+
+    // 确认HACCP生成按钮
+    document.getElementById('haccpConfirmBtn')?.addEventListener('click', function() {
+      var allDone = getReviewedCount() >= HACCP_CHECK_ITEMS.length;
+      if (!allDone) {
+        alert('请先预览所有检查项后再确认生成。');
+        return;
+      }
+
+      var nameEl = document.getElementById('haccpSignerName');
+      var dateEl = document.getElementById('haccpSignerDate');
+      var signerName = nameEl ? nameEl.value.trim() : '';
+      var signDate = dateEl ? dateEl.value : '';
+
+      if (!signerName) {
+        alert('请输入签署人姓名');
+        nameEl?.focus();
+        return;
+      }
+      if (!signDate) {
+        alert('请选择签署日期');
+        return;
+      }
+
+      // 保存签署信息
+      data._haccpSignerName = signerName;
+      data._haccpSignDate = signDate;
+      data._haccpConfirmed = true;
+      data._haccpConfirmDate = new Date().toISOString();
+      saveData(data);
+
+      // 保存到 HACCP 计划文档结果
+      localStorage.setItem('haccp_15min_submitted', JSON.stringify(data));
+      localStorage.setItem('haccp_submitted', 'true');
+      localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
+      
+      // 清除审查状态
+      try { localStorage.removeItem('haccp_review_status'); } catch(e) {}
+
+      overlay.remove();
+      alert('✅ HACCP计划已生成并提交成功！\n\n签署人：' + signerName + '\n签署日期：' + signDate + '\n\n可前往「查看结果」页面查看完整的HACCP计划文档。');
+      App.navigateTo('results');
+    });
   }
 
   // ==================== 提交问卷 ====================
