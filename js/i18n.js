@@ -297,7 +297,7 @@ const I18n = (() => {
     'q15.step1':              ['确定关键控制点', 'Determine CCPs'],
     'q15.step2':              ['建立关键限值', 'Establish Critical Limits'],
     'q15.step3':              ['建立监控程序', 'Establish Monitoring'],
-    'q15.step4':              ['建立纠正措施', 'Establish Corrective Actions'],
+    'q15.step4':              ['建立纠偏措施', 'Establish Corrective Actions'],
     'q15.step5':              ['建立验证程序', 'Establish Verification'],
     'q15.step6':              ['建立记录保持程序', 'Establish Record Keeping'],
     'q15.submitSuccess':      ['问卷提交成功！\n\n您的HACCP问卷信息已保存，可前往「查看结果」页面查看。', 'Questionnaire submitted!\n\nYour HACCP data has been saved. Go to "View Results" to see the plan.'],
