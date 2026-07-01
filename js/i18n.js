@@ -252,7 +252,7 @@ const I18n = (() => {
     // ===== 用户档案 =====
     'profile.title':          ['15-min快速问卷', '15-min Quick Questionnaire'],
     'profile.desc':           ['快速填写产品信息，在15分钟内完成快速问卷', 'Quickly complete a 15-minute rapid questionnaire'],
-    'profile.save':           ['💾 保存档案', '💾 Save Profile'],
+    'profile.save':           ['💾 保存问卷', '💾 Save Questionnaire'],
     'profile.saved':          ['✓ 已保存！', '✓ Saved!'],
     'profile.companyInfo':    ['企业信息', 'Company Info'],
     'profile.companyName':    ['企业名称', 'Company Name'],

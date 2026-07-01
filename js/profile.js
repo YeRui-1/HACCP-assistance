@@ -133,8 +133,8 @@ const Profile = (() => {
     container.innerHTML = '' +
       '<a class="back-link" href="javascript:App.navigateTo(\'home\')">← 返回首页</a>' +
       '<div class="q15-header">' +
-        '<h1>创建档案</h1>' +
-        '<p class="q15-desc">请按照实际情况填写以下信息，完成后数据将自动同步到问卷</p>' +
+        '<h1>15-min快速问卷</h1>' +
+        '<p class="q15-desc">快速填写产品信息，在15分钟内完成快速问卷</p>' +
         '<div class="q15-progress" id="profileProgress"></div>' +
       '</div>' +
       '<div id="profileContent"></div>';
@@ -171,7 +171,7 @@ const Profile = (() => {
         '<span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' +
         (currentStep < TOTAL_STEPS - 1
           ? '<button class="btn btn-primary" id="profileNextBtn">下一步 →</button>'
-          : '<button class="btn btn-primary btn-lg" id="profileSaveBtn">💾 保存档案</button>') +
+          : '<button class="btn btn-primary btn-lg" id="profileSaveBtn">💾 保存问卷</button>') +
       '</div>';
     bindSectionEvents(content, data);
     document.getElementById('profilePrevBtn')?.addEventListener('click', function() {
@@ -194,7 +194,7 @@ const Profile = (() => {
         btn.textContent = '✅ 已保存并同步！';
         btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
         setTimeout(function() {
-          btn.textContent = '💾 保存档案';
+          btn.textContent = '💾 保存问卷';
           btn.style.background = '';
         }, 2000);
       });
