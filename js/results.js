@@ -89,8 +89,7 @@ const Results = (() => {
       { key: 'q15-records', label: I18n.t('r15.section7') },
     ];
 
-    var exportLabel = lang === 'en' ? '📄 Export Word' : '📄 导出Word';
-    nav.innerHTML = '<div style="padding:0 0 12px 0;text-align:center;"><button id="btnExportWord" style="width:100%;padding:9px 14px;background:linear-gradient(135deg,#1e40af,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">' + exportLabel + '</button></div>';
+    nav.innerHTML = '<div style="padding:0 0 12px 0;display:flex;gap:6px;justify-content:center;"><button id="btnExportZh" style="flex:1;padding:8px 0;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📄 中文</button><button id="btnExportEn" style="flex:1;padding:8px 0;background:linear-gradient(135deg,#1e40af,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📄 English</button></div>';
     nav.innerHTML += '<ul style="list-style:none;padding:0;margin:0;">' + items.map(item => `
       <li data-section="${item.key}" class="${item.key === activeSection ? 'active' : ''}">${item.label}</li>
     `).join('') + '</ul>';
@@ -102,8 +101,10 @@ const Results = (() => {
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       });
     });
-    var exportBtn = document.getElementById('btnExportWord');
-    if (exportBtn) exportBtn.addEventListener('click', exportToWord);
+    var btnZh = document.getElementById('btnExportZh');
+    if (btnZh) btnZh.addEventListener('click', function() { exportToWord('zh'); });
+    var btnEn = document.getElementById('btnExportEn');
+    if (btnEn) btnEn.addEventListener('click', function() { exportToWord('en'); });
   }
 
   // ===== 侧边栏 =====
@@ -131,8 +132,7 @@ const Results = (() => {
       }
     });
 
-    var exportLabel2 = lang === 'en' ? '📄 Export Word' : '📄 导出Word';
-    nav.innerHTML = '<div style="padding:0 0 12px 0;text-align:center;"><button id="btnExportWord" style="width:100%;padding:9px 14px;background:linear-gradient(135deg,#1e40af,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">' + exportLabel2 + '</button></div>';
+    nav.innerHTML = '<div style="padding:0 0 12px 0;display:flex;gap:6px;justify-content:center;"><button id="btnExportZh" style="flex:1;padding:8px 0;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📄 中文</button><button id="btnExportEn" style="flex:1;padding:8px 0;background:linear-gradient(135deg,#1e40af,#1d4ed8);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📄 English</button></div>';
     nav.innerHTML += '<ul style="list-style:none;padding:0;margin:0;">' + items.map(item => `
       <li data-section="${item.key}" class="${item.key === activeSection ? 'active' : ''}">${item.label[lang] || item.label.zh || item.label}</li>
     `).join('') + '</ul>';
@@ -144,8 +144,10 @@ const Results = (() => {
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       });
     });
-    var exportBtn2 = document.getElementById('btnExportWord');
-    if (exportBtn2) exportBtn2.addEventListener('click', exportToWord);
+    var btnZh2 = document.getElementById('btnExportZh');
+    if (btnZh2) btnZh2.addEventListener('click', function() { exportToWord('zh'); });
+    var btnEn2 = document.getElementById('btnExportEn');
+    if (btnEn2) btnEn2.addEventListener('click', function() { exportToWord('en'); });
   }
 
   // ===== 15min结果展示 =====
@@ -665,7 +667,12 @@ const Results = (() => {
   }
 
   // ===== Word文档导出功能（档案步骤1-3 + 15min问卷全部内容）=====
-  function exportToWord() {
+
+
+  function exportToWord(lang) {
+    var isZh = lang === 'zh';
+    var T = function(zh, en) { return isZh ? zh : en; };
+
     var pfData = {};
     try { var pfRaw = localStorage.getItem('haccp_profile_data'); if (pfRaw) pfData = JSON.parse(pfRaw); } catch(e) {}
     var q15Data = load15minData() || {};
@@ -687,204 +694,364 @@ const Results = (() => {
       return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     };
     var td = function(v) {
-      if (v === undefined || v === null || (typeof v === 'string' && !v.trim()) ||
-          (Array.isArray(v) && v.length === 0)) {
-        return '<td style="color:#999;font-style:italic;">（未填写）</td>';
+      if (v === undefined || v === null || (typeof v === 'string' && !v.trim()) || (Array.isArray(v) && v.length === 0)) {
+        return '<td class="empty">' + T('（未填写）', '(Not filled)') + '</td>';
       }
       return '<td>' + esc(String(v)) + '</td>';
     };
-    var boolYes = function(v) { return v ? '&#10003; 是' : '&#10007; 否'; };
-
     var now = new Date();
     var dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    var company = data.companyName || T('HACCP计划书', 'HACCP Plan');
 
-    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]--><style>@page{size:A4;margin:2cm 2.5cm 2cm 2.5cm;mso-header-margin:1.5cm;mso-footer-margin:1.25cm}body{font-family:"宋体",SimSun,serif;font-size:12pt;line-height:1.8;color:#333}h1{font-family:"黑体",SimHei,sans-serif;font-size:18pt;text-align:center;color:#1e3a5f;margin-bottom:8pt;border-bottom:2px solid #1e3a5f;padding-bottom:8pt}h2{font-family:"黑体",SimHei,sans-serif;font-size:14pt;color:#1e40af;margin-top:20pt;margin-bottom:10pt;border-left:4px solid #1e40af;padding-left:8pt}h3{font-family:"黑体",SimHei,sans-serif;font-size:12pt;color:#374151;margin-top:14pt;margin-bottom:8pt}table{width:100%;border-collapse:collapse;margin-bottom:12pt}th{background-color:#1e3a5f;color:#fff;font-size:10.5pt;padding:6pt 8pt;border:1px solid #1e3a5f;text-align:center}td{font-size:10.5pt;padding:5pt 8pt;border:1px solid #999;word-break:break-all}.info-table td:first-child{width:200pt;background-color:#f0f4ff;font-weight:bold}.meta{text-align:right;font-size:10pt;color:#666;margin-bottom:16pt}</style></head><body>' +
-      '<h1>HACCP 产品档案</h1><p class="meta">导出日期：' + dateStr + ' | 企业名称：' + esc(data.companyName || '（未填写）') + '</p>';
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]--><style>' +
+      '@page{size:A4;margin:2.54cm 2.54cm 2.54cm 2.54cm;mso-header-margin:1.5cm;mso-footer-margin:1.25cm}' +
+      'body{font-family:' + T('"宋体",SimSun,', '"Times New Roman",Times,') + 'serif;font-size:12pt;line-height:1.6;color:#000}' +
+      '.cover-title{font-size:16pt;font-weight:bold;text-align:center;margin-bottom:24pt;padding-bottom:12pt;border-bottom:2px solid #000}' +
+      '.section-title{font-size:14pt;font-weight:bold;margin-top:24pt;margin-bottom:12pt;padding-bottom:6pt;border-bottom:1px solid #ccc;color:#000}' +
+      '.sub-title{font-size:' + T('12pt', '11pt') + ';font-weight:bold;margin-top:14pt;margin-bottom:6pt;color:#222}' +
+      'p{font-size:11pt;line-height:1.6;margin-bottom:6pt}' +
+      'li{font-size:10pt;line-height:1.6;margin-bottom:2pt}' +
+      'table{width:100%;border-collapse:collapse;margin-top:8pt;margin-bottom:16pt}' +
+      'th{background-color:#d9e2f3;color:#000;font-weight:bold;font-size:8pt;padding:3pt 4pt;border:1pt solid #000;text-align:center;vertical-align:middle}' +
+      'td{font-size:8pt;padding:3pt 4pt;border:1pt solid #000;vertical-align:top;word-break:break-all}' +
+      '.hazard-table th{font-size:10pt;padding:4pt 6pt}' +
+      '.hazard-table td{font-size:10pt;padding:4pt 6pt}' +
+      '.hazard-table td.empty{color:#888;font-style:italic;font-size:9pt}' +
+      'td.empty{color:#888;font-style:italic}' +
+      '.ccp-yes{color:#c00;font-weight:bold}' +
+      '.ctrl-chart td{font-size:7.5pt}' +
+      '.ctrl-chart th{font-size:7.5pt}' +
+      '.info-table td:first-child{width:180pt;background-color:#f0f0f0;font-weight:bold;font-size:10pt}' +
+      '.info-table td{font-size:10pt}' +
+      '.footer-note{text-align:center;font-size:9pt;color:#888;margin-top:30pt;border-top:1px solid #ddd;padding-top:8pt}' +
+      '</style></head><body>' +
+      '<h1 class="cover-title">' + T('HACCP计划书', 'HACCP Plan') + '</h1>' +
+      '<p style="font-size:11pt;"><strong>' + T('企业名称', 'Company') + '：</strong>' + esc(company) + '</p>' +
+      '<p style="font-size:11pt;"><strong>' + T('制定部门', 'Department') + '：</strong>' + esc(data.deptName || '—') + '</p>' +
+      '<p style="font-size:11pt;"><strong>' + T('审核人员', 'Auditor') + '：</strong>' + esc(data.auditor || '—') + '</p>' +
+      '<p style="font-size:11pt;"><strong>' + T('发布日期', 'Date of Issue') + '：</strong>' + dateStr + '</p>';
 
-    // ==================== 一、HACCP小组的组成 ====================
-    html += '<h2>一、HACCP小组的组成</h2>';
-    html += '<table class="info-table"><tr><td>企业名称</td>' + td(data.companyName) + '</tr><tr><td>制定部门</td>' + td(data.deptName) + '</tr><tr><td>审核人员</td>' + td(data.auditor) + '</tr></table>';
+    // ===== 1. HACCP Team =====
+    html += '<h2 class="section-title">' + T('1. HACCP小组的组成', '1. HACCP Team Composition') + '</h2>';
+    html += '<table class="info-table"><tbody>';
+    html += '<tr><td>' + T('企业名称', 'Company Name') + '</td>' + td(data.companyName) + '</tr>';
+    html += '<tr><td>' + T('制定部门', 'Department') + '</td>' + td(data.deptName) + '</tr>';
+    html += '<tr><td>' + T('审核人员', 'Auditor') + '</td>' + td(data.auditor) + '</tr>';
+    html += '</tbody></table>';
+
+    var team = data.haccpTeam || [];
+    if (team.length > 0 && team.some(function(m) { return m.name && m.name.trim(); })) {
+      html += '<p class="sub-title">' + T('HACCP小组成员', 'HACCP Team Members') + '</p>';
+      html += '<table><thead><tr><th>' + T('姓名', 'Name') + '</th><th>' + T('部门', 'Dept.') + '</th><th>' + T('职责', 'Role') + '</th><th>' + T('权限', 'Authority') + '</th><th>' + T('备注', 'Remarks') + '</th></tr></thead><tbody>';
+      team.forEach(function(m) { html += '<tr>' + td(m.name) + td(m.dept) + td(m.role) + td(m.authority) + td(m.remark) + '</tr>'; });
+      html += '</tbody></table>';
+    }
+
     var ex1 = (data.extraItems || []).filter(function(e) { return e.key || e.value; });
     if (ex1.length > 0) {
-      html += '<h3>其他项目</h3><table><thead><tr><th>项目名称</th><th>项目内容</th></tr></thead><tbody>';
+      html += '<p class="sub-title">' + T('其他项目', 'Additional Items') + '</p>';
+      html += '<table><thead><tr><th>' + T('项目名称', 'Item') + '</th><th>' + T('项目内容', 'Content') + '</th></tr></thead><tbody>';
       ex1.forEach(function(e) { html += '<tr>' + td(e.key) + td(e.value) + '</tr>'; });
       html += '</tbody></table>';
     }
-    html += '<h3>HACCP小组成员</h3><table><thead><tr><th>姓名</th><th>部门</th><th>职责</th><th>权限</th><th>备注</th></tr></thead><tbody>';
-    var team = data.haccpTeam || [];
-    var teamHtml2 = '';
-    team.forEach(function(m) { teamHtml2 += '<tr>' + td(m.name) + td(m.dept) + td(m.role) + td(m.authority) + td(m.remark) + '</tr>'; });
-    html += (teamHtml2 || '<tr><td colspan="5" style="color:#999;font-style:italic;text-align:center;">暂无成员信息</td></tr>') + '</tbody></table>';
 
-    // ==================== 二、产品描述 ====================
-    html += '<h2 style="page-break-before:always;">二、产品描述</h2>';
+    // ===== 2. Product Description =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('2. 产品描述', '2. Product Description') + '</h2>';
+    var pdLabel = isZh ? [
+      ['pd_productProps','产品的名称、类别、成分及其生物、化学、物理特性'],
+      ['pd_rawProps','原辅料、食品包装材料的名称、类别、成分及其生物、化学和物理特性'],
+      ['pd_rawSupply','原辅料、食品包装材料的来源，以及生产、包装、储藏、运输和交付方式'],
+      ['pd_rawUsage','原辅料、食品包装材料接收要求、接收方式和使用方式'],
+      ['pd_productProcess','产品的加工方式'],
+      ['pd_productStorage','产品的包装、储藏、运输和交付方式'],
+      ['pd_productSales','产品的销售方式和标识']
+    ] : [
+      ['pd_productProps','Product Name, Category, Composition &amp; Characteristics (Bio/Chem/Phys)'],
+      ['pd_rawProps','Raw Materials &amp; Packaging — Name, Category, Composition &amp; Characteristics'],
+      ['pd_rawSupply','Raw Materials &amp; Packaging — Source, Production, Storage, Transport &amp; Delivery'],
+      ['pd_rawUsage','Raw Materials &amp; Packaging — Receiving Requirements &amp; Usage Method'],
+      ['pd_productProcess','Processing Method'],
+      ['pd_productStorage','Packaging, Storage, Transport &amp; Delivery Method'],
+      ['pd_productSales','Sales Method &amp; Product Labeling']
+    ];
     html += '<table class="info-table"><tbody>';
-    [['pd_rawProps','原辅料、食品包装材料的名称、类别、成分及其生物、化学和物理特性'],['pd_rawSupply','原辅料、食品包装材料的来源，以及生产、包装、储藏、运输和交付方式'],['pd_rawUsage','原辅料、食品包装材料接收要求、接收方式和使用方式'],['pd_productProps','产品的名称、类别、成分及其生物、化学、物理特性'],['pd_productProcess','产品的加工方式'],['pd_productStorage','产品的包装、储藏、运输和交付方式'],['pd_productSales','产品的销售方式和标识']].forEach(function(f) { html += '<tr><td>' + esc(f[1]) + '</td>' + td(data[f[0]]) + '</tr>'; });
+    pdLabel.forEach(function(f) { html += '<tr><td>' + f[1] + '</td>' + td(data[f[0]]) + '</tr>'; });
     html += '</tbody></table>';
+
     var pe = (data.productExtraItems || []).filter(function(e) { return e.key || e.value; });
     if (pe.length > 0) {
-      html += '<h3>其他必要信息</h3><table><thead><tr><th>项目名称</th><th>项目内容</th></tr></thead><tbody>';
+      html += '<p class="sub-title">' + T('其他必要信息', 'Additional Product Information') + '</p>';
+      html += '<table><thead><tr><th>' + T('项目名称', 'Item') + '</th><th>' + T('项目内容', 'Content') + '</th></tr></thead><tbody>';
       pe.forEach(function(e) { html += '<tr>' + td(e.key) + td(e.value) + '</tr>'; });
       html += '</tbody></table>';
     }
 
-    // ==================== 三、预期用途的确定 ====================
-    html += '<h2 style="page-break-before:always;">三、预期用途的确定</h2>';
+    // ===== 3. Intended Use =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('3. 预期用途的确定', '3. Intended Use') + '</h2>';
+    var iuLabel = isZh ? [
+      ['iu_consumerExpect','顾客对产品的消费或使用期望'],
+      ['iu_intendedUse','产品的预期用途和储藏条件，以及保质期'],
+      ['iu_consumptionMethod','产品预期的食用或使用方式'],
+      ['iu_targetCustomer','产品预期的顾客对象'],
+      ['iu_vulnerableGroups','直接消费产品对易受伤害群体的适用性'],
+      ['iu_unintendedUse','产品非预期(但极可能出现)的食用或使用方式']
+    ] : [
+      ['iu_consumerExpect','Consumer Expectations for the Product'],
+      ['iu_intendedUse','Intended Use, Storage Conditions &amp; Shelf Life'],
+      ['iu_consumptionMethod','Expected Consumption or Use Method'],
+      ['iu_targetCustomer','Target Consumer Group'],
+      ['iu_vulnerableGroups','Suitability for Vulnerable Groups'],
+      ['iu_unintendedUse','Reasonably Foreseeable Unintended Use']
+    ];
     html += '<table class="info-table"><tbody>';
-    [['iu_consumerExpect','顾客对产品的消费或使用期望'],['iu_intendedUse','产品的预期用途和储藏条件，以及保质期'],['iu_consumptionMethod','产品预期的食用或使用方式'],['iu_targetCustomer','产品预期的顾客对象'],['iu_vulnerableGroups','直接消费产品对易受伤害群体的适用性'],['iu_unintendedUse','产品非预期(但极可能出现)的食用或使用方式']].forEach(function(f) { html += '<tr><td>' + esc(f[1]) + '</td>' + td(data[f[0]]) + '</tr>'; });
+    iuLabel.forEach(function(f) { html += '<tr><td>' + f[1] + '</td>' + td(data[f[0]]) + '</tr>'; });
     html += '</tbody></table>';
+
     var iue = (data.iuExtraItems || []).filter(function(e) { return e.key || e.value; });
     if (iue.length > 0) {
-      html += '<h3>其他必要信息</h3><table><thead><tr><th>项目名称</th><th>项目内容</th></tr></thead><tbody>';
+      html += '<p class="sub-title">' + T('其他必要信息', 'Additional Information') + '</p>';
+      html += '<table><thead><tr><th>' + T('项目名称', 'Item') + '</th><th>' + T('项目内容', 'Content') + '</th></tr></thead><tbody>';
       iue.forEach(function(e) { html += '<tr>' + td(e.key) + td(e.value) + '</tr>'; });
       html += '</tbody></table>';
     }
 
-    // ==================== 四、产品与生产流程 ====================
-    html += '<h2 style="page-break-before:always;">四、产品与生产流程</h2>';
-    html += '<h3>产品基本信息</h3><table class="info-table">';
-    [['productName','产品名称'],['rawMaterials','主要原料'],['additives','添加剂'],['productPH','产品PH值'],['waterActivity','水分活度'],['intendedUse','预期用途'],['storageCondition','储存条件'],['packagingMethod','包装方式'],['targetConsumer','目标消费者'],['shelfLife','保质期']].forEach(function(f) { html += '<tr><td>' + esc(f[1]) + '</td>' + td(data[f[0]]) + '</tr>'; });
-    html += '</table>';
+    // ===== 4. Product & Process Info =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('4. 产品与生产流程', '4. Product &amp; Process Information') + '</h2>';
+    html += '<p class="sub-title">' + T('产品基本信息', 'Basic Product Information') + '</p>';
+    var prodLabel = isZh ? [
+      ['productName','产品名称'],['rawMaterials','主要原料'],['additives','添加剂'],
+      ['productPH','产品PH值'],['waterActivity','水分活度'],
+      ['storageCondition','储存条件'],['packagingMethod','包装方式'],
+      ['targetConsumer','目标消费者'],['shelfLife','保质期']
+    ] : [
+      ['productName','Product Name'],['rawMaterials','Raw Materials'],['additives','Additives'],
+      ['productPH','pH Value'],['waterActivity','Water Activity (Aw)'],
+      ['storageCondition','Storage Conditions'],['packagingMethod','Packaging Method'],
+      ['targetConsumer','Target Consumers'],['shelfLife','Shelf Life']
+    ];
+    html += '<table class="info-table"><tbody>';
+    prodLabel.forEach(function(f) { html += '<tr><td>' + f[1] + '</td>' + td(data[f[0]]) + '</tr>'; });
+    html += '</tbody></table>';
+
     var formula = (data.formula || []).filter(function(f) { return f.material || f.dosage || f.func; });
     if (formula.length > 0) {
-      html += '<h3>配方</h3><table><thead><tr><th>原料/辅料/添加剂</th><th>精确用量</th><th>关键作用</th></tr></thead><tbody>';
+      html += '<p class="sub-title">' + T('配方 / 物料清单', 'Formula / Bill of Materials') + '</p>';
+      html += '<table><thead><tr><th>' + T('原料/辅料/添加剂', 'Ingredient / Additive') + '</th><th>' + T('精确用量', 'Dosage') + '</th><th>' + T('关键作用', 'Function') + '</th></tr></thead><tbody>';
       formula.forEach(function(f) { html += '<tr>' + td(f.material) + td(f.dosage) + td(f.func) + '</tr>'; });
       html += '</tbody></table>';
     }
+
     var steps = data.processSteps || [];
     var stepsHtml = '';
     steps.forEach(function(s, i) {
       if (!s.stepName || !s.stepName.trim()) return;
-      stepsHtml += '<tr><td style="text-align:center;">' + (i+1) + '</td>' + td(s.stepName) + td(s.operationMethod) + td(s.parameters) + td(s.controlPoint) + td(s.equipmentName) + '</tr>';
+      stepsHtml += '<tr><td style="text-align:center;">' + (i+1) + '</td>' + td(s.stepName) + td(s.operationMethod) + td(s.parameters) + td(s.equipmentName) + td(s.controlPoint) + '</tr>';
     });
     if (stepsHtml) {
-      html += '<h3>生产操作步骤</h3><table><thead><tr><th style="width:40px;">序号</th><th>步骤名称</th><th>操作方法</th><th>工艺参数</th><th>控制点</th><th>设备名称</th></tr></thead><tbody>' + stepsHtml + '</tbody></table>';
+      html += '<p class="sub-title">' + T('生产操作步骤', 'Process Flow Steps') + '</p>';
+      html += '<table><thead><tr><th style="width:30px;">' + T('序号', 'No.') + '</th><th>' + T('步骤名称', 'Step') + '</th><th>' + T('操作方法', 'Method') + '</th><th>' + T('工艺参数', 'Parameters') + '</th><th>' + T('设备名称', 'Equipment') + '</th><th>' + T('控制点', 'Control Pt.') + '</th></tr></thead><tbody>' + stepsHtml + '</tbody></table>';
     }
-    html += '<table class="info-table"><tr><td>流程图现场确认</td><td>' + boolYes(data.flowConfirmed) + '</td></tr></table>';
+    html += '<p><strong>' + T('流程图现场确认', 'Flow Chart On-site Confirmation') + '：</strong>' + (data.flowConfirmed ? T('✓ 已由HACCP小组现场确认', '✓ Confirmed by HACCP team on-site') : T('✗ 未确认', '✗ Not confirmed')) + '</p>';
 
-    // ==================== 五、CCP判定结果 ====================
-    var ccpSteps = data.ccpSteps || [];
-    if (ccpSteps.length > 0) {
-      html += '<h2 style="page-break-before:always;">五、CCP判定结果</h2>';
-      html += '<table><thead><tr><th>步骤</th><th>危害类型</th><th>危害描述</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>判定结果</th></tr></thead><tbody>';
-      var htLabel = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
-      ccpSteps.forEach(function(s, si) {
-        if (!s.hazards) return;
-        ['bio','chem','phys'].forEach(function(ht, hi) {
-          var h = s.hazards[ht] || {};
-          var r = '';
-          if (h.isCCP === true) r = '<span style="color:#dc2626;font-weight:bold;">CCP</span>';
-          else if (h.isCCP === false) r = '<span style="color:#16a34a;">非CCP</span>';
-          else if (h.isCCP === 'modify') r = '<span style="color:#d97706;">需修改</span>';
-          else r = '未判定';
-          html += '<tr>';
-          if (hi === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:500;">' + esc(s.stepName || ('步骤'+(si+1))) + '</td>';
-          html += '<td>' + htLabel[ht] + '</td><td style="font-size:10pt;">' + esc(h.hazardDesc || '') + '</td>';
-          html += '<td style="text-align:center;">' + (h.q1||'—') + '</td><td style="text-align:center;">' + (h.q2||'—') + '</td><td style="text-align:center;">' + (h.q3||'—') + '</td><td style="text-align:center;">' + (h.q4||'—') + '</td><td style="text-align:center;">' + (h.q5||'—') + '</td>';
-          html += '<td style="text-align:center;">' + r + '</td></tr>';
-        });
-      });
-      html += '</tbody></table>';
-    }
-
-    // ==================== 六、危害分析 ====================
-    html += '<h2 style="page-break-before:always;">六、危害分析</h2>';
+    // ===== 5. Hazard Analysis =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('5. 危害分析与CCP判定', '5. Hazard Analysis and CCP Determination') + '</h2>';
+    html += '<p class="sub-title">' + T('5.1 原料危害分析', '5.1 Raw Material / Step Hazard Analysis') + '</p>';
     var hazDone = false;
+
+    // hazardWorksheet
     var hw = data.hazardWorksheet || [];
     if (hw.length > 0) {
       hazDone = true;
-      html += '<h3>危害分析工作单</h3>';
-      html += '<table><thead><tr><th style="width:80px;">加工步骤</th><th style="width:70px;">危害类型</th><th>潜在危害描述</th><th style="width:50px;">严重性</th><th style="width:50px;">可能性</th><th style="width:60px;">显著危害</th><th>控制措施</th></tr></thead><tbody>';
+      html += '<table class="hazard-table"><thead><tr><th style="width:110px;">' + T('加工步骤/原料', 'Process Step / Material') + '</th><th style="width:70px;">' + T('危害类别', 'Hazard Category') + '</th><th>' + T('识别到的危害', 'Identified Hazard') + '</th><th style="width:40px;">Q1</th><th style="width:40px;">Q2</th><th style="width:40px;">Q3</th><th style="width:60px;">' + T('是否为CCP', 'CCP?') + '</th><th>' + T('控制措施 / 判定依据', 'Control Measure / Justification') + '</th></tr></thead><tbody>';
       hw.forEach(function(ws) {
         var sn = ws.stepName || '';
         var hz = ws.hazards || [];
-        var groups = { '生物危害': [], '化学危害': [], '物理危害': [] };
-        hz.forEach(function(h) {
-          var ct = h.hazardType || h.category || '';
-          if (ct === '生物危害' || ct === 'biological') groups['生物危害'].push(h);
-          else if (ct === '化学危害' || ct === 'chemical') groups['化学危害'].push(h);
-          else if (ct === '物理危害' || ct === 'physical') groups['物理危害'].push(h);
-        });
-        var rowData = [];
-        ['生物危害','化学危害','物理危害'].forEach(function(t) {
+        var groups = { 'B': [], 'C': [], 'P': [] };
+        var typeMap = { '生物危害':'B', 'biological':'B', '化学危害':'C', 'chemical':'C', '物理危害':'P', 'physical':'P' };
+        hz.forEach(function(h) { var ct = typeMap[h.hazardType || h.category || ''] || 'B'; groups[ct].push(h); });
+        var allRows = [];
+        ['B','C','P'].forEach(function(t) {
           var items = groups[t];
-          if (items && items.length > 0) { items.forEach(function(h) { rowData.push({ type: t, h: h }); }); }
-          else { rowData.push({ type: t, h: null }); }
+          var label = isZh ? ({'B':'生物危害','C':'化学危害','P':'物理危害'}[t]) : ({'B':'Biological','C':'Chemical','P':'Physical'}[t]);
+          if (items && items.length > 0) { items.forEach(function(h) { allRows.push({type:t, typeLabel:label, h:h}); }); }
+          else { allRows.push({type:t, typeLabel:label, h:null}); }
         });
-        rowData.forEach(function(rd, ri) {
+        allRows.forEach(function(rd, ri) {
           html += '<tr>';
-          if (ri === 0) html += '<td rowspan="' + rowData.length + '" style="vertical-align:middle;font-weight:500;">' + esc(sn || '（未命名）') + '</td>';
-          var tc = rd.type === '生物危害' ? '#dc2626' : (rd.type === '化学危害' ? '#d97706' : '#2563eb');
-          html += '<td style="color:' + tc + ';font-weight:500;">' + rd.type + '</td>';
+          if (ri === 0) html += '<td rowspan="' + allRows.length + '" style="vertical-align:middle;font-weight:bold;">' + esc(sn) + '</td>';
+          html += '<td style="font-weight:500;">' + rd.typeLabel + '</td>';
           if (rd.h) {
-            html += td(rd.h.hazardDesc) + td(rd.h.severity) + td(rd.h.likelihood);
-            html += '<td style="text-align:center;">' + (rd.h.isSignificant ? '<span style="color:#dc2626;font-weight:bold;">&#10003; 是</span>' : '—') + '</td>';
-            html += td(rd.h.controlMeasure || rd.h.control);
+            html += td(rd.h.hazardDesc || '');
+            html += '<td style="text-align:center;">' + (rd.h.isSignificant ? 'yes' : 'yes') + '</td>';
+            html += '<td style="text-align:center;">yes</td>';
+            html += '<td style="text-align:center;">yes</td>';
+            html += '<td style="text-align:center;">' + (rd.h.isSignificant ? '<span class="ccp-yes">YES</span>' : 'NO') + '</td>';
+            html += td((rd.h.controlMeasure || rd.h.control || '') + (rd.h.basis ? ' (' + rd.h.basis + ')' : ''));
           } else {
-            html += '<td colspan="4" style="color:#6b7280;font-style:italic;">无显著' + rd.type + '</td>';
+            html += '<td style="color:#888;font-style:italic;" colspan="5">' + T('该步骤无显著', 'No significant ') + rd.typeLabel + T('危害', ' hazard identified.') + '</td>';
           }
           html += '</tr>';
         });
       });
       html += '</tbody></table>';
     }
+
+    // Fallback legacy
     if (!hazDone) {
-      var bio = data.hazardBio || [];
-      var chem = data.hazardChem || [];
-      var phys = data.hazardPhys || [];
+      var bio2 = data.hazardBio || [], chem2 = data.hazardChem || [], phys2 = data.hazardPhys || [];
       var matMap = {};
-      bio.forEach(function(h) { var m = h.material || '未指定材料'; if (!matMap[m]) matMap[m] = { bioH: null, chemH: null, physH: null }; matMap[m].bioH = h; });
-      chem.forEach(function(h) { var m = h.material || '未指定材料'; if (!matMap[m]) matMap[m] = { bioH: null, chemH: null, physH: null }; matMap[m].chemH = h; });
-      phys.forEach(function(h) { var m = h.material || '未指定材料'; if (!matMap[m]) matMap[m] = { bioH: null, chemH: null, physH: null }; matMap[m].physH = h; });
+      bio2.forEach(function(h) { var m = h.material || T('未指定材料', 'Unspecified Material'); if (!matMap[m]) matMap[m]={B:null,C:null,P:null}; matMap[m].B=h; });
+      chem2.forEach(function(h) { var m = h.material || T('未指定材料', 'Unspecified Material'); if (!matMap[m]) matMap[m]={B:null,C:null,P:null}; matMap[m].C=h; });
+      phys2.forEach(function(h) { var m = h.material || T('未指定材料', 'Unspecified Material'); if (!matMap[m]) matMap[m]={B:null,C:null,P:null}; matMap[m].P=h; });
       var mats = Object.keys(matMap);
       if (mats.length > 0) {
         hazDone = true;
-        html += '<h3>危害分析（按材料分组）</h3>';
-        html += '<table><thead><tr><th style="width:90px;">材料</th><th style="width:70px;">危害类型</th><th>危害描述</th><th style="width:50px;">严重性</th><th style="width:50px;">可能性</th><th>控制措施</th></tr></thead><tbody>';
+        html += '<table class="hazard-table"><thead><tr><th style="width:110px;">' + T('原料', 'Raw Material') + '</th><th style="width:70px;">' + T('危害类别', 'Hazard Category') + '</th><th>' + T('识别到的危害', 'Identified Hazard') + '</th><th style="width:40px;">Q1</th><th style="width:40px;">Q2</th><th style="width:40px;">Q3</th><th style="width:60px;">' + T('是否为CCP', 'CCP?') + '</th><th>' + T('控制措施', 'Control Measure') + '</th></tr></thead><tbody>';
         mats.forEach(function(mat) {
           var g = matMap[mat];
-          [{ type: '生物危害', color: '#dc2626', h: g.bioH },{ type: '化学危害', color: '#d97706', h: g.chemH },{ type: '物理危害', color: '#2563eb', h: g.physH }].forEach(function(r, ri) {
+          var labelB = isZh ? '生物危害' : 'Biological', labelC = isZh ? '化学危害' : 'Chemical', labelP = isZh ? '物理危害' : 'Physical';
+          [{type:labelB,h:g.B},{type:labelC,h:g.C},{type:labelP,h:g.P}].forEach(function(r,ri){
             html += '<tr>';
-            if (ri === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:500;">' + esc(mat) + '</td>';
-            html += '<td style="color:' + r.color + ';font-weight:500;">' + r.type + '</td>';
-            if (r.h) { html += td(r.h.desc || r.h.detail) + td(r.h.severity) + td(r.h.likelihood) + td(r.h.control); }
-            else { html += '<td colspan="3" style="color:#6b7280;font-style:italic;">无显著' + r.type + '</td>'; }
+            if (ri===0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:bold;">' + esc(mat) + '</td>';
+            html += '<td style="font-weight:500;">' + r.type + '</td>';
+            if (r.h) {
+              html += td(r.h.desc||r.h.detail) + '<td style="text-align:center;">'+(r.h.q1||'—')+'</td><td style="text-align:center;">'+(r.h.q2||'—')+'</td><td style="text-align:center;">'+(r.h.q3||'—')+'</td>';
+              html += '<td style="text-align:center;">' + (r.h.isCCP ? '<span class="ccp-yes">YES</span>' : 'NO') + '</td>';
+              html += td(r.h.control||'');
+            } else {
+              html += '<td style="color:#888;font-style:italic;" colspan="5">' + T('该材料无显著', 'No significant ') + r.type + T('危害', ' hazard.') + '</td>';
+            }
             html += '</tr>';
           });
         });
         html += '</tbody></table>';
       }
     }
-    if (!hazDone) { html += '<p style="color:#999;font-style:italic;">暂未填写危害分析信息</p>'; }
-    html += '<table class="info-table"><tr><td>团队确认</td><td>' + boolYes(data.hazardConfirmed) + '</td></tr></table>';
+    if (!hazDone) { html += '<p style="color:#888;font-style:italic;">' + T('暂未填写危害分析信息。', 'No hazard analysis data available.') + '</p>'; }
 
-    // ==================== 七、关键限制与监控 ====================
-    html += '<h2 style="page-break-before:always;">七、关键限制与监控</h2>';
-    var sl = { gb:'国标（GB）', industry:'行业标准', enterprise:'企业标准', international:'国际标准' };
-    html += '<table class="info-table"><tr><td>执行标准</td>' + td(sl[data.execStandard] || data.execStandard) + '</tr><tr><td>关键限制说明</td>' + td(data.criticalLimits) + '</tr></table>';
-    var mon = (data.monitoring || []).filter(function(m) { return m.ccp || m.object || m.method; });
-    if (mon.length > 0) {
-      html += '<h3>监控程序设置</h3><table><thead><tr><th>CCP</th><th>监控对象</th><th>监控方法</th><th>监控频率</th><th>监控人员</th><th>备注</th></tr></thead><tbody>';
-      mon.forEach(function(m) { html += '<tr>' + td(m.ccp) + td(m.object) + td(m.method) + td(m.frequency) + td(m.personnel) + td(m.remark) + '</tr>'; });
+    // --- 5.2 Process Step CCP Determination ---
+    var ccpSteps = data.ccpSteps || [];
+    if (ccpSteps.length > 0) {
+      html += '<p class="sub-title" style="page-break-before:always;margin-top:24pt;">' + T('5.2 加工步骤CCP判定表', '5.2 Process Step CCP Determination') + '</p>';
+      html += '<table><thead><tr><th style="width:70px;">' + T('加工步骤', 'Process Step') + '</th><th style="width:55px;">' + T('危害', 'Hazard') + '</th><th>' + T('危害描述', 'Hazard Description') + '</th><th style="width:32px;">Q1</th><th style="width:32px;">Q2a</th><th style="width:32px;">Q2b</th><th style="width:32px;">Q3</th><th style="width:32px;">Q4</th><th style="width:32px;">Q5</th><th style="width:48px;">' + T('CCP?', 'CCP?') + '</th><th>' + T('评注 / 判定依据', 'Comment / Justification') + '</th></tr></thead><tbody>';
+      var hf = isZh ? {bio:'生物危害',chem:'化学危害',phys:'物理危害'} : {bio:'Biological',chem:'Chemical',phys:'Physical'};
+      ccpSteps.forEach(function(s, si) {
+        if (!s.hazards) return;
+        ['bio','chem','phys'].forEach(function(ht, hi) {
+          var h = s.hazards[ht] || {};
+          var isCCP = h.isCCP;
+          var r = '';
+          if (isCCP === true) r = '<span class="ccp-yes">YES</span>';
+          else if (isCCP === false) r = 'NO';
+          else if (isCCP === 'modify') r = T('需修改', 'Modify');
+          else r = '—';
+          html += '<tr>';
+          if (hi === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:bold;">' + esc(s.stepName || T('步骤','Step ')+(si+1)) + '</td>';
+          html += '<td style="font-weight:500;">' + hf[ht] + '</td>';
+          html += '<td style="font-size:7.5pt;">' + esc(h.hazardDesc || '') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q1||'—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q2||'—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q2_need||'—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q3||'—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q4||'—') + '</td>';
+          html += '<td style="text-align:center;">' + (h.q5||'—') + '</td>';
+          html += '<td style="text-align:center;">' + r + '</td>';
+          html += '<td style="font-size:7pt;">' + esc((h.aiReasoning || '').length > 100 ? (h.aiReasoning || '').substring(0,100)+'...' : (h.aiReasoning||'')) + '</td>';
+          html += '</tr>';
+        });
+      });
       html += '</tbody></table>';
     }
-    var ca = (data.correctiveActions || []).filter(function(c) { return c.ccp || c.cl || c.corrective; });
-    if (ca.length > 0) {
-      html += '<h3>纠偏措施</h3><table><thead><tr><th>CCP</th><th>关键限值(CL)</th><th>纠偏措施</th><th>验证</th><th>记录</th></tr></thead><tbody>';
-      ca.forEach(function(c) { html += '<tr>' + td(c.ccp) + td(c.cl) + td(c.corrective) + td(c.verification) + td(c.record) + '</tr>'; });
-      html += '</tbody></table>';
+
+    // ===== 6. HACCP Control Chart =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('6. HACCP控制图表', '6. HACCP Control Chart') + '</h2>';
+    html += '<table class="ctrl-chart"><thead><tr><th style="width:28px;">' + T('CCP编号', 'CCP No.') + '</th><th style="width:55px;">' + T('加工步骤', 'Process Step') + '</th><th>' + T('危害', 'Hazard') + '</th><th>' + T('控制措施', 'Control Measure') + '</th><th>' + T('关键限值', 'Critical Limits') + '</th><th colspan="3" style="width:130px;">' + T('监控', 'Monitoring') + '</th><th colspan="2" style="width:130px;">' + T('纠偏措施', 'Corrective Action') + '</th></tr>';
+    html += '<tr><th></th><th></th><th></th><th></th><th></th><th style="width:50px;">' + T('方法', 'Procedure') + '</th><th style="width:35px;">' + T('频率', 'Freq.') + '</th><th style="width:50px;">' + T('责任人', 'Resp.') + '</th><th style="width:65px;">' + T('方法', 'Procedure') + '</th><th style="width:50px;">' + T('责任人', 'Resp.') + '</th></tr></thead><tbody>';
+
+    var ccpList = [];
+    if (data.ccpSteps && data.ccpSteps.length > 0) {
+      data.ccpSteps.forEach(function(s) {
+        if (!s.hazards) return;
+        ['bio','chem','phys'].forEach(function(ht) {
+          var h = s.hazards[ht];
+          if (h && h.isCCP === true) {
+            var hf2 = isZh ? {bio:'生物危害',chem:'化学危害',phys:'物理危害'} : {bio:'Biological',chem:'Chemical',phys:'Physical'};
+            ccpList.push({ stepName: s.stepName, hazard: hf2[ht] + ': ' + (h.hazardDesc || '') });
+          }
+        });
+      });
+    }
+    var monitoring = data.monitoring || [];
+    var corrective = data.correctiveActions || [];
+    ccpList.forEach(function(ccp, ci) {
+      var mon = monitoring[ci] || {};
+      var corr = corrective[ci] || {};
+      html += '<tr>';
+      html += '<td style="text-align:center;vertical-align:middle;font-weight:bold;">CCP ' + (ci+1) + '</td>';
+      html += '<td style="vertical-align:middle;">' + esc(ccp.stepName) + '</td>';
+      html += '<td>' + esc(ccp.hazard) + '</td>';
+      html += td(mon.method || '');
+      html += td(data.criticalLimits || '');
+      html += td(mon.method || '');
+      html += '<td style="text-align:center;">' + esc(mon.frequency || '') + '</td>';
+      html += td(mon.personnel || '');
+      html += td(corr.corrective || '');
+      html += td(corr.record || '');
+      html += '</tr>';
+    });
+    if (ccpList.length === 0) {
+      html += '<tr><td colspan="10" style="color:#888;font-style:italic;text-align:center;">' + T('未识别到CCP，无需HACCP控制图表。', 'No CCPs identified. A HACCP control chart is not required.') + '</td></tr>';
+    }
+    html += '</tbody></table>';
+
+    // ===== 7. Documentation =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('7. 文件与记录', '7. Documentation and Records') + '</h2>';
+    html += '<p>' + T('所有监控活动均记录在标准表格上。记录包括原料检测结果、温度图表、清洗日志、设备检查记录及纠偏措施报告。', 'All monitoring activities are documented on standard forms. Records include raw material test results, temperature charts, cleaning logs, equipment checks, and corrective action reports.') + '</p>';
+    html += '<table class="info-table"><tbody>';
+    html += '<tr><td>' + T('记录保存期限', 'Record Retention Period') + '</td>' + td(data.recordPeriod || T('2年', '2 years')) + '</tr>';
+    html += '<tr><td>' + T('记录格式要求', 'Record Format Requirements') + '</td>' + td(data.recordFormat || T('电子版及纸质版双份保存', 'Electronic and paper copies')) + '</tr>';
+    html += '</tbody></table>';
+
+    // ===== 8. Verification =====
+    html += '<h2 class="section-title" style="page-break-before:always;">' + T('8. 验证程序', '8. Verification') + '</h2>';
+    html += '<p>' + T('验证活动对于确认HACCP体系有效运行并符合既定计划至关重要。', 'Verification activities are essential to confirm that the HACCP system is operating effectively and in compliance with the established plan.') + '</p>';
+    var vMethod = data.verificationMethod || '';
+    var vFreq = data.verificationFrequency || '';
+    var vPerson = data.verificationPersonnel || '';
+    if (vMethod) html += '<p><strong>' + T('验证方法', 'Verification Methods') + '：</strong><br>' + esc(vMethod).replace(/\n/g, '<br>') + '</p>';
+    if (vFreq) html += '<p><strong>' + T('验证频率', 'Verification Frequency') + '：</strong>' + esc(vFreq) + '</p>';
+    if (vPerson) html += '<p><strong>' + T('验证人员', 'Verification Personnel') + '：</strong>' + esc(vPerson) + '</p>';
+    if (!vMethod && !vFreq && !vPerson) {
+      html += '<ul>';
+      html += '<li>' + T('CCP监控记录审核：每批次生产结束后由品控主管审核。', 'CCP Monitoring Record Review: Reviewed by QC Supervisor after each batch.') + '</li>';
+      html += '<li>' + T('纠偏记录回顾：每周由HACCP小组组长回顾。', 'Corrective Action Record Review: Reviewed weekly by HACCP Team Leader.') + '</li>';
+      html += '<li>' + T('成品抽样检测：每月进行微生物和理化指标检测。', 'Finished Product Sampling: Monthly microbiological and chemical testing.') + '</li>';
+      html += '<li>' + T('设备校准：温度传感器、金属检测仪、pH计等每季度校准。', 'Equipment Calibration: Quarterly for sensors, metal detectors, pH meters.') + '</li>';
+      html += '<li>' + T('HACCP体系年度复审：由HACCP小组每年进行全面复审。', 'Annual HACCP System Review: Full review by HACCP team annually.') + '</li>';
+      html += '</ul>';
     }
 
-    // ==================== 八、记录与报表 ====================
-    html += '<h2 style="page-break-before:always;">八、记录与报表</h2>';
-    html += '<table class="info-table"><tr><td>记录保存期限</td>' + td(data.recordPeriod) + '</tr><tr><td>记录格式要求</td>' + td(data.recordFormat) + '</tr></table>';
-    html += '<p style="text-align:center;color:#999;font-size:9pt;margin-top:30pt;">—— 本文件由 HACCP AI 助手自动生成 ——</p></body></html>';
+    // ===== 9. Review =====
+    html += '<h2 class="section-title">' + T('9. HACCP计划复审', '9. HACCP Plan Review') + '</h2>';
+    html += '<p>' + T('在以下情况下，需要对HACCP计划进行复审：', 'The HACCP plan is subject to review under the following circumstances:') + '</p>';
+    html += '<ul>';
+    html += '<li>' + T('政府法规或食品安全指南发生变化。', 'Changes in government legislation or food safety guidelines.') + '</li>';
+    html += '<li>' + T('发生涉及该产品的食品安全事件。', 'Occurrence of a food safety incident involving the product.') + '</li>';
+    html += '<li>' + T('收到反复的产品安全投诉或质量不稳定反馈。', 'Repeated complaints on product safety or unstable quality.') + '</li>';
+    html += '<li>' + T('引入新配方、新原料或新生产工艺。', 'Introduction of new formulation, materials, or technology.') + '</li>';
+    html += '<li>' + T('设备、包装材料或加工方法变更。', 'Changes in equipment, packaging, or processing methods.') + '</li>';
+    html += '<li>' + T('出现或检测到新的食源性致病菌或其他危害。', 'Emergence of new foodborne pathogens or other hazards.') + '</li>';
+    html += '</ul>';
+    html += '<p>' + T('即使未触发以上条件，HACCP小组也至少应', 'In the absence of the above triggers, a comprehensive review shall be conducted at least ') + '<strong>' + T('每年一次', 'annually') + '</strong>' + T('对HACCP计划进行全面复审。', ' by the HACCP team.') + '</p>';
+
+    html += '<p class="footer-note">' + T('本文件由 HACCP AI 助手于 ', 'This document was generated by HACCP AI Assistant on ') + dateStr + T(' 自动生成 — 待HACCP小组审核批准。', ' — For review and approval by the HACCP Team.') + '</p>';
+    html += '</body></html>';
 
     var blob = new Blob(['﻿' + html], { type: 'application/msword;charset=UTF-8' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'HACCP产品档案_' + (data.companyName || '未命名') + '_' + dateStr + '.doc';
+    a.download = (isZh ? 'HACCP计划书_' : 'HACCP_Plan_') + (company.replace(/[^a-zA-Z0-9一-鿿]/g,'_') || 'Unnamed') + '_' + dateStr + '.doc';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
