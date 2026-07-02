@@ -260,49 +260,120 @@ const Results = (() => {
     });
     html += '<div class="result-item"><span class="ri-label">流程图现场确认</span><span class="ri-value">' + boolYes(data.flowConfirmed) + '</span></div></div>';
 
-    // 3.5 - CCP判定结果
+    // 3.5 - CCP判定结果（Codex决策树完整展示）
     if (data.ccpSteps && data.ccpSteps.length > 0) {
       html += '<div class="results-section" id="section-q15-ccp"><h2>' + I18n.t('result.ccp.title') + '</h2>';
       html += '<p style="font-size:13px;color:var(--gray-400);margin-bottom:12px;">' + I18n.t('result.ccp.desc') + '</p>';
-      html += '<div style="overflow-x:auto;"><table style="min-width:900px;"><thead><tr>';
-      html += '<th>' + I18n.t('ccp.summary.step') + '</th><th>' + I18n.t('result.ccp.colHazardType') + '</th><th>' + I18n.t('result.ccp.colHazardDesc') + '</th>';
-      html += '<th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th>';
-      html += '<th>' + I18n.t('result.ccp.colResult') + '</th><th>' + I18n.t('result.ccp.colReasoning') + '</th>';
-      html += '</tr></thead><tbody>';
-      var hazardTypes = ['bio', 'chem', 'phys'];
-      var hazardTypeNames = { bio: I18n.t('result.ccp.bio'), chem: I18n.t('result.ccp.chem'), phys: I18n.t('result.ccp.phys') };
+
+      // 统计
+      var totalJudgments = 0, ccpCount = 0, nonCcpCount = 0, pendingCount = 0;
+      var ccpStepsList = [];
       data.ccpSteps.forEach(function(s, si) {
         if (!s.hazards) return;
-        hazardTypes.forEach(function(ht, hi) {
+        ['bio','chem','phys'].forEach(function(ht) {
           var h = s.hazards[ht] || {};
-          var isCCP = h.isCCP;
-          var resultText = '';
-          var resultColor = '';
-          if (isCCP === true) { resultText = I18n.t('ccp.result.ccp'); resultColor = '#dc2626'; }
-          else if (isCCP === false) { resultText = I18n.t('ccp.result.nonCcp'); resultColor = '#16a34a'; }
-          else if (isCCP === 'modify') { resultText = I18n.t('ccp.result.modify'); resultColor = '#d97706'; }
-          else { resultText = I18n.t('ccp.result.undetermined'); resultColor = '#6b7280'; }
-          var reasoningHtml = '';
-          if (h.aiReasoning) {
-            reasoningHtml = '<span style="font-size:11px;color:#6b7280;" title="' + esc(h.aiReasoning) + '">' + esc(h.aiReasoning.substring(0, 60) + (h.aiReasoning.length > 60 ? '...' : '')) + '</span>';
-            if (h.aiOverridden) reasoningHtml += ' <span style="color:#d97706;font-size:9px;font-weight:500;">' + I18n.t('ccp.userModified') + '</span>';
-            else reasoningHtml += ' <span style="color:#7c3aed;font-size:9px;">' + I18n.t('ccp.aiLabel') + '</span>';
-          }
-          html += '<tr>';
-          if (hi === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:500;">' + esc(s.stepName || '步骤' + (si+1)) + '</td>';
-          html += '<td style="white-space:nowrap;">' + hazardTypeNames[ht] + '</td>';
-          html += '<td style="font-size:12px;">' + esc(h.hazardDesc || '') + '</td>';
-          html += '<td style="text-align:center;">' + (h.q1 || '—') + '</td>';
-          html += '<td style="text-align:center;">' + (h.q2 || '—') + '</td>';
-          html += '<td style="text-align:center;">' + (h.q3 || '—') + '</td>';
-          html += '<td style="text-align:center;">' + (h.q4 || '—') + '</td>';
-          html += '<td style="text-align:center;">' + (h.q5 || '—') + '</td>';
-          html += '<td style="color:' + resultColor + ';font-weight:bold;text-align:center;">' + resultText + '</td>';
-          html += '<td>' + reasoningHtml + '</td>';
-          html += '</tr>';
+          totalJudgments++;
+          if (h.isCCP === true) { ccpCount++; ccpStepsList.push({step:s.stepName, type:ht, desc:h.hazardDesc, reasoning:h.aiReasoning}); }
+          else if (h.isCCP === false) nonCcpCount++;
+          else if (h.isCCP === 'modify') nonCcpCount++;
+          else pendingCount++;
         });
       });
-      html += '</tbody></table></div></div>';
+
+      // 汇总横幅
+      if (totalJudgments > 0) {
+        var bannerBg = ccpCount > 0 ? '#fef2f2' : '#f0fdf4';
+        var bannerBorder = ccpCount > 0 ? '#fca5a5' : '#86efac';
+        var bannerColor = ccpCount > 0 ? '#991b1b' : '#166534';
+        html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">';
+        html += '<div style="flex:1;min-width:100px;padding:14px 18px;background:' + bannerBg + ';border:1px solid ' + bannerBorder + ';border-radius:10px;text-align:center;">';
+        html += '<div style="font-size:28px;font-weight:700;color:' + bannerColor + ';">' + ccpCount + '</div>';
+        html += '<div style="font-size:12px;color:' + bannerColor + ';margin-top:4px;">' + I18n.t('ccp.result.ccp') + '（关键控制点）</div></div>';
+        html += '<div style="flex:1;min-width:100px;padding:14px 18px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;text-align:center;">';
+        html += '<div style="font-size:28px;font-weight:700;color:#166534;">' + nonCcpCount + '</div>';
+        html += '<div style="font-size:12px;color:#166534;margin-top:4px;">' + I18n.t('ccp.result.nonCcp') + '</div></div>';
+        if (pendingCount > 0) {
+          html += '<div style="flex:1;min-width:100px;padding:14px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">';
+          html += '<div style="font-size:28px;font-weight:700;color:#64748b;">' + pendingCount + '</div>';
+          html += '<div style="font-size:12px;color:#64748b;margin-top:4px;">' + I18n.t('ccp.result.undetermined') + '</div></div>';
+        }
+        html += '<div style="flex:1;min-width:100px;padding:14px 18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;text-align:center;">';
+        html += '<div style="font-size:28px;font-weight:700;color:#1e40af;">' + data.ccpSteps.length + '</div>';
+        html += '<div style="font-size:12px;color:#1e40af;margin-top:4px;">' + I18n.t('ccp.summary.step') + '</div></div>';
+        html += '</div>';
+
+        // AI标签
+        var hasAI = data.ccpSteps.some(function(cs) { return cs && cs.hazards && ['bio','chem','phys'].some(function(ht) { return cs.hazards[ht] && cs.hazards[ht].aiReasoning; }); });
+        if (hasAI) {
+          html += '<div style="margin-bottom:16px;padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:13px;color:#6d28d9;">';
+          html += '🤖 <strong>AI辅助判定完成</strong> — 以下结果由AI基于Codex判断树规则自动分析生成，请人工复核确认';
+          html += '</div>';
+        }
+      }
+
+      // CCP步骤决策树判定详表
+      var htLabels = { bio: I18n.t('result.ccp.bio'), chem: I18n.t('result.ccp.chem'), phys: I18n.t('result.ccp.phys') };
+      var htColors = { bio: '#dc2626', chem: '#d97706', phys: '#2563eb' };
+      data.ccpSteps.forEach(function(s, si) {
+        if (!s.hazards) return;
+        var stepBg = '#fff';
+        // 该步骤是否有CCP
+        var stepHasCcp = ['bio','chem','phys'].some(function(ht) { return s.hazards[ht] && s.hazards[ht].isCCP === true; });
+        if (stepHasCcp) stepBg = '#fff5f5';
+
+        html += '<div style="margin-bottom:16px;padding:16px 20px;background:' + stepBg + ';border:1px solid ' + (stepHasCcp ? '#fca5a5' : '#e2e8f0') + ';border-radius:10px;">';
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">';
+        html += '<span style="width:30px;height:30px;border-radius:50%;background:' + (stepHasCcp ? '#dc2626' : '#64748b') + ';color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;">' + (si+1) + '</span>';
+        html += '<strong style="font-size:15px;color:' + (stepHasCcp ? '#991b1b' : '#334155') + ';">' + esc(s.stepName || I18n.t('ccp.summary.step') + (si+1)) + '</strong>';
+        if (stepHasCcp) html += '<span style="padding:3px 10px;background:#dc2626;color:#fff;border-radius:999px;font-size:11px;font-weight:700;">CCP</span>';
+        html += '</div>';
+
+        // 三个危害类型各一行
+        html += '<table style="width:100%;border-collapse:collapse;margin:0;font-size:13px;">';
+        html += '<thead><tr style="background:#f8fafc;">';
+        html += '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;width:80px;">' + I18n.t('result.ccp.colHazardType') + '</th>';
+        html += '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;">' + I18n.t('result.ccp.colHazardDesc') + '</th>';
+        html += '<th style="padding:6px 2px;border:1px solid #e2e8f0;text-align:center;width:38px;font-size:11px;">Q1</th>';
+        html += '<th style="padding:6px 2px;border:1px solid #e2e8f0;text-align:center;width:38px;font-size:11px;">Q2</th>';
+        html += '<th style="padding:6px 2px;border:1px solid #e2e8f0;text-align:center;width:38px;font-size:11px;">Q3</th>';
+        html += '<th style="padding:6px 2px;border:1px solid #e2e8f0;text-align:center;width:38px;font-size:11px;">Q4</th>';
+        html += '<th style="padding:6px 2px;border:1px solid #e2e8f0;text-align:center;width:38px;font-size:11px;">Q5</th>';
+        html += '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;width:70px;">' + I18n.t('result.ccp.colResult') + '</th>';
+        html += '<th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;">' + I18n.t('result.ccp.colReasoning') + '</th>';
+        html += '</tr></thead><tbody>';
+
+        ['bio','chem','phys'].forEach(function(ht) {
+          var h = s.hazards[ht] || {};
+          var q1 = h.q1 || '', q2 = h.q2 || '', q3 = h.q3 || '', q4 = h.q4 || '', q5 = h.q5 || '';
+          var isCCP = h.isCCP;
+          var resultHtml = '', rowBg = '';
+          if (isCCP === true) { resultHtml = '<span style="color:#dc2626;font-weight:700;">' + I18n.t('ccp.result.ccp') + '</span>'; rowBg = '#fef2f2'; }
+          else if (isCCP === false) { resultHtml = '<span style="color:#16a34a;">' + I18n.t('ccp.result.nonCcp') + '</span>'; rowBg = '#fff'; }
+          else if (isCCP === 'modify') { resultHtml = '<span style="color:#d97706;">' + I18n.t('ccp.result.modify') + '</span>'; rowBg = '#fffbeb'; }
+          else { resultHtml = '<span style="color:#94a3b8;font-style:italic;">' + I18n.t('ccp.result.undetermined') + '</span>'; rowBg = '#fff'; }
+
+          // 高亮判定路径上的Q
+          var qStyle = function(val, isPath) {
+            if (!val) return 'style="text-align:center;color:#cbd5e1;"';
+            if (isPath) return 'style="text-align:center;font-weight:700;color:#1e40af;background:#dbeafe;border-radius:3px;"';
+            return 'style="text-align:center;color:#475569;"';
+          };
+
+          html += '<tr style="background:' + rowBg + ';">';
+          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600;color:' + htColors[ht] + ';">' + htLabels[ht] + '</td>';
+          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:12px;">' + esc(h.hazardDesc || '') + '</td>';
+          html += '<td ' + qStyle(q1, true) + '>' + (q1||'—') + '</td>';
+          html += '<td style="text-align:center;color:' + (q2 ? '#475569' : '#cbd5e1') + ';">' + (q2||'—') + '</td>';
+          html += '<td ' + qStyle(q3, !!q3) + '>' + (q3||'—') + '</td>';
+          html += '<td style="text-align:center;color:' + (q4 ? '#475569' : '#cbd5e1') + ';">' + (q4||'—') + '</td>';
+          html += '<td style="text-align:center;color:' + (q5 ? '#475569' : '#cbd5e1') + ';">' + (q5||'—') + '</td>';
+          html += '<td style="padding:6px 4px;border:1px solid #e2e8f0;text-align:center;">' + resultHtml + '</td>';
+          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:11px;color:#64748b;">' + esc(h.aiReasoning || '') + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      });
+      html += '</div>';
     }
 
     // 四、危害分析 - 合并所有危害到统一表格，按文档格式展示

@@ -722,12 +722,27 @@ const Questionnaire15min = (() => {
     if (savedSteps.length > 0) {
       html += '<div style="margin-top:20px;"><h3>已添加步骤</h3><ul style="list-style:none;padding:0;margin:8px 0;">';
       savedSteps.forEach(function(s, i) {
-        html += '<li style="padding:8px 10px;margin:6px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;" data-step-edit="' + i + '">';
+        // 检查该步骤是否有CCP判定结果
+        var stepCcp = (data.ccpSteps && data.ccpSteps[i] && data.ccpSteps[i].hazards) ? data.ccpSteps[i].hazards : null;
+        var ccpTypes = [];
+        if (stepCcp) {
+          if (stepCcp.bio && stepCcp.bio.isCCP === true) ccpTypes.push('B');
+          if (stepCcp.chem && stepCcp.chem.isCCP === true) ccpTypes.push('C');
+          if (stepCcp.phys && stepCcp.phys.isCCP === true) ccpTypes.push('P');
+        }
+        var isCcp = ccpTypes.length > 0;
+        var bg = isCcp ? '#fef2f2' : '#f8fafc';
+        var border = isCcp ? '#fca5a5' : '#e2e8f0';
+        var ccpBadge = '';
+        if (isCcp) {
+          ccpBadge = '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0;margin-left:8px;" title="已判定为CCP: ' + ccpTypes.join('/') + '危害">CCP</span>';
+        }
+        html += '<li style="padding:8px 10px;margin:6px 0;background:' + bg + ';border:1px solid ' + border + ';border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;" data-step-edit="' + i + '">';
         html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || '未命名') + '</strong>';
         if (s.equipmentName) html += ' | 设备：' + esc(s.equipmentName);
         if (s.operationMethod) html += ' | 方法：' + esc(s.operationMethod);
         if (s.parameters) html += ' | 参数：' + esc(s.parameters);
-        html += '</span>';
+        html += '</span>' + ccpBadge;
         html += '<button class="btn btn-xs btn-secondary" data-step-delete="' + i + '" style="color:#dc2626;border-color:#fecaca;padding:2px 8px;font-size:12px;flex-shrink:0;">删除</button>';
         html += '</li>';
       });
@@ -2323,10 +2338,151 @@ const Questionnaire15min = (() => {
       renderActiveSection(); renderSectionNav();
     })
     .catch(function(err) {
-      console.error('AI CCP判定失败:', err);
-      if (hint) hint.textContent = '⚠️ AI不可用，请使用手动CCP判断';
+      console.warn('AI CCP判定后端不可用，使用本地判断树规则:', err.message);
+      localMockCcpJudgment(data);
+      if (hint) hint.textContent = '✅ 本地CCP判定完成（基于判断树规则）';
       if (aiBtn) aiBtn.disabled = false;
     });
+  }
+
+  // 本地模拟CCP判定（基于步骤名关键词 + Codex判断树规则，无需后端）
+  function localMockCcpJudgment(data) {
+    normalizeCcpSteps(data);
+    var steps = data.processSteps || [];
+    steps.forEach(function(step, si) {
+      var sn = (step.stepName || '').trim();
+      var om = (step.operationMethod || '').toLowerCase();
+      var pm = (step.parameters || '').toLowerCase();
+      var en = (step.equipmentName || '').toLowerCase();
+      var combined = (sn + om + pm + en).toLowerCase();
+
+      var isHeat = /杀菌|灭菌|热处理|蒸煮|uht|巴氏|消毒|pasteuriz|steriliz|heat/.test(combined);
+      var isMetal = /金属检测|异物检测|x光|x-ray|磁选|筛选|metal detect/.test(combined);
+      var isReceiving = /验收|接收|原料|receiving|receiv/.test(combined) && combined.indexOf('辅料') === -1;
+      var isCleaning = /清洗|清洁|cip|消毒|washing|cleaning/.test(combined);
+      var isCooling = /冷却|降温|冷藏|冷冻|速冻|cooling|chill/.test(combined);
+      var isPackaging = /包装|灌装|封口|封盖|packaging|filling|sealing/.test(combined);
+      var isFilter = /过滤|膜滤|超滤|离心|脱色|filter|membrane|centrifug/.test(combined);
+      var isDrying = /烘干|干燥|喷雾|drying|spray/.test(combined);
+      var isStorage = /入库|储存|仓储|storage|warehous/.test(combined);
+
+      if (!data.ccpSteps[si]) data.ccpSteps[si] = { stepName: sn || '', hazards: {}, completed: false };
+      if (!data.ccpSteps[si].hazards) data.ccpSteps[si].hazards = {};
+
+      // Bio hazard judgment
+      var bio = data.ccpSteps[si].hazards.bio || {};
+      var bioDesc = '';
+      if (isHeat) bioDesc = '致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留';
+      else if (isReceiving) bioDesc = '原料可能携带致病菌（沙门氏菌、大肠杆菌等）';
+      else if (isCooling) bioDesc = '冷却过程中温度适宜微生物繁殖，可能导致微生物增殖';
+      else if (isPackaging) bioDesc = '包装环节在洁净环境下进行，无明显生物危害引入';
+      else if (isCleaning) bioDesc = '清洗不彻底可能导致微生物残留和交叉污染';
+      else if (isFilter) bioDesc = '过滤介质可能滋生微生物';
+      else if (isStorage) bioDesc = '储存条件不当可能导致微生物增殖';
+      else bioDesc = '可能存在的微生物污染风险';
+
+      // Codex decision tree
+      var bioQ1, bioQ2, bioQ3, bioQ4, bioQ5, bioQ2need, bioIsCCP, bioReason;
+      if (isHeat) {
+        bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '是'; bioQ4 = null; bioQ5 = null; bioQ2need = null;
+        bioIsCCP = true;
+        bioReason = '该步骤存在生物危害风险（致病菌污染），热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。';
+      } else if (isReceiving) {
+        bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '是'; bioQ5 = '是'; bioQ2need = null;
+        bioIsCCP = false;
+        bioReason = '原料可能存在生物危害，有验收控制措施（Q2=是），但验收非专门设计用于消除危害（Q3=否），后续加工步骤（杀菌）可消除该危害（Q5=是），故判定为非CCP。';
+      } else if (isCooling) {
+        bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '是'; bioQ5 = '否'; bioQ2need = null;
+        bioIsCCP = true;
+        bioReason = '冷却步骤存在微生物增殖风险，有温度/时间控制措施（Q2=是），冷却不当会导致污染升高至不可接受水平（Q4=是），后续无杀菌步骤可消除该危害（Q5=否），故判定为CCP。';
+      } else if (isPackaging) {
+        bioQ1 = '否'; bioQ2 = null; bioQ3 = null; bioQ4 = null; bioQ5 = null; bioQ2need = null;
+        bioIsCCP = false;
+        bioReason = '包装步骤在洁净环境下进行，无明显生物危害引入风险（Q1=否），故判定为非CCP。';
+      } else if (isStorage) {
+        bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '是'; bioQ5 = '否'; bioQ2need = null;
+        bioIsCCP = true;
+        bioReason = '储存条件不当可能导致微生物增殖，有温湿度控制措施（Q2=是），储存不当会导致危害升高（Q4=是），后续无杀菌步骤（Q5=否），故判定为CCP。';
+      } else {
+        bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '否'; bioQ2need = null; bioQ5 = null;
+        bioIsCCP = false;
+        bioReason = '该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。';
+      }
+
+      // Chem hazard judgment
+      var chem = data.ccpSteps[si].hazards.chem || {};
+      var chemDesc = '';
+      if (isReceiving) chemDesc = '农药残留、重金属（铅、砷、镉）、兽药残留超标';
+      else if (isFilter) chemDesc = '加工助剂残留、化学物质溶出';
+      else if (isCleaning) chemDesc = '清洗剂/消毒剂残留';
+      else if (isDrying) chemDesc = '高温可能产生化学变化产物';
+      else chemDesc = '无明显化学危害';
+
+      var chemQ1, chemQ2, chemQ3, chemQ4, chemQ5, chemQ2need, chemIsCCP, chemReason;
+      if (isReceiving) {
+        chemQ1 = '是'; chemQ2 = '是'; chemQ3 = '否'; chemQ4 = '否'; chemQ5 = null; chemQ2need = null;
+        chemIsCCP = false;
+        chemReason = '原料可能存在化学危害，有验收检测控制（Q2=是），但验收步骤不会导致化学危害升高（Q4=否），故判定为非CCP。';
+      } else if (isFilter) {
+        chemQ1 = '是'; chemQ2 = '是'; chemQ3 = '是'; chemQ4 = null; chemQ5 = null; chemQ2need = null;
+        chemIsCCP = true;
+        chemReason = '该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。';
+      } else if (isCleaning) {
+        chemQ1 = '是'; chemQ2 = '是'; chemQ3 = '否'; chemQ4 = '否'; chemQ5 = null; chemQ2need = null;
+        chemIsCCP = false;
+        chemReason = '可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。';
+      } else {
+        chemQ1 = '否'; chemQ2 = null; chemQ3 = null; chemQ4 = null; chemQ5 = null; chemQ2need = null;
+        chemIsCCP = false;
+        chemReason = '该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。';
+      }
+
+      // Phys hazard judgment
+      var phys = data.ccpSteps[si].hazards.phys || {};
+      var physDesc = '';
+      if (isMetal) physDesc = '金属碎片（设备磨损、刀片断裂等产生的铁、不锈钢碎片）';
+      else if (isReceiving) physDesc = '原料中可能混入砂石、金属、玻璃等异物';
+      else if (isPackaging) physDesc = '包装材料碎片、封口不良导致异物侵入';
+      else if (isFilter) physDesc = '过滤介质破损可能引入异物';
+      else physDesc = '无明显物理危害';
+
+      var physQ1, physQ2, physQ3, physQ4, physQ5, physQ2need, physIsCCP, physReason;
+      if (isMetal) {
+        physQ1 = '是'; physQ2 = '是'; physQ3 = '是'; physQ4 = null; physQ5 = null; physQ2need = null;
+        physIsCCP = true;
+        physReason = '该步骤存在物理危害（金属异物），金属检测/筛选步骤专门设计用于去除金属异物（Q3=是），故判定为CCP。';
+      } else if (isReceiving) {
+        physQ1 = '是'; physQ2 = '是'; physQ3 = '否'; physQ4 = '否'; physQ5 = null; physQ2need = null;
+        physIsCCP = false;
+        physReason = '原料可能携带物理异物，有验收目视检查（Q2=是），但验收不会增加物理危害（Q4=否），故判定为非CCP。';
+      } else if (isPackaging) {
+        physQ1 = '是'; physQ2 = '是'; physQ3 = '否'; physQ4 = '否'; physQ5 = null; physQ2need = null;
+        physIsCCP = false;
+        physReason = '可能存在包装材料碎片，有目视检查和设备维护控制（Q2=是），风险较低（Q4=否），故判定为非CCP。';
+      } else {
+        physQ1 = '否'; physQ2 = null; physQ3 = null; physQ4 = null; physQ5 = null; physQ2need = null;
+        physIsCCP = false;
+        physReason = '该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。';
+      }
+
+      data.ccpSteps[si].hazards.bio = {
+        hazardDesc: bioDesc, q1: bioQ1, q2: bioQ2, q3: bioQ3, q4: bioQ4, q5: bioQ5,
+        q2_need: bioQ2need, isCCP: bioIsCCP, aiReasoning: bioReason
+      };
+      data.ccpSteps[si].hazards.chem = {
+        hazardDesc: chemDesc, q1: chemQ1, q2: chemQ2, q3: chemQ3, q4: chemQ4, q5: chemQ5,
+        q2_need: chemQ2need, isCCP: chemIsCCP, aiReasoning: chemReason
+      };
+      data.ccpSteps[si].hazards.phys = {
+        hazardDesc: physDesc, q1: physQ1, q2: physQ2, q3: physQ3, q4: physQ4, q5: physQ5,
+        q2_need: physQ2need, isCCP: physIsCCP, aiReasoning: physReason
+      };
+      data.ccpSteps[si].completed = true;
+    });
+    data.ccpPageMode = 'summary';
+    saveData(data);
+    renderActiveSection();
+    renderSectionNav();
   }
 
   function evaluateCCPFromQA(hazard) {
