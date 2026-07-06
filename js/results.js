@@ -78,10 +78,10 @@ const Results = (() => {
   function render15minSidebar(nav) {
     const lang = I18n.getLang();
     const items = [
-      { key: 'aiReport', label: I18n.t('r15.aiReport') },
       { key: 'q15-company', label: I18n.t('r15.section1') },
       { key: 'q15-product', label: I18n.t('r15.section2') },
       { key: 'q15-process', label: I18n.t('r15.section3') },
+      { key: 'q15-flowchart-image', label: I18n.t('r15.flowchart') },
       { key: 'q15-ccp', label: I18n.t('result.ccp.title') },
       { key: 'q15-hazard', label: I18n.t('r15.section4') },
       { key: 'q15-limits', label: I18n.t('r15.section5') },
@@ -154,24 +154,11 @@ const Results = (() => {
   function render15minContent(container, data, lang) {
     const emptyLabel = I18n.t('common.empty');
     const fieldValue = (val) => val ? esc(val) : '<span style="color:var(--gray-400);font-style:italic;">' + emptyLabel + '</span>';
-    const boolYes = (val) => val ? '\u2713 是' : '\u2717 否';
+    const boolYes = (val) => val ? I18n.t('r15.boolYes') : I18n.t('r15.boolNo');
 
     let html = '<a class="back-link" href="javascript:App.navigateTo(\'home\')">\u2190 ' + I18n.t('nav.back') + '</a>';
 
-    // AI 报告
-    html += `
-      <div class="results-section" id="section-aiReport">
-        <h2>AI 分析报告</h2>
-        <div id="aiReportBody">
-          <div class="report-loading">
-            <span class="spinner" style="width:20px;height:20px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>
-            <span>${lang === 'en' ? 'Generating AI report...' : I18n.t('r15.generating')}</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // 验证程序状态卡片（放在最上方，紧接AI报告之后）
+    // 验证程序状态卡片（放在最上方）
     var verSubmitted = data.verificationSubmitted || false;
     var verSigner = data.verificationSignerName || '';
     var verDate = data.verificationSignerDate || '';
@@ -180,8 +167,8 @@ const Results = (() => {
         '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="font-size:24px;">✅</span>' +
-        '<div><div style="font-weight:600;color:#166534;">验证程序已提交</div>' +
-        '<div style="font-size:12px;color:#475569;margin-top:2px;">组长签名：<strong>' + esc(verSigner) + '</strong> | 签名日期：<strong>' + esc(verDate) + '</strong></div></div>' +
+        '<div><div style="font-weight:600;color:#166534;">' + I18n.t('verification.submitted') + '</div>' +
+        '<div style="font-size:12px;color:#475569;margin-top:2px;">' + I18n.t('verification.signer') + '：<strong>' + esc(verSigner) + '</strong> | 签名日期：<strong>' + esc(verDate) + '</strong></div></div>' +
         '</div>' +
         '<button class="btn btn-sm btn-secondary" id="resultEditVerBtn" style="border-color:#86efac;color:#166534;">📝 编辑验证程序</button>' +
         '</div></div>';
@@ -190,50 +177,43 @@ const Results = (() => {
         '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="font-size:24px;">⏰</span>' +
-        '<div><div style="font-weight:600;color:#92400e;">验证程序尚未填写</div>' +
-        '<div style="font-size:12px;color:#92400e;margin-top:2px;">请尽快完成HACCP验证程序的填写和组长签名提交</div></div>' +
+        '<div><div style="font-weight:600;color:#92400e;">' + I18n.t('verification.notSubmitted') + '</div>' +
+        '<div style="font-size:12px;color:#92400e;margin-top:2px;">' + I18n.t('verification.notSubmittedHint') + '</div></div>' +
         '</div>' +
         '<button class="btn btn-primary btn-sm" id="resultEditVerBtn">📝 去填写验证程序</button>' +
         '</div></div>';
     }
 
-    // 如果生产步骤有数据，展示可视化流程图（使用独立ID避免重复）
     const steps = data.processSteps || [];
-    if (steps.some(s => s.stepName && s.stepName.trim())) {
-      var fcHtml = '<div class="fc-mermaid-wrapper" style="margin-bottom:24px;padding:16px;background:#fafafa;border:1px solid #e5e7eb;border-radius:10px;overflow-x:auto;">';
-      fcHtml += '<div class="mermaid" style="min-height:100px;"></div>';
-      fcHtml += '</div>';
-      html += '<div class="results-section" id="section-q15-flowchart"><h2>生产流程图</h2>' + fcHtml + render15minFlowchart(steps) + '</div>';
-    }
 
     // 一、企业信息
-    html += '<div class="results-section" id="section-q15-company"><h2>一、企业信息</h2>' +
-      '<div class="result-item"><span class="ri-label">企业名称</span><span class="ri-value">' + fieldValue(data.companyName) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">制定部门</span><span class="ri-value">' + fieldValue(data.deptName) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">审核人员</span><span class="ri-value">' + fieldValue(data.auditor) + '</span></div>';
+    html += '<div class="results-section" id="section-q15-company"><h2>' + I18n.t('r15.companyInfo') + '</h2>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.companyName') + '</span><span class="ri-value">' + fieldValue(data.companyName) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.deptName') + '</span><span class="ri-value">' + fieldValue(data.deptName) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.auditor') + '</span><span class="ri-value">' + fieldValue(data.auditor) + '</span></div>';
     // 其他项目 - 以内联形式展示（放在审核人员下方，HACCP小组成员上方）
     if (data.extraItems && data.extraItems.length > 0) {
       data.extraItems.filter(function(e) { return e.key || e.value; }).forEach(function(e) {
         html += '<div class="result-item"><span class="ri-label">' + fieldValue(e.key) + '</span><span class="ri-value">' + fieldValue(e.value) + '</span></div>';
       });
     }
-    html += '<h3>HACCP小组成员</h3>' +
-      '<table><thead><tr><th>姓名</th><th>部门</th><th>职位</th><th>职责</th><th>备注</th></tr></thead><tbody>' +
+    html += '<h3>' + I18n.t('r15.teamTitle') + '</h3>' +
+      '<table><thead><tr><th>' + I18n.t('r15.colName') + '</th><th>' + I18n.t('r15.colDept') + '</th><th>' + I18n.t('r15.colPosition') + '</th><th>' + I18n.t('r15.colRole') + '</th><th>' + I18n.t('r15.colRemark') + '</th></tr></thead><tbody>' +
       (data.haccpTeam || []).map(function(m) { return '<tr><td>' + fieldValue(m.name) + '</td><td>' + fieldValue(m.dept) + '</td><td>' + fieldValue(m.position) + '</td><td>' + fieldValue(m.role) + '</td><td>' + fieldValue(m.remark) + '</td></tr>'; }).join('') +
       '</tbody></table></div>';
 
     // 二、产品信息
-    html += '<div class="results-section" id="section-q15-product"><h2>二、产品信息</h2>' +
-      '<div class="result-item"><span class="ri-label">产品名称</span><span class="ri-value">' + fieldValue(data.productName) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">主要原料</span><span class="ri-value">' + fieldValue(data.rawMaterials) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">添加剂</span><span class="ri-value">' + fieldValue(data.additives) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">产品PH</span><span class="ri-value">' + fieldValue(data.productPH) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">水分活度</span><span class="ri-value">' + fieldValue(data.waterActivity) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">预期用途</span><span class="ri-value">' + fieldValue(data.intendedUse) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">储存条件</span><span class="ri-value">' + fieldValue(data.storageCondition) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">包装方式</span><span class="ri-value">' + fieldValue(data.packagingMethod) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">目标消费者</span><span class="ri-value">' + fieldValue(data.targetConsumer) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">保质期</span><span class="ri-value">' + fieldValue(data.shelfLife) + '</span></div>';
+    html += '<div class="results-section" id="section-q15-product"><h2>' + I18n.t('r15.productInfo') + '</h2>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.productName') + '</span><span class="ri-value">' + fieldValue(data.productName) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.rawMaterials') + '</span><span class="ri-value">' + fieldValue(data.rawMaterials) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.additives') + '</span><span class="ri-value">' + fieldValue(data.additives) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.productPH') + '</span><span class="ri-value">' + fieldValue(data.productPH) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.waterActivity') + '</span><span class="ri-value">' + fieldValue(data.waterActivity) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.intendedUse') + '</span><span class="ri-value">' + fieldValue(data.intendedUse) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.storageCondition') + '</span><span class="ri-value">' + fieldValue(data.storageCondition) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.packagingMethod') + '</span><span class="ri-value">' + fieldValue(data.packagingMethod) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.targetConsumer') + '</span><span class="ri-value">' + fieldValue(data.targetConsumer) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.shelfLife') + '</span><span class="ri-value">' + fieldValue(data.shelfLife) + '</span></div>';
     // 其他项目（产品信息中手动添加的补充信息）
     if (data.productExtraItems && data.productExtraItems.length > 0) {
       data.productExtraItems.filter(function(e) { return e.key || e.value; }).forEach(function(e) {
@@ -243,22 +223,40 @@ const Results = (() => {
     html += '</div>';
 
     // 三、生产流程
-    html += '<div class="results-section" id="section-q15-process"><h2>三、生产流程</h2>' +
-      '<h3>配方</h3>' +
-      '<table><thead><tr><th>原料/辅料/添加剂</th><th>精确用量</th><th>关键作用</th></tr></thead><tbody>' +
+    html += '<div class="results-section" id="section-q15-process"><h2>' + I18n.t('r15.processFlow') + '</h2>' +
+      '<h3>' + I18n.t('r15.formula') + '</h3>' +
+      '<table><thead><tr><th>' + I18n.t('r15.colMaterial') + '</th><th>' + I18n.t('r15.colDosage') + '</th><th>' + I18n.t('r15.colFunction') + '</th></tr></thead><tbody>' +
       (data.formula || []).map(function(f) { return '<tr><td>' + fieldValue(f.material) + '</td><td>' + fieldValue(f.dosage) + '</td><td>' + fieldValue(f.func) + '</td></tr>'; }).join('') +
       '</tbody></table>' +
-      '<h3>操作步骤</h3>';
+      '<h3>' + I18n.t('r15.opSteps') + '</h3>';
     (data.processSteps || []).forEach(function(s, i) {
       html += '<div class="fc-step-card fc-result"><div class="fc-step-header"><span class="fc-step-num">' + (i + 1) + '</span><strong>' + fieldValue(s.stepName) + '</strong></div>' +
         '<table class="fc-result-params"><tbody>' +
-        '<tr><th>操作方法</th><td>' + fieldValue(s.operationMethod) + '</td></tr>' +
-        '<tr><th>工艺参数</th><td>' + fieldValue(s.parameters) + '</td></tr>' +
-        '<tr><th>控制点</th><td>' + fieldValue(s.controlPoint) + '</td></tr>' +
-        '<tr><th>设备名称</th><td>' + fieldValue(s.equipmentName) + '</td></tr>' +
+        '<tr><th>' + I18n.t('r15.opMethod') + '</th><td>' + fieldValue(s.operationMethod) + '</td></tr>' +
+        '<tr><th>' + I18n.t('r15.params') + '</th><td>' + fieldValue(s.parameters) + '</td></tr>' +
+        '<tr><th>' + I18n.t('r15.ctrlPoint') + '</th><td>' + fieldValue(s.controlPoint) + '</td></tr>' +
+        '<tr><th>' + I18n.t('r15.equipment') + '</th><td>' + fieldValue(s.equipmentName) + '</td></tr>' +
         '</tbody></table></div>';
     });
-    html += '<div class="result-item"><span class="ri-label">流程图现场确认</span><span class="ri-value">' + boolYes(data.flowConfirmed) + '</span></div></div>';
+    html += '<div class="result-item"><span class="ri-label">' + I18n.t('r15.flowConfirmed') + '</span><span class="ri-value">' + boolYes(data.flowConfirmed) + '</span></div></div>';
+
+    // 3.4 - 流程图（来自draw.io编辑器）
+    var pfFlowSvg = data.flowchartSvg || '';
+    if (!pfFlowSvg) {
+      try {
+        var pfRaw2 = localStorage.getItem('haccp_profile_data');
+        if (pfRaw2) {
+          var pfD = JSON.parse(pfRaw2);
+          pfFlowSvg = pfD.flowchartSvg || '';
+        }
+      } catch(e) {}
+    }
+    if (pfFlowSvg) {
+      html += '<div class="results-section" id="section-q15-flowchart-image"><h2>' + I18n.t('r15.flowchart') + '</h2>';
+      html += '<div style="text-align:center;padding:16px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:auto;">';
+      html += '<img src="' + pfFlowSvg + '" style="max-width:100%;height:auto;" alt="' + I18n.t('r15.flowchart') + '">';
+      html += '</div></div>';
+    }
 
     // 3.5 - CCP判定结果（Codex决策树完整展示）
     if (data.ccpSteps && data.ccpSteps.length > 0) {
@@ -409,25 +407,25 @@ const Results = (() => {
 
     // 五、关键限制
     var stdLabels = { 'gb': I18n.t('limits.gb'), 'industry': I18n.t('limits.industry'), 'enterprise': I18n.t('limits.enterprise'), 'international': I18n.t('limits.international') };
-    html += '<div class="results-section" id="section-q15-limits"><h2>五、关键限制</h2>' +
-      '<div class="result-item"><span class="ri-label">执行标准</span><span class="ri-value">' + (stdLabels[data.execStandard] || fieldValue(data.execStandard)) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">关键限制说明</span><span class="ri-value">' + fieldValue(data.criticalLimits) + '</span></div></div>';
+    html += '<div class="results-section" id="section-q15-limits"><h2>' + I18n.t('r15.criticalLimits') + '</h2>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.standard') + '</span><span class="ri-value">' + (stdLabels[data.execStandard] || fieldValue(data.execStandard)) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.criticalDesc') + '</span><span class="ri-value">' + fieldValue(data.criticalLimits) + '</span></div></div>';
 
     // 六、验证程序
-    html += '<div class="results-section" id="section-q15-verification"><h2>六、验证程序</h2>' +
-      '<h3>监控程序设置</h3>' +
-      '<table><thead><tr><th>CCP</th><th>监控对象</th><th>监控方法</th><th>监控频率</th><th>监控人员</th><th>备注</th></tr></thead><tbody>' +
+    html += '<div class="results-section" id="section-q15-verification"><h2>' + I18n.t('r15.verification') + '</h2>' +
+      '<h3>' + I18n.t('r15.monitoringSetup') + '</h3>' +
+      '<table><thead><tr><th>' + I18n.t('r15.colCcp') + '</th><th>' + I18n.t('rec.mon.colObject') + '</th><th>' + I18n.t('rec.mon.colMethod') + '</th><th>' + I18n.t('rec.mon.colFrequency') + '</th><th>' + I18n.t('rec.mon.colPersonnel') + '</th><th>' + I18n.t('r15.colRemark') + '</th></tr></thead><tbody>' +
       (data.monitoring || []).map(function(m) { return '<tr><td>' + fieldValue(m.ccp) + '</td><td>' + fieldValue(m.object) + '</td><td>' + fieldValue(m.method) + '</td><td>' + fieldValue(m.frequency) + '</td><td>' + fieldValue(m.personnel) + '</td><td>' + fieldValue(m.remark) + '</td></tr>'; }).join('') +
       '</tbody></table>' +
-      '<h3>纠偏措施</h3>' +
-      '<table><thead><tr><th>CCP</th><th>关键限值(CL)</th><th>纠偏措施</th><th>验证</th><th>记录</th></tr></thead><tbody>' +
+      '<h3>' + I18n.t('r15.correctiveActions') + '</h3>' +
+      '<table><thead><tr><th>' + I18n.t('r15.colCcp') + '</th><th>' + I18n.t('r15.colCl') + '</th><th>' + I18n.t('r15.colCorrective') + '</th><th>' + I18n.t('r15.colVerification') + '</th><th>' + I18n.t('r15.colRecord') + '</th></tr></thead><tbody>' +
       (data.correctiveActions || []).map(function(c) { return '<tr><td>' + fieldValue(c.ccp) + '</td><td>' + fieldValue(c.cl) + '</td><td>' + fieldValue(c.corrective) + '</td><td>' + fieldValue(c.verification) + '</td><td>' + fieldValue(c.record) + '</td></tr>'; }).join('') +
       '</tbody></table></div>';
 
     // 七、记录
-    html += '<div class="results-section" id="section-q15-records"><h2>七、记录与报表</h2>' +
-      '<div class="result-item"><span class="ri-label">记录保存期限</span><span class="ri-value">' + fieldValue(data.recordPeriod) + '</span></div>' +
-      '<div class="result-item"><span class="ri-label">记录格式要求</span><span class="ri-value">' + fieldValue(data.recordFormat) + '</span></div></div>';
+    html += '<div class="results-section" id="section-q15-records"><h2>' + I18n.t('r15.recordsReports') + '</h2>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.recordPeriod') + '</span><span class="ri-value">' + fieldValue(data.recordPeriod) + '</span></div>' +
+      '<div class="result-item"><span class="ri-label">' + I18n.t('r15.recordFormat') + '</span><span class="ri-value">' + fieldValue(data.recordFormat) + '</span></div></div>';
 
     container.innerHTML = html;
 
@@ -439,16 +437,6 @@ const Results = (() => {
       });
     }
 
-    // 15min 模式：用 Mermaid 渲染生产步骤流程图（若可用）
-    var mermaidDiv = container.querySelector('#section-q15-flowchart .mermaid');
-    if (mermaidDiv && typeof mermaid !== 'undefined') {
-      var src15 = build15minMermaidSource(steps);
-      if (src15) {
-        mermaidDiv.textContent = src15;
-        mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true } });
-        setTimeout(function() { mermaid.run({ nodes: [mermaidDiv] }).catch(function(){}); }, 100);
-      }
-    }
   }
 
 
@@ -482,21 +470,7 @@ const Results = (() => {
       return;
     }
 
-    // AI 报告区域（初始加载中）
-    const aiTitle = lang === 'en' ? 'AI Analysis Report' : 'AI \u5206\u6790\u62a5\u544a';
     let html = '<a class="back-link" href="javascript:App.navigateTo(\'home\')">\u2190 ' + I18n.t('nav.back') + '</a>';
-
-    html += [
-      '<div class="results-section" id="section-aiReport">',
-      '  <h2>' + aiTitle + '</h2>',
-      '  <div id="aiReportBody">',
-      '    <div class="report-loading">',
-      '      <span class="spinner" style="width:20px;height:20px;border-color:rgba(37,99,235,0.2);border-top-color:#2563eb;"></span>',
-      '      <span>' + (lang === 'en' ? 'Generating AI report...' : '\u6b63\u5728\u751f\u6210 AI \u62a5\u544a...') + '</span>',
-      '    </div>',
-      '  </div>',
-      '</div>'
-    ].join('');
 
     // 生产流程图（始终显示 draw.io SVG）
     const fcTitle = lang === 'en' ? 'Process Flow Chart' : '\u751f\u4ea7\u6d41\u7a0b\u56fe';
@@ -565,11 +539,11 @@ const Results = (() => {
     }
 
     var zh = {
-      overview: '以下为您在问卷中提交的产品与工艺信息：',
+      overview: I18n.t('r15.productOverview'),
       noAnswer: '未填写',
-      sectionLabel: '章节',
-      questionLabel: '题目',
-      answerLabel: '您填写的内容',
+      sectionLabel: I18n.t('r15.section'),
+      questionLabel: I18n.t('r15.question'),
+      answerLabel: I18n.t('r15.answer'),
     };
     var en = {
       overview: 'Below is the product and process information you submitted:',
@@ -606,7 +580,7 @@ const Results = (() => {
    */
   function buildFlowchartDisplay(lang) {
     var svgData = getDrawioSvg();
-    var zh = { title: '以下为在 draw.io 编辑器中绘制并保存的生产流程图：', noData: '暂无流程图。请先在「生产流程图」步骤中用 draw.io 编辑并保存。', hint: '📌 如需修改，请返回流程图编辑页面，按 Ctrl+S 保存后重新查看报告。' };
+    var zh = { title: I18n.t('r15.flowchartSaved'), noData: I18n.t('r15.flowchartNoData'), hint: I18n.t('r15.flowchartHint') };
     var en = { title: 'Process flow diagram saved from draw.io editor:', noData: 'No flowchart found. Please edit and save in the Process Flowchart step first.', hint: '📌 To update, return to the flowchart editor and press Ctrl+S to save.' };
     var t = lang === 'en' ? en : zh;
 
@@ -653,7 +627,7 @@ const Results = (() => {
   // 15分钟结果的流程图可视化渲染
   function render15minFlowchart(steps) {
     if (!steps || steps.length === 0 || !steps.some(function(s) { return s.stepName && s.stepName.trim(); })) {
-      return '<p style="color:var(--gray-400);font-style:italic;text-align:center;padding:20px;">暂无生产流程步骤数据</p>';
+      return '<p style="color:var(--gray-400);font-style:italic;text-align:center;padding:20px;">' + I18n.t('r15.noFlowSteps') + '</p>';
     }
     const validSteps = steps.filter(function(s) { return s.stepName && s.stepName.trim(); });
     
@@ -661,7 +635,7 @@ const Results = (() => {
     
     // 开始节点
     html += '<div class="q15-vf-node start-end">' +
-      '<div class="q15-vf-node-shape start">开始</div>' +
+      '<div class="q15-vf-node-shape start">' + I18n.t('common.start') + '</div>' +
       '<div class="q15-vf-arrow-down"></div>' +
       '</div>';
     
@@ -674,9 +648,9 @@ const Results = (() => {
         '<span class="q15-vf-step-num">' + (i + 1) + '</span>' +
         '<div class="q15-vf-step-content">' +
         '<strong>' + esc(step.stepName) + '</strong>' +
-        (step.operationMethod ? '<p class="q15-vf-detail">方法：' + esc(step.operationMethod) + '</p>' : '') +
-        (step.parameters ? '<p class="q15-vf-detail">参数：' + esc(step.parameters) + '</p>' : '') +
-        (step.equipmentName ? '<p class="q15-vf-detail">设备：' + esc(step.equipmentName) + '</p>' : '') +
+        (step.operationMethod ? '<p class="q15-vf-detail">' + I18n.t('r15.method') + esc(step.operationMethod) + '</p>' : '') +
+        (step.parameters ? '<p class="q15-vf-detail">' + I18n.t('r15.params') + esc(step.parameters) + '</p>' : '') +
+        (step.equipmentName ? '<p class="q15-vf-detail">' + I18n.t('r15.equipment') + esc(step.equipmentName) + '</p>' : '') +
         '</div>' +
         ccpLabel +
         '</div>' +
@@ -686,7 +660,7 @@ const Results = (() => {
     
     html += '<div class="q15-vf-node start-end">' +
       '<div class="q15-vf-arrow-down"></div>' +
-      '<div class="q15-vf-node-shape end">结束</div>' +
+      '<div class="q15-vf-node-shape end">' + I18n.t('common.end') + '</div>' +
       '</div>';
     
     html += '</div>';
@@ -924,6 +898,13 @@ const Results = (() => {
     }
     html += '<p><strong>' + T('流程图现场确认', 'Flow Chart On-site Confirmation') + '：</strong>' + (data.flowConfirmed ? T('✓ 已由HACCP小组现场确认', '✓ Confirmed by HACCP team on-site') : T('✗ 未确认', '✗ Not confirmed')) + '</p>';
 
+    // 插入流程图（适配Word一页大小）
+    html += '<!--FLOWCHART_MARKER-->';
+    html += '<p class="sub-title" style="page-break-before:always;">' + T('工艺流程图', 'Process Flow Diagram') + '</p>';
+    html += '<div style="text-align:center;padding:8pt;border:1pt solid #ccc;margin-bottom:12pt;">';
+    html += '<!--FLOWCHART_IMG-->';
+    html += '</div>';
+
     // ===== 5. Hazard Analysis =====
     html += '<h2 class="section-title" style="page-break-before:always;">' + T('5. 危害分析与CCP判定', '5. Hazard Analysis and CCP Determination') + '</h2>';
     html += '<p class="sub-title">' + T('5.1 原料危害分析', '5.1 Raw Material / Step Hazard Analysis') + '</p>';
@@ -1118,15 +1099,57 @@ const Results = (() => {
     html += '<p class="footer-note">' + T('本文件由 HACCP AI 助手于 ', 'This document was generated by HACCP AI Assistant on ') + dateStr + T(' 自动生成 — 待HACCP小组审核批准。', ' — For review and approval by the HACCP Team.') + '</p>';
     html += '</body></html>';
 
-    var blob = new Blob(['﻿' + html], { type: 'application/msword;charset=UTF-8' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = (isZh ? 'HACCP计划书_' : 'HACCP_Plan_') + (company.replace(/[^a-zA-Z0-9一-鿿]/g,'_') || 'Unnamed') + '_' + dateStr + '.doc';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // 获取流程图SVG
+    var flowSvg = pfData.flowchartSvg || data.flowchartSvg || '';
+    if (!flowSvg) {
+      try {
+        var pfR = localStorage.getItem('haccp_profile_data');
+        if (pfR) { var pfD2 = JSON.parse(pfR); flowSvg = pfD2.flowchartSvg || ''; }
+      } catch(e) {}
+    }
+
+    function doDownload(finalHtml) {
+      var blob = new Blob(['﻿' + finalHtml], { type: 'application/msword;charset=UTF-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = (isZh ? 'HACCP计划书_' : 'HACCP_Plan_') + (company.replace(/[^a-zA-Z0-9一-鿿]/g,'_') || 'Unnamed') + '_' + dateStr + '.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    if (html.indexOf('<!--FLOWCHART_MARKER-->') !== -1 && flowSvg) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        // A4 usable width ~600px at 96dpi, leave margins. Height max ~750px for one page.
+        var displayW = 585;
+        var scale = 2;
+        var renderW = displayW * scale;
+        var ratio = renderW / img.width;
+        canvas.width = renderW;
+        canvas.height = Math.round(img.height * ratio);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var pngData = canvas.toDataURL('image/png');
+        html = html.replace('<!--FLOWCHART_MARKER-->', '').replace('<!--FLOWCHART_IMG-->',
+          '<img src="' + pngData + '" width="' + displayW + '" style="width:' + displayW + 'px;max-height:700px;">');
+        doDownload(html);
+      };
+      img.onerror = function() {
+        html = html.replace('<!--FLOWCHART_MARKER-->', '').replace('<!--FLOWCHART_IMG-->',
+          '<img src="' + esc(flowSvg) + '" width="585" style="width:585px;max-height:700px;">');
+        doDownload(html);
+      };
+      img.src = flowSvg;
+    } else {
+      html = html.replace('<!--FLOWCHART_MARKER-->', '').replace('<!--FLOWCHART_IMG-->', '');
+      doDownload(html);
+    }
   }
 
 

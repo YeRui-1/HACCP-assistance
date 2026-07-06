@@ -3382,9 +3382,9 @@ const Questionnaire15min = (() => {
   function renderHazardSubNav(data) {
     var step = data.hazardWorksheetStep || 'identify';
     var steps = [
-      { id: 'identify', label: '① 危害识别', icon: '🔍' },
-      { id: 'assess', label: '② 危害评估', icon: '📊' },
-      { id: 'control', label: '③ 控制措施', icon: '🛡️' }
+      { id: 'identify', label: I18n.t('q.hwIdentifyLabel'), icon: '🔍' },
+      { id: 'assess', label: I18n.t('q.hwAssessLabel'), icon: '📊' },
+      { id: 'control', label: I18n.t('q.hwControlLabel'), icon: '🛡️' }
     ];
     var html = '<div class="hw-subnav">';
     steps.forEach(function(s) {

@@ -28,14 +28,14 @@ const Verification = (() => {
     var data = loadPlanData();
     if (!data) {
       container.innerHTML = '<a class="back-link" href="javascript:App.navigateTo(\'home\')">← ' + I18n.t('nav.back') + '</a>' +
-        '<div class="empty-state"><div class="empty-icon">🔐</div><h3>暂无数据</h3><p>请先创建并提交HACCP计划书</p></div>';
+        '<div class="empty-state"><div class="empty-icon">🔐</div><h3>' + I18n.t('ver.empty.title') + '</h3><p>' + I18n.t('ver.empty.desc') + '</p></div>';
       return;
     }
     container.innerHTML = `
       <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
       <div class="q15-header">
-        <h1>🔐 验证程序</h1>
-        <p class="q15-desc">企业应建立并实施对HACCP计划的确认和验证程序，以证实HACCP计划的完整性、适宜性、有效性。</p>
+        <h1>🔐 ${I18n.t('ver.pageTitle')}</h1>
+        <p class="q15-desc">${I18n.t('ver.pageDesc')}</p>
       </div>
       <div id="verificationContent"></div>
     `;
@@ -54,12 +54,12 @@ const Verification = (() => {
     var submitted = data.verificationSubmitted || false;
 
     var fieldLabels = [
-      { key: 'basis', label: '验证的依据和方法', hint: '如：GB 14881-2013' },
-      { key: 'frequency', label: '验证的频次', hint: '如：每季度一次' },
-      { key: 'personnel', label: '验证的人员', hint: '如：HACCP小组组长' },
-      { key: 'content', label: '验证的内容', hint: '如：现场审核' },
-      { key: 'result', label: '验证结果及采取的措施', hint: '如：合格，无需整改' },
-      { key: 'record', label: '验证记录', hint: '如：记录表编号XXX' }
+      { key: 'basis', label: I18n.t('ver.fieldBasis'), hint: I18n.t('ver.fieldBasisHint') },
+      { key: 'frequency', label: I18n.t('ver.fieldFrequency'), hint: I18n.t('ver.fieldFrequencyHint') },
+      { key: 'personnel', label: I18n.t('ver.fieldPersonnel'), hint: I18n.t('ver.fieldPersonnelHint') },
+      { key: 'content', label: I18n.t('ver.fieldContent'), hint: I18n.t('ver.fieldContentHint') },
+      { key: 'result', label: I18n.t('ver.fieldResult'), hint: I18n.t('ver.fieldResultHint') },
+      { key: 'record', label: I18n.t('ver.fieldRecord'), hint: I18n.t('ver.fieldRecordHint') }
     ];
     var cardsHtml = fieldLabels.map(function(f, i) {
       return '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-bottom:12px;">' +
@@ -71,29 +71,29 @@ const Verification = (() => {
 
     var extraItems = (data.verificationExtraItems || []).map(function(e, i) {
       return '<div class="ver-extra-row" data-ver-idx="' + i + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">' +
-        '<input type="text" class="ver-extra-key" value="' + esc(e.key) + '" placeholder="项目名称" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
-        '<input type="text" class="ver-extra-val" value="' + esc(e.value) + '" placeholder="项目内容" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
+        '<input type="text" class="ver-extra-key" value="' + esc(e.key) + '" placeholder="' + I18n.t('ver.extraItemKey') + '" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
+        '<input type="text" class="ver-extra-val" value="' + esc(e.value) + '" placeholder="' + I18n.t('ver.extraItemValue') + '" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
         '<button class="btn btn-xs btn-secondary ver-del-extra" data-ver-idx="' + i + '" style="color:#dc2626;border-color:#fecaca;">✕</button></div>';
     }).join('');
 
     // 管理评审
     var mr = data.managementReview || { reviewContent: '', reviewResult: '', correctiveMeasures: '', reVerification: '' };
     var managementReviewHtml = '<div style="background:#f8fafc;border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-top:16px;">' +
-      '<h3 style="font-size:15px;font-weight:600;color:var(--gray-800);margin-bottom:12px;">📊 管理评审</h3>' +
-      '<p class="q15-table-hint" style="margin-bottom:12px;">验证结果需要输入到管理评审中；当验证结果不符合要求时，应采取纠正措施并进行再验证。</p>' +
-      '<div class="q15-field-group"><label>评审内容</label>' +
-      '<textarea class="ver-field" data-ver-key="managementReview.reviewContent" rows="2" placeholder="描述管理评审的内容和范围">' + esc(mr.reviewContent || '') + '</textarea></div>' +
-      '<div class="q15-field-group"><label>评审结果</label>' +
+      '<h3 style="font-size:15px;font-weight:600;color:var(--gray-800);margin-bottom:12px;">' + I18n.t('ver.mgmtReview') + '</h3>' +
+      '<p class="q15-table-hint" style="margin-bottom:12px;">' + I18n.t('ver.mgmtReviewHint') + '</p>' +
+      '<div class="q15-field-group"><label>' + I18n.t('ver.mgmtReviewContent') + '</label>' +
+      '<textarea class="ver-field" data-ver-key="managementReview.reviewContent" rows="2" placeholder="' + I18n.t('ver.mgmtReviewContentHint') + '">' + esc(mr.reviewContent || '') + '</textarea></div>' +
+      '<div class="q15-field-group"><label>' + I18n.t('ver.mgmtReviewResult') + '</label>' +
       '<select class="ver-field" data-ver-key="managementReview.reviewResult" style="width:100%;padding:9px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:13px;font-family:inherit;background:#fff;">' +
-        '<option value="">请选择</option>' +
-        '<option value="符合"' + (mr.reviewResult === '符合' ? ' selected' : '') + '>符合要求</option>' +
-        '<option value="不符合"' + (mr.reviewResult === '不符合' ? ' selected' : '') + '>不符合要求</option>' +
+        '<option value="">' + I18n.t('ver.mgmtSelect') + '</option>' +
+        '<option value="符合"' + (mr.reviewResult === '符合' ? ' selected' : '') + '>' + I18n.t('ver.mgmtCompliant') + '</option>' +
+        '<option value="不符合"' + (mr.reviewResult === '不符合' ? ' selected' : '') + '>' + I18n.t('ver.mgmtNonCompliant') + '</option>' +
       '</select></div>' +
       '<div class="ver-corrective-fields" style="display:' + (mr.reviewResult === '不符合' ? '' : 'none') + ';">' +
-      '<div class="q15-field-group"><label>纠正措施</label>' +
-      '<textarea class="ver-field" data-ver-key="managementReview.correctiveMeasures" rows="2" placeholder="采取的纠正措施">' + esc(mr.correctiveMeasures || '') + '</textarea></div>' +
-      '<div class="q15-field-group"><label>再验证措施</label>' +
-      '<textarea class="ver-field" data-ver-key="managementReview.reVerification" rows="2" placeholder="纠正措施完成后的再验证计划">' + esc(mr.reVerification || '') + '</textarea></div>' +
+      '<div class="q15-field-group"><label>' + I18n.t('ver.correctiveMeasures') + '</label>' +
+      '<textarea class="ver-field" data-ver-key="managementReview.correctiveMeasures" rows="2" placeholder="' + I18n.t('ver.correctiveMeasuresHint') + '">' + esc(mr.correctiveMeasures || '') + '</textarea></div>' +
+      '<div class="q15-field-group"><label>' + I18n.t('ver.reVerification') + '</label>' +
+      '<textarea class="ver-field" data-ver-key="managementReview.reVerification" rows="2" placeholder="' + I18n.t('ver.reVerificationHint') + '">' + esc(mr.reVerification || '') + '</textarea></div>' +
       '</div></div>';
 
     // 签名区
@@ -102,31 +102,31 @@ const Verification = (() => {
       signerSection = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px 18px;margin-top:16px;">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
         '<span style="font-size:20px;">✅</span>' +
-        '<span style="font-size:14px;font-weight:600;color:#166534;">验证程序已提交</span></div>' +
+        '<span style="font-size:14px;font-weight:600;color:#166534;">' + I18n.t('ver.submittedBanner') + '</span></div>' +
         '<div style="font-size:13px;color:#475569;">' +
-        '组长签名：<strong>' + esc(data.verificationSignerName || '') + '</strong> | ' +
-        '签名日期：<strong>' + esc(data.verificationSignerDate || '') + '</strong>' +
+        I18n.t('ver.signerLabel') + '：<strong>' + esc(data.verificationSignerName || '') + '</strong> | ' +
+        I18n.t('ver.signDateLabel') + '：<strong>' + esc(data.verificationSignerDate || '') + '</strong>' +
         '</div>' +
-        '<button class="btn btn-sm btn-secondary" id="verResetBtn" style="margin-top:8px;color:#dc2626;border-color:#fecaca;">🔄 重新提交验证程序</button>' +
+        '<button class="btn btn-sm btn-secondary" id="verResetBtn" style="margin-top:8px;color:#dc2626;border-color:#fecaca;">' + I18n.t('ver.resetBtn') + '</button>' +
         '</div>';
     } else {
       signerSection = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 18px;margin-top:16px;">' +
-        '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">✍️ HACCP小组组长签名确认</h3>' +
-        '<p class="q15-table-hint">验证程序填写完成后，需由HACCP小组组长输入登录密码进行签名确认，提交后即生效。</p>' +
+        '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">' + I18n.t('ver.signTitle') + '</h3>' +
+        '<p class="q15-table-hint">' + I18n.t('ver.signHint') + '</p>' +
         '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">' +
-        '<input type="text" id="verSignerName" placeholder="组长姓名" style="flex:1;min-width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerName || '') + '">' +
+        '<input type="text" id="verSignerName" placeholder="' + I18n.t('ver.signerName') + '" style="flex:1;min-width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerName || '') + '">' +
         '<input type="date" id="verSignerDate" style="width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerDate || (new Date().toISOString().slice(0,10))) + '">' +
         '</div>' +
-        '<button class="btn btn-primary" id="verSubmitBtn" style="margin-top:12px;">🔐 组长密码签名提交</button>' +
+        '<button class="btn btn-primary" id="verSubmitBtn" style="margin-top:12px;">' + I18n.t('ver.submitBtn') + '</button>' +
         '</div>';
     }
 
-    var html = '<div class="results-section"><h2>验证程序</h2>' +
+    var html = '<div class="results-section"><h2>' + I18n.t('ver.sectionTitle') + '</h2>' +
       cardsHtml +
       '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-top:16px;">' +
-      '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">📋 新增验证项目</h3>' +
-      '<div id="verExtraBody">' + (extraItems || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">暂无新增项目</div>') + '</div>' +
-      '<button class="btn btn-xs btn-secondary" id="addVerExtraBtn" style="margin-top:4px;">+ 添加项目</button></div>' +
+      '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">' + I18n.t('ver.extraSection') + '</h3>' +
+      '<div id="verExtraBody">' + (extraItems || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">' + I18n.t('ver.extraNoItems') + '</div>') + '</div>' +
+      '<button class="btn btn-xs btn-secondary" id="addVerExtraBtn" style="margin-top:4px;">' + I18n.t('ver.extraAddBtn') + '</button></div>' +
       managementReviewHtml +
       signerSection +
       '</div>';
@@ -225,9 +225,9 @@ const Verification = (() => {
       var dateEl = document.getElementById('verSignerDate');
       var signerName = nameEl ? nameEl.value.trim() : '';
       var signDate = dateEl ? dateEl.value : '';
-      if (!signerName) { alert('请输入HACCP小组组长姓名'); if (nameEl) nameEl.focus(); return; }
-      if (!signDate) { alert('请选择签名日期'); return; }
-      var password = prompt('请输入登录密码以确认组长签名：');
+      if (!signerName) { alert(I18n.t('ver.alertNeedName')); if (nameEl) nameEl.focus(); return; }
+      if (!signDate) { alert(I18n.t('ver.alertNeedDate')); return; }
+      var password = prompt(I18n.t('ver.alertNeedPassword'));
       if (!password) return;
 
       (async function() {
@@ -249,13 +249,13 @@ const Verification = (() => {
             if (loginResp.ok) { doSubmit(data, signerName, signDate); return; }
           }
         } catch(e) {}
-        alert('密码验证失败。请确认您是已登录的HACCP小组组长，并输入正确的登录密码。');
+        alert(I18n.t('ver.alertPwdFail'));
       })();
     });
 
     // 重置
     document.getElementById('verResetBtn')?.addEventListener('click', function() {
-      if (!confirm('确定要重置验证程序吗？重置后需要重新填写并签名提交。')) return;
+      if (!confirm(I18n.t('ver.alertConfirmReset'))) return;
       data.verificationSubmitted = false;
       data.verificationSignerName = '';
       data.verificationSignerDate = '';
@@ -286,7 +286,7 @@ const Verification = (() => {
     savePlanData(data);
     renderVerification(data);
     bindEvents(data);
-    alert('✅ 验证程序已提交成功！\n\n组长签名：' + signerName + '\n签名日期：' + signDate);
+    alert(I18n.t('ver.alertSubmitSuccess') + '\n\n' + I18n.t('ver.alertSubmitDetail1') + signerName + '\n' + I18n.t('ver.alertSubmitDetail2') + signDate);
     // 刷新导航栏按钮状态
     if (typeof App !== 'undefined' && App.updateVerificationBtn) {
       App.updateVerificationBtn();

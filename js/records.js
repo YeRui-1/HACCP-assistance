@@ -87,17 +87,17 @@ const Records = (() => {
   
   let activeTab = 'productDesc';
   
-  const TAB_NAMES = ['产品描述记录', '监控记录', '纠偏记录', '验证活动记录'];
+  const TAB_NAMES = [I18n.t('rec.tabProductDesc'), I18n.t('rec.tabMonitoring'), I18n.t('rec.tabCorrective'), I18n.t('rec.tabVerification')];
   const TAB_KEYS = ['productDesc', 'monitoring', 'corrective', 'verification'];
   
   function init() {
     const container = getContainer();
     if (!container) return;
     container.innerHTML = `
-      <a class="back-link" href="javascript:App.navigateTo('home')">← 返回首页</a>
+      <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
       <div class="q15-header">
-        <h1>📋 HACCP记录管理</h1>
-        <p class="q15-desc">AI自动生成记录模板，填写实际运行数据后保存</p>
+        <h1>📋 ${I18n.t('rec.pageTitle')}</h1>
+        <p class="q15-desc">${I18n.t('rec.pageDesc')}</p>
         <div class="q15-progress" id="recordsTabNav"></div>
       </div>
       <div id="recordsContent"></div>
@@ -150,39 +150,39 @@ const Records = (() => {
   
   // ==================== 产品描述记录 ====================
   function renderProductDesc(planData, recData) {
-    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>暂无数据</h3><p>请先创建HACCP计划书</p></div>';
-    
+    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>' + I18n.t('rec.empty.title') + '</h3><p>' + I18n.t('rec.empty.desc') + '</p></div>';
+
     var info = getCompanyInfo(planData);
     // 检查是否有已保存的记录
     var records = recData.productDescription.records || [];
     var lastRecord = records.length > 0 ? records[records.length - 1] : null;
-    
+
     if (lastRecord) {
       info = { ...info, ...lastRecord };
     }
-    
-    var html = '<div class="results-section"><h2>产品描述记录</h2><p class="q15-table-hint">以下信息已从HACCP计划书中自动提取，请补充完整后保存</p>';
-    
+
+    var html = '<div class="results-section"><h2>' + I18n.t('rec.pd.title') + '</h2><p class="q15-table-hint">' + I18n.t('rec.pd.hint') + '</p>';
+
     var fields = [
-      { key: 'companyName', label: '企业名称', value: info.companyName, readonly: true },
-      { key: 'address', label: '企业地址', value: info.address },
-      { key: 'processCategory', label: '加工类别', value: info.processCategory },
-      { key: 'productType', label: '产品类型', value: info.productType },
-      { key: 'productName', label: '产品名称', value: info.productName, readonly: true },
-      { key: 'ingredients', label: '产品配料', value: info.ingredients, readonly: true },
-      { key: 'additives', label: '添加剂', value: info.additives, readonly: true },
-      { key: 'productCharacteristics', label: '产品特性', value: info.productCharacteristics },
-      { key: 'intendedUse', label: '预期用途和顾客对象', value: info.intendedUse, readonly: true },
-      { key: 'targetConsumer', label: '目标消费者', value: info.targetConsumer, readonly: true },
-      { key: 'consumptionMethod', label: '食用(使用)方法', value: info.consumptionMethod },
-      { key: 'packagingType', label: '包装类型', value: info.packagingType, readonly: true },
-      { key: 'storageCondition', label: '贮存条件和保质期', value: info.storageCondition + ' / ' + (info.shelfLife || ''), readonly: true },
-      { key: 'labelDescription', label: '标签说明', value: info.labelDescription },
-      { key: 'saleTransport', label: '销售和运输要求', value: info.saleTransport }
+      { key: 'companyName', label: I18n.t('rec.pd.companyName'), value: info.companyName, readonly: true },
+      { key: 'address', label: I18n.t('rec.pd.address'), value: info.address },
+      { key: 'processCategory', label: I18n.t('rec.pd.processCategory'), value: info.processCategory },
+      { key: 'productType', label: I18n.t('rec.pd.productType'), value: info.productType },
+      { key: 'productName', label: I18n.t('rec.pd.productName'), value: info.productName, readonly: true },
+      { key: 'ingredients', label: I18n.t('rec.pd.ingredients'), value: info.ingredients, readonly: true },
+      { key: 'additives', label: I18n.t('rec.pd.additives'), value: info.additives, readonly: true },
+      { key: 'productCharacteristics', label: I18n.t('rec.pd.characteristics'), value: info.productCharacteristics },
+      { key: 'intendedUse', label: I18n.t('rec.pd.intendedUse'), value: info.intendedUse, readonly: true },
+      { key: 'targetConsumer', label: I18n.t('rec.pd.targetConsumer'), value: info.targetConsumer, readonly: true },
+      { key: 'consumptionMethod', label: I18n.t('rec.pd.consumptionMethod'), value: info.consumptionMethod },
+      { key: 'packagingType', label: I18n.t('rec.pd.packagingType'), value: info.packagingType, readonly: true },
+      { key: 'storageCondition', label: I18n.t('rec.pd.storageCondition'), value: info.storageCondition + ' / ' + (info.shelfLife || ''), readonly: true },
+      { key: 'labelDescription', label: I18n.t('rec.pd.labelDesc'), value: info.labelDescription },
+      { key: 'saleTransport', label: I18n.t('rec.pd.saleTransport'), value: info.saleTransport }
     ];
-    
+
     // 表格形式展示
-    html += '<div style="overflow-x:auto;"><table class="q15-table"><thead><tr><th style="width:180px;">项目</th><th>内容</th></tr></thead><tbody>';
+    html += '<div style="overflow-x:auto;"><table class="q15-table"><thead><tr><th style="width:180px;">' + I18n.t('rec.pd.colItem') + '</th><th>' + I18n.t('rec.pd.colContent') + '</th></tr></thead><tbody>';
     fields.forEach(function(f) {
       html += '<tr><td style="font-weight:500;">' + f.label + '</td><td>';
       if (f.readonly) {
@@ -193,53 +193,53 @@ const Records = (() => {
       html += '</td></tr>';
     });
     html += '</tbody></table></div>';
-    
+
     // 操作按钮
     html += '<div style="margin-top:16px;display:flex;gap:10px;">';
-    html += '<button class="btn btn-primary" id="pdSaveBtn">💾 保存产品描述记录</button>';
-    html += '<button class="btn btn-secondary" id="pdPrintBtn">🖨️ 打印</button>';
+    html += '<button class="btn btn-primary" id="pdSaveBtn">' + I18n.t('rec.pd.saveBtn') + '</button>';
+    html += '<button class="btn btn-secondary" id="pdPrintBtn">' + I18n.t('rec.pd.printBtn') + '</button>';
     html += '</div>';
-    
+
     // 历史记录列表
     if (records.length > 0) {
-      html += '<div style="margin-top:20px;"><h3>历史记录</h3>';
-      html += '<div style="font-size:12px;color:var(--gray-400);">共 ' + records.length + ' 条记录</div></div>';
+      html += '<div style="margin-top:20px;"><h3>' + I18n.t('rec.pd.history') + '</h3>';
+      html += '<div style="font-size:12px;color:var(--gray-400);">' + I18n.t('rec.pd.recordCount') + records.length + I18n.t('rec.pd.recordCountUnit') + '</div></div>';
     }
-    
+
     html += '</div>';
     return html;
   }
   
   // ==================== 监控记录 ====================
   function renderMonitoringRecords(planData, recData) {
-    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>暂无数据</h3><p>请先创建HACCP计划书</p></div>';
-    
+    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>' + I18n.t('rec.empty.title') + '</h3><p>' + I18n.t('rec.empty.desc') + '</p></div>';
+
     var monitoring = planData.monitoring || [];
     var ccpSteps = planData.ccpSteps || [];
     var records = recData.monitoring.records || [];
-    
-    var html = '<div class="results-section"><h2>📡 监控记录</h2>';
-    html += '<p class="q15-table-hint">AI已根据HACCP计划书生成监控记录模板，填写实际测量或观察结果后保存</p>';
-    
+
+    var html = '<div class="results-section"><h2>' + I18n.t('rec.mon.title') + '</h2>';
+    html += '<p class="q15-table-hint">' + I18n.t('rec.mon.hint') + '</p>';
+
     // AI生成按钮
-    html += '<div style="margin-bottom:16px;"><button class="btn btn-secondary btn-sm" id="monGenBtn">🤖 AI生成监控记录模板</button>';
+    html += '<div style="margin-bottom:16px;"><button class="btn btn-secondary btn-sm" id="monGenBtn">' + I18n.t('rec.mon.genBtn') + '</button>';
     html += '<span id="monGenHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div>';
-    
+
     if (records.length === 0 && monitoring.length === 0) {
-      html += '<div style="padding:20px;text-align:center;color:var(--gray-400);">暂无监控方案数据，请先在HACCP计划书中设置监控程序。</div>';
+      html += '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('rec.mon.noData') + '</div>';
     }
-    
+
     // 已保存的记录列表
     records.forEach(function(rec, ri) {
       html += '<div class="rec-card" style="margin-bottom:16px;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
       html += '<div style="background:var(--gray-50);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--gray-200);">';
-      html += '<span style="font-weight:600;font-size:14px;">记录 #' + (ri + 1) + ' — ' + esc(rec.date || '无日期') + '</span>';
-      html += '<button class="btn btn-xs btn-secondary mon-del-btn" data-rec-idx="' + ri + '" style="color:#dc2626;border-color:#fecaca;">🗑️ 删除</button>';
+      html += '<span style="font-weight:600;font-size:14px;">' + I18n.t('rec.mon.recordLabel') + (ri + 1) + ' — ' + esc(rec.date || I18n.t('rec.mon.noDate')) + '</span>';
+      html += '<button class="btn btn-xs btn-secondary mon-del-btn" data-rec-idx="' + ri + '" style="color:#dc2626;border-color:#fecaca;">' + I18n.t('rec.mon.delete') + '</button>';
       html += '</div>';
       html += '<div style="padding:12px 16px;">';
-      
+
       // 监控记录表格
-      html += '<table class="q15-table"><thead><tr><th>CCP</th><th>监控对象</th><th>方法</th><th>频率</th><th>限值</th><th>实际结果</th><th>监控人员</th><th>日期</th></tr></thead><tbody>';
+      html += '<table class="q15-table"><thead><tr><th>' + I18n.t('rec.mon.colCcp') + '</th><th>' + I18n.t('rec.mon.colObject') + '</th><th>' + I18n.t('rec.mon.colMethod') + '</th><th>' + I18n.t('rec.mon.colFrequency') + '</th><th>' + I18n.t('rec.mon.colLimit') + '</th><th>' + I18n.t('rec.mon.colResult') + '</th><th>' + I18n.t('rec.mon.colPersonnel') + '</th><th>' + I18n.t('rec.mon.colDate') + '</th></tr></thead><tbody>';
       (rec.entries || []).forEach(function(entry, ei) {
         html += '<tr><td>' + esc(entry.ccp || '') + '</td>' +
           '<td>' + esc(entry.object || '') + '</td>' +
@@ -253,53 +253,53 @@ const Records = (() => {
       });
       html += '</tbody></table>';
       html += '<div style="margin-top:8px;display:flex;gap:10px;align-items:center;">';
-      html += '<input type="text" class="mon-reviewer" data-rec-idx="' + ri + '" value="' + esc(rec.reviewer || '') + '" placeholder="审核人签名" style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;width:150px;">';
+      html += '<input type="text" class="mon-reviewer" data-rec-idx="' + ri + '" value="' + esc(rec.reviewer || '') + '" placeholder="' + I18n.t('rec.mon.reviewer') + '" style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;width:150px;">';
       html += '<input type="date" class="mon-reviewDate" data-rec-idx="' + ri + '" value="' + esc(rec.reviewDate || '') + '" style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;">';
-      html += '<span style="font-size:12px;color:var(--gray-400);">审核签名</span>';
+      html += '<span style="font-size:12px;color:var(--gray-400);">' + I18n.t('rec.mon.reviewLabel') + '</span>';
       html += '</div>';
       html += '</div></div>';
     });
-    
+
     // 底部操作
     html += '<div style="display:flex;gap:10px;margin-top:12px;">';
-    html += '<button class="btn btn-primary btn-sm" id="monSaveBtn">💾 保存所有监控记录</button>';
+    html += '<button class="btn btn-primary btn-sm" id="monSaveBtn">' + I18n.t('rec.mon.saveBtn') + '</button>';
     html += '</div>';
-    
+
     html += '</div>';
     return html;
   }
   
   // ==================== 纠偏记录 ====================
   function renderCorrectiveRecords(planData, recData) {
-    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>暂无数据</h3><p>请先创建HACCP计划书</p></div>';
-    
+    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>' + I18n.t('rec.empty.title') + '</h3><p>' + I18n.t('rec.empty.desc') + '</p></div>';
+
     var correctiveActions = planData.correctiveActions || [];
     var records = recData.corrective.records || [];
-    
-    var html = '<div class="results-section"><h2>🛠️ 纠偏记录</h2>';
-    html += '<p class="q15-table-hint">AI已根据HACCP计划书生成纠偏记录模板，填写实际偏差和处理结果后保存</p>';
-    
-    html += '<div style="margin-bottom:16px;"><button class="btn btn-secondary btn-sm" id="corGenBtn">🤖 AI生成纠偏记录模板</button>';
+
+    var html = '<div class="results-section"><h2>' + I18n.t('rec.cor.title') + '</h2>';
+    html += '<p class="q15-table-hint">' + I18n.t('rec.cor.hint') + '</p>';
+
+    html += '<div style="margin-bottom:16px;"><button class="btn btn-secondary btn-sm" id="corGenBtn">' + I18n.t('rec.cor.genBtn') + '</button>';
     html += '<span id="corGenHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div>';
-    
+
     records.forEach(function(rec, ri) {
       html += '<div class="rec-card" style="margin-bottom:16px;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
       html += '<div style="background:#fffbeb;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #fde68a;">';
-      html += '<span style="font-weight:600;font-size:14px;">纠偏 #' + (ri + 1) + ' — ' + esc(rec.date || '无日期') + '</span>';
-      html += '<button class="btn btn-xs btn-secondary cor-del-btn" data-rec-idx="' + ri + '" style="color:#dc2626;border-color:#fecaca;">🗑️ 删除</button>';
+      html += '<span style="font-weight:600;font-size:14px;">' + I18n.t('rec.cor.recordLabel') + (ri + 1) + ' — ' + esc(rec.date || I18n.t('rec.mon.noDate')) + '</span>';
+      html += '<button class="btn btn-xs btn-secondary cor-del-btn" data-rec-idx="' + ri + '" style="color:#dc2626;border-color:#fecaca;">' + I18n.t('rec.mon.delete') + '</button>';
       html += '</div>';
       html += '<div style="padding:12px 16px;">';
-      
-      html += '<table class="q15-table"><thead><tr><th style="width:140px;">项目</th><th>内容</th></tr></thead><tbody>';
+
+      html += '<table class="q15-table"><thead><tr><th style="width:140px;">' + I18n.t('rec.pd.colItem') + '</th><th>' + I18n.t('rec.pd.colContent') + '</th></tr></thead><tbody>';
       var fields = [
-        { key: 'ccp', label: 'CCP', val: rec.ccp },
-        { key: 'deviation', label: '偏离描述和原因', val: rec.deviation },
-        { key: 'corrective', label: '纠偏措施及结果', val: rec.corrective },
-        { key: 'batch', label: '受影响产品批次/隔离位置', val: rec.batch },
-        { key: 'evaluation', label: '评估方法和结果', val: rec.evaluation },
-        { key: 'disposition', label: '最终处置', val: rec.disposition },
-        { key: 'personnel', label: '纠偏人员签名', val: rec.personnel, inputType: 'text' },
-        { key: 'reviewer', label: '审核签名', val: rec.reviewer, inputType: 'text' }
+        { key: 'ccp', label: I18n.t('rec.cor.colCcp'), val: rec.ccp },
+        { key: 'deviation', label: I18n.t('rec.cor.colDeviation'), val: rec.deviation },
+        { key: 'corrective', label: I18n.t('rec.cor.colCorrective'), val: rec.corrective },
+        { key: 'batch', label: I18n.t('rec.cor.colBatch'), val: rec.batch },
+        { key: 'evaluation', label: I18n.t('rec.cor.colEvaluation'), val: rec.evaluation },
+        { key: 'disposition', label: I18n.t('rec.cor.colDisposition'), val: rec.disposition },
+        { key: 'personnel', label: I18n.t('rec.cor.colPersonnel'), val: rec.personnel, inputType: 'text' },
+        { key: 'reviewer', label: I18n.t('rec.cor.colReviewer'), val: rec.reviewer, inputType: 'text' }
       ];
       fields.forEach(function(f) {
         html += '<tr><td style="font-weight:500;">' + f.label + '</td><td>';
@@ -310,76 +310,76 @@ const Records = (() => {
         }
         html += '</td></tr>';
       });
-      html += '<tr><td>纠偏日期</td><td><input type="date" class="cor-input" data-rec-idx="' + ri + '" data-field="date" value="' + esc(rec.date || '') + '" style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"></td></tr>';
+      html += '<tr><td>' + I18n.t('rec.cor.colDate') + '</td><td><input type="date" class="cor-input" data-rec-idx="' + ri + '" data-field="date" value="' + esc(rec.date || '') + '" style="padding:6px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"></td></tr>';
       html += '</tbody></table>';
       html += '</div></div>';
     });
-    
+
     html += '<div style="display:flex;gap:10px;margin-top:12px;">';
-    html += '<button class="btn btn-primary btn-sm" id="corSaveBtn">💾 保存所有纠偏记录</button>';
+    html += '<button class="btn btn-primary btn-sm" id="corSaveBtn">' + I18n.t('rec.cor.saveBtn') + '</button>';
     html += '</div>';
-    
+
     html += '</div>';
     return html;
   }
   
   // ==================== 验证活动记录 ====================
   function renderVerificationRecords(planData, recData) {
-    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>暂无数据</h3><p>请先创建HACCP计划书</p></div>';
-    
+    if (!planData) return '<div class="empty-state"><div class="empty-icon">📋</div><h3>' + I18n.t('rec.empty.title') + '</h3><p>' + I18n.t('rec.empty.desc') + '</p></div>';
+
     var verData = recData.verification;
-    var html = '<div class="results-section"><h2>✅ 验证活动记录</h2>';
-    html += '<p class="q15-table-hint">记录HACCP计划的验证活动，包括计划修改、检测、审核和现场验证</p>';
-    
+    var html = '<div class="results-section"><h2>' + I18n.t('rec.ver.title') + '</h2>';
+    html += '<p class="q15-table-hint">' + I18n.t('rec.ver.hint') + '</p>';
+
     // 子标签导航
     var subTabs = [
-      { id: 'planModification', label: '计划修改记录' },
-      { id: 'productTesting', label: '半成品成品检测' },
-      { id: 'ccpMonitorReview', label: 'CCP监控审核' },
-      { id: 'ccpCorrectiveReview', label: 'CCP纠偏审核' },
-      { id: 'ccpOnsiteVerify', label: 'CCP现场验证' }
+      { id: 'planModification', label: I18n.t('rec.ver.subPlanMod') },
+      { id: 'productTesting', label: I18n.t('rec.ver.subProdTest') },
+      { id: 'ccpMonitorReview', label: I18n.t('rec.ver.subCcpMon') },
+      { id: 'ccpCorrectiveReview', label: I18n.t('rec.ver.subCcpCor') },
+      { id: 'ccpOnsiteVerify', label: I18n.t('rec.ver.subCcpOnsite') }
     ];
-    
+
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="verSubNav">';
     subTabs.forEach(function(st) {
       html += '<button class="btn btn-sm ' + (st.id === '_verSubActive' ? 'btn-primary' : 'btn-secondary') + ' ver-sub-btn" data-ver-sub="' + st.id + '">' + st.label + '</button>';
     });
     html += '</div>';
-    
+
     // 默认展示第一个tab
     var subActive = '_verSubActive' in window ? window._verSubActive : 'planModification';
     var items = verData[subActive] || [];
-    
+
     html += '<div id="verSubContent">';
     html += renderVerSubTable(subActive, items);
     html += '</div>';
-    
+
     html += '<div style="display:flex;gap:10px;margin-top:12px;">';
-    html += '<button class="btn btn-primary btn-sm" id="verSaveBtn">💾 保存验证记录</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="verAddBtn">+ 添加记录</button>';
+    html += '<button class="btn btn-primary btn-sm" id="verSaveBtn">' + I18n.t('rec.ver.saveBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="verAddBtn">' + I18n.t('rec.ver.addBtn') + '</button>';
     html += '</div>';
-    
+
     html += '</div>';
     return html;
   }
   
   function renderVerSubTable(tabKey, items) {
     var titles = {
-      planModification: { label: 'HACCP计划修改记录', headers: ['修改日期', '修改内容', '修改原因', '修改人', '批准人'] },
-      productTesting: { label: '半成品成品定期检测记录', headers: ['检测日期', '产品名称', '检测项目', '检测结果', '检测人', '判定'] },
-      ccpMonitorReview: { label: 'CCP监控审核记录', headers: ['审核日期', 'CCP名称', '审核内容', '审核结果', '审核人', '备注'] },
-      ccpCorrectiveReview: { label: 'CCP纠偏审核记录', headers: ['审核日期', 'CCP名称', '纠偏情况', '审核结论', '审核人', '备注'] },
-      ccpOnsiteVerify: { label: 'CCP现场验证记录', headers: ['验证日期', 'CCP名称', '验证内容', '验证结果', '验证人', '备注'] }
+      planModification: { label: I18n.t('rec.ver.planModTitle'), headers: I18n.t('rec.ver.planModHeaders').split(',') },
+      productTesting: { label: I18n.t('rec.ver.prodTestTitle'), headers: I18n.t('rec.ver.prodTestHeaders').split(',') },
+      ccpMonitorReview: { label: I18n.t('rec.ver.ccpMonTitle'), headers: I18n.t('rec.ver.ccpMonHeaders').split(',') },
+      ccpCorrectiveReview: { label: I18n.t('rec.ver.ccpCorTitle'), headers: I18n.t('rec.ver.ccpCorHeaders').split(',') },
+      ccpOnsiteVerify: { label: I18n.t('rec.ver.ccpOnsiteTitle'), headers: I18n.t('rec.ver.ccpOnsiteHeaders').split(',') }
     };
     var t = titles[tabKey] || titles.planModification;
-    
+
     var html = '<h3 style="margin:12px 0 8px;">' + t.label + '</h3>';
     html += '<table class="q15-table"><thead><tr>';
     t.headers.forEach(function(h) {
       html += '<th>' + h + '</th>';
     });
-    html += '<th style="width:50px;">操作</th></tr></thead><tbody id="verSubBody">';
-    
+    html += '<th style="width:50px;">' + I18n.t('rec.ver.colAction') + '</th></tr></thead><tbody id="verSubBody">';
+
     items.forEach(function(item, i) {
       html += '<tr data-ver-idx="' + i + '" data-ver-tab="' + tabKey + '">';
       t.headers.forEach(function(h, hi) {
@@ -389,11 +389,11 @@ const Records = (() => {
       html += '<td><button class="btn btn-xs btn-secondary ver-del-row" data-ver-tab="' + tabKey + '" data-ver-idx="' + i + '" style="color:#dc2626;border-color:#fecaca;">✕</button></td>';
       html += '</tr>';
     });
-    
+
     if (items.length === 0) {
-      html += '<tr><td colspan="' + (t.headers.length + 1) + '" style="text-align:center;color:var(--gray-400);padding:20px;">暂无记录，点击"+ 添加记录"按钮添加</td></tr>';
+      html += '<tr><td colspan="' + (t.headers.length + 1) + '" style="text-align:center;color:var(--gray-400);padding:20px;">' + I18n.t('rec.ver.noRecords') + '</td></tr>';
     }
-    
+
     html += '</tbody></table>';
     return html;
   }
@@ -498,34 +498,34 @@ const Records = (() => {
         if (!recData.productDescription) recData.productDescription = { records: [] };
         recData.productDescription.records.push(record);
         saveData(recData);
-        alert('✅ 产品描述记录已保存！');
+        alert(I18n.t('rec.pd.saved'));
       });
     }
-    
+
     // 产品描述 - 打印
     document.getElementById('pdPrintBtn')?.addEventListener('click', function() {
       window.print();
     });
-    
+
     // 监控记录 - AI生成
     document.getElementById('monGenBtn')?.addEventListener('click', function() {
       var hint = document.getElementById('monGenHint');
-      if (hint) hint.textContent = '⏳ 正在生成...';
-      
+      if (hint) hint.textContent = I18n.t('rec.mon.generating');
+
       var planData = loadPlanData();
-      if (!planData) { alert('请先创建HACCP计划书'); return; }
-      
+      if (!planData) { alert(I18n.t('rec.mon.noPlanData')); return; }
+
       var newRecords = aiGenerateMonitoring(planData);
       if (newRecords.length === 0) {
-        if (hint) hint.textContent = '⚠️ 暂无监控方案数据';
+        if (hint) hint.textContent = I18n.t('rec.mon.noMonitorData');
         return;
       }
-      
+
       var recData = loadData();
       recData.monitoring.records = recData.monitoring.records.concat(newRecords);
       saveData(recData);
-      
-      if (hint) hint.textContent = '✅ 已生成 ' + newRecords.length + ' 条监控记录模板';
+
+      if (hint) hint.textContent = I18n.t('rec.mon.generated') + newRecords.length + I18n.t('rec.mon.generatedUnit');
       renderActiveTab();
     });
     
@@ -567,40 +567,40 @@ const Records = (() => {
       
       recData.monitoring.records = records;
       saveData(recData);
-      alert('✅ 监控记录已保存！');
+      alert(I18n.t('rec.mon.saved'));
     });
-    
+
     // 监控记录 - 删除
     document.querySelectorAll('.mon-del-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var ri = parseInt(this.dataset.recIdx);
-        if (!confirm('确定要删除这条监控记录吗？')) return;
+        if (!confirm(I18n.t('rec.mon.confirmDel'))) return;
         var recData = loadData();
         recData.monitoring.records.splice(ri, 1);
         saveData(recData);
         renderActiveTab();
       });
     });
-    
+
     // 纠偏记录 - AI生成
     document.getElementById('corGenBtn')?.addEventListener('click', function() {
       var hint = document.getElementById('corGenHint');
-      if (hint) hint.textContent = '⏳ 正在生成...';
-      
+      if (hint) hint.textContent = I18n.t('rec.cor.generating');
+
       var planData = loadPlanData();
-      if (!planData) { alert('请先创建HACCP计划书'); return; }
-      
+      if (!planData) { alert(I18n.t('rec.cor.noPlanData')); return; }
+
       var newRecords = aiGenerateCorrective(planData);
       if (newRecords.length === 0) {
-        if (hint) hint.textContent = '⚠️ 暂无纠偏方案数据';
+        if (hint) hint.textContent = I18n.t('rec.cor.noCorData');
         return;
       }
-      
+
       var recData = loadData();
       recData.corrective.records = recData.corrective.records.concat(newRecords);
       saveData(recData);
-      
-      if (hint) hint.textContent = '✅ 已生成 ' + newRecords.length + ' 条纠偏记录模板';
+
+      if (hint) hint.textContent = I18n.t('rec.cor.generated') + newRecords.length + I18n.t('rec.cor.generatedUnit');
       renderActiveTab();
     });
     
@@ -619,14 +619,14 @@ const Records = (() => {
       
       recData.corrective.records = records;
       saveData(recData);
-      alert('✅ 纠偏记录已保存！');
+      alert(I18n.t('rec.cor.saved'));
     });
-    
+
     // 纠偏记录 - 删除
     document.querySelectorAll('.cor-del-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var ri = parseInt(this.dataset.recIdx);
-        if (!confirm('确定要删除这条纠偏记录吗？')) return;
+        if (!confirm(I18n.t('rec.cor.confirmDel'))) return;
         var recData = loadData();
         recData.corrective.records.splice(ri, 1);
         saveData(recData);
@@ -666,7 +666,7 @@ const Records = (() => {
         }
       });
       saveData(recData);
-      alert('✅ 验证记录已保存！');
+      alert(I18n.t('rec.ver.saved'));
     });
     
     // 验证记录 - 删除行
