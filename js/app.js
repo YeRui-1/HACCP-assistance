@@ -4,7 +4,12 @@ const App = (() => {
   let isAdmin = false;
   let currentUser = null;
 
-  const API_BASE = '';  // 空字符串表示同源请求
+  const API_BASE = (function() {
+    if (window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+      return 'http://localhost:8000';
+    }
+    return '';
+  })();
 
   function getEl(id) { return document.getElementById(id); }
 
@@ -29,13 +34,15 @@ const App = (() => {
     translatePage();
     const activePage = document.querySelector('.page.active');
     if (activePage) {
-      if (activePage.id === 'questionnaire') {
-        Questionnaire15min.init();
-      } else if (activePage.id === 'results') Results.init();
-      else if (activePage.id === 'admin') Admin.init();
-      else if (activePage.id === 'home') updateLobbyStatus();
+      var id = activePage.id;
+      if (id === 'questionnaire') Questionnaire15min.init();
+      else if (id === 'results') Results.init();
+      else if (id === 'admin') Admin.init();
+      else if (id === 'profile') Profile.init();
+      else if (id === 'records' && typeof Records !== 'undefined') Records.init();
+      else if (id === 'verification' && typeof Verification !== 'undefined') Verification.init();
+      else if (id === 'home') updateLobbyStatus();
     }
-    // 刷新认证按钮文本
     updateAuthButton();
   }
 
@@ -345,17 +352,34 @@ const App = (() => {
     updateAuthButton();
   }
 
-  function updateLobbyStatus() {
+  async function updateLobbyStatus() {
     const statusEl = getEl('cardStatus');
     if (!statusEl) return;
-    const submitted = localStorage.getItem('haccp_submitted');
-    if (submitted) {
-      statusEl.innerHTML = `<span class="has-data">&#10003; ${I18n.t('lobby.status.hasData')}</span>`;
+
+    // 尝试从后端获取计划数量
+    var planCount = 0;
+    try {
+      var token = localStorage.getItem('haccp_token');
+      if (token) {
+        var resp = await fetch('/api/plans', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (resp.ok) {
+          var data = await resp.json();
+          planCount = data.plans ? data.plans.length : 0;
+        }
+      }
+    } catch(e) {}
+
+    if (planCount > 0) {
+      statusEl.innerHTML = `<span class="has-data">&#10003; ${I18n.t('lobby.status.plans').replace('{n}', planCount)}</span>`;
     } else {
-      statusEl.innerHTML = `<span class="no-data">${I18n.t('lobby.status.noData')}</span>`;
+      // localStorage兜底
+      const submitted = localStorage.getItem('haccp_submitted');
+      if (submitted) {
+        statusEl.innerHTML = `<span class="has-data">&#10003; ${I18n.t('lobby.status.hasData')}</span>`;
+      } else {
+        statusEl.innerHTML = `<span class="no-data">${I18n.t('lobby.status.noPlans')}</span>`;
+      }
     }
-    
-    // 更新验证程序按钮状态
     updateVerificationBtn();
   }
 
@@ -521,7 +545,7 @@ const App = (() => {
     startVerificationReminderTimer();
   }
 
-  return { init, navigateTo, exitAdmin, translatePage, updateVerificationBtn, navigateToVerification };
+  return { init, navigateTo, exitAdmin, translatePage, updateVerificationBtn, navigateToVerification, showLoginModal };
 })();
 
 document.addEventListener('DOMContentLoaded', () => App.init());

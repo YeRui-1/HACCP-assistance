@@ -37,6 +37,20 @@ def init_db():
             created_at TEXT NOT NULL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            plan_name TEXT NOT NULL DEFAULT '',
+            product_name TEXT NOT NULL DEFAULT '',
+            company_name TEXT NOT NULL DEFAULT '',
+            content TEXT NOT NULL DEFAULT '{}',
+            status TEXT NOT NULL DEFAULT 'submitted',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
     conn.commit()
 
     # 迁移：补齐旧表缺少的列
@@ -257,6 +271,108 @@ def _row_to_dict(row) -> dict:
 
 def _now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+# ===== Plans CRUD =====
+
+def create_plan(user_id: int, plan_name: str, product_name: str, company_name: str, content: dict) -> dict:
+    """创建新计划"""
+    now = _now()
+    content_json = json.dumps(content, ensure_ascii=False)
+    conn = get_conn()
+    cur = conn.execute(
+        "INSERT INTO plans (user_id, plan_name, product_name, company_name, content, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'submitted', ?, ?)",
+        (user_id, plan_name, product_name, company_name, content_json, now, now),
+    )
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return get_plan(new_id)
+
+
+def get_plan(plan_id: int) -> dict | None:
+    """获取单个计划（含完整 content）"""
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return _plan_row_to_dict(row)
+
+
+def list_plans(user_id: int) -> list[dict]:
+    """列出用户的所有计划（不含 content，仅摘要信息）"""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, user_id, plan_name, product_name, company_name, status, created_at, updated_at FROM plans WHERE user_id = ? ORDER BY updated_at DESC",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [
+        {
+            "id": r["id"],
+            "user_id": r["user_id"],
+            "plan_name": r["plan_name"],
+            "product_name": r["product_name"],
+            "company_name": r["company_name"],
+            "status": r["status"],
+            "created_at": r["created_at"],
+            "updated_at": r["updated_at"],
+        }
+        for r in rows
+    ]
+
+
+def update_plan(plan_id: int, data: dict) -> dict | None:
+    """更新计划（部分更新：只更新传入的字段）"""
+    existing = get_plan(plan_id)
+    if not existing:
+        return None
+
+    now = _now()
+    plan_name = data.get("plan_name", existing["plan_name"])
+    product_name = data.get("product_name", existing["product_name"])
+    company_name = data.get("company_name", existing["company_name"])
+    status = data.get("status", existing["status"])
+    if "content" in data:
+        content_json = json.dumps(data["content"], ensure_ascii=False)
+    else:
+        content_json = json.dumps(existing["content"], ensure_ascii=False)
+
+    conn = get_conn()
+    conn.execute(
+        "UPDATE plans SET plan_name = ?, product_name = ?, company_name = ?, content = ?, status = ?, updated_at = ? WHERE id = ?",
+        (plan_name, product_name, company_name, content_json, status, now, plan_id),
+    )
+    conn.commit()
+    conn.close()
+    return get_plan(plan_id)
+
+
+def delete_plan(plan_id: int) -> bool:
+    """删除计划"""
+    tpl = get_plan(plan_id)
+    if not tpl:
+        return False
+    conn = get_conn()
+    conn.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def _plan_row_to_dict(row) -> dict:
+    return {
+        "id": row["id"],
+        "user_id": row["user_id"],
+        "plan_name": row["plan_name"],
+        "product_name": row["product_name"],
+        "company_name": row["company_name"],
+        "content": json.loads(row["content"]),
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
 
 
 # 启动时初始化

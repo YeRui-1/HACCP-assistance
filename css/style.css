@@ -623,6 +623,61 @@ body {
 }
 
 /* ===== Results ===== */
+/* ===== 计划选择器 ===== */
+.plan-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.plan-bar select {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  color: #1e293b;
+}
+.plan-bar select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+.plan-bar .btn-plan {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  white-space: nowrap;
+}
+.plan-bar .btn-plan:hover {
+  background: #f1f5f9;
+}
+.plan-bar .btn-plan.danger {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.plan-bar .btn-plan.danger:hover {
+  background: #fef2f2;
+}
+.plan-bar .plan-count {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
 .results-container {
   display: flex;
   gap: 24px;

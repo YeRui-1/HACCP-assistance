@@ -361,19 +361,19 @@ const Questionnaire15min = (() => {
       var seenSteps = {}; for (var psi = 0; psi < processedSteps.length; psi++) { var step = processedSteps[psi]; var key = step.stepName; if (!seenSteps[key] || (step.parameters && !seenSteps[key].parameters)) seenSteps[key] = step; } for (var key in seenSteps) result.processSteps.push(seenSteps[key]); if (result.processSteps.length > 15) result.processSteps = result.processSteps.slice(0, 15);
     }
     var inHazardSection = false, hazardSectionStart = -1;
-    for (var li3 = 0; li3 < lines.length; li3++) { var line = lines[li3].trim(); if (line.indexOf('危害分析') !== -1 || line.indexOf('潜在危害') !== -1) { inHazardSection = true; hazardSectionStart = li3; } if (inHazardSection && (line.indexOf('CCP决策') !== -1 || line.indexOf('HACCP计划') !== -1 || (line.indexOf('监控') !== -1 && line.indexOf('CCP') !== -1))) break; }
+    for (var li3 = 0; li3 < lines.length; li3++) { var line = lines[li3].trim(); if (line.indexOf('危害分析') !== -1 || line.indexOf('' + I18n.t('q.ccpPotentialHazard') + '') !== -1) { inHazardSection = true; hazardSectionStart = li3; } if (inHazardSection && (line.indexOf('CCP决策') !== -1 || line.indexOf('HACCP计划') !== -1 || (line.indexOf('监控') !== -1 && line.indexOf('CCP') !== -1))) break; }
     if (hazardSectionStart !== -1) {
       for (var ht = 0; ht < tables.length; ht++) { var rows = tables[ht].rows; if (rows.length < 2) continue; var headerStr = rows[0].join(' ').toLowerCase();
-        if (headerStr.indexOf('加工步骤') !== -1 || headerStr.indexOf('潜在危害') !== -1 || headerStr.indexOf('是否显著') !== -1 || headerStr.indexOf('判断依据') !== -1) { for (var ri2 = 1; ri2 < rows.length; ri2++) { var row = rows[ri2]; if (row.length < 3) continue; var stepName = row[0], hazardDesc = row[1] || '', isSignificant = row[2] || ''; if (hazardDesc.indexOf('B:') !== -1 || hazardDesc.indexOf('C:') !== -1 || hazardDesc.indexOf('P:') !== -1) { var bioMatch = hazardDesc.match(/B:(.+?)(?=C:|P:|$)/), chemMatch = hazardDesc.match(/C:(.+?)(?=B:|P:|$)/), physMatch = hazardDesc.match(/P:(.+?)(?=B:|C:|$)/); if (bioMatch && isSignificant.indexOf('是') !== -1) result.hazardBio.push({ desc: stepName + '-' + bioMatch[1].trim(), severity: '中', likelihood: '中', control: '参见前提方案控制' }); if (chemMatch && isSignificant.indexOf('是') !== -1) result.hazardChem.push({ desc: stepName + '-' + chemMatch[1].trim(), severity: '中', likelihood: '中', control: '参见前提方案控制' }); if (physMatch && isSignificant.indexOf('是') !== -1) result.hazardPhys.push({ desc: stepName + '-' + physMatch[1].trim(), severity: '中', likelihood: '中', control: '参见前提方案控制' }); } } }
+        if (headerStr.indexOf('加工步骤') !== -1 || headerStr.indexOf('' + I18n.t('q.ccpPotentialHazard') + '') !== -1 || headerStr.indexOf('是否显著') !== -1 || headerStr.indexOf('判断依据') !== -1) { for (var ri2 = 1; ri2 < rows.length; ri2++) { var row = rows[ri2]; if (row.length < 3) continue; var stepName = row[0], hazardDesc = row[1] || '', isSignificant = row[2] || ''; if (hazardDesc.indexOf('B:') !== -1 || hazardDesc.indexOf('C:') !== -1 || hazardDesc.indexOf('P:') !== -1) { var bioMatch = hazardDesc.match(/B:(.+?)(?=C:|P:|$)/), chemMatch = hazardDesc.match(/C:(.+?)(?=B:|P:|$)/), physMatch = hazardDesc.match(/P:(.+?)(?=B:|C:|$)/); if (bioMatch && isSignificant.indexOf('是') !== -1) result.hazardBio.push({ desc: stepName + '-' + bioMatch[1].trim(), severity: '中', likelihood: '中', control: '参见前提方案控制' }); if (chemMatch && isSignificant.indexOf('是') !== -1) result.hazardChem.push({ desc: stepName + '-' + chemMatch[1].trim(), severity: '中', likelihood: '中', control: '参见前提方案控制' }); if (physMatch && isSignificant.indexOf('是') !== -1) result.hazardPhys.push({ desc: stepName + '-' + physMatch[1].trim(), severity: '中', likelihood: '中', control: '参见前提方案控制' }); } } }
         if (headerStr.indexOf('q1') !== -1 || headerStr.indexOf('q2') !== -1 || headerStr.indexOf('ccp判断') !== -1) { for (var ri3 = 1; ri3 < rows.length; ri3++) { var row = rows[ri3]; if (row.length < 4) continue; var stepName = row[0], hazardText = row[1] || ''; var isCCP = false; for (var ci = 0; ci < row.length; ci++) { if (row[ci].indexOf('是') !== -1 && ci >= 2) isCCP = true; } var lastCol = row[row.length - 1]; if (lastCol === '是' || lastCol.indexOf('CCP') !== -1) isCCP = true; if (hazardText.indexOf('生物') !== -1 || hazardText.indexOf('病原') !== -1 || hazardText.indexOf('细菌') !== -1 || hazardText.indexOf('霉菌') !== -1 || hazardText.indexOf('微生物') !== -1) result.hazardBio.push({ desc: stepName + '-' + hazardText, severity: isCCP ? '高' : '中', likelihood: isCCP ? '高' : '中', control: isCCP ? '通过CCP控制' : '通过前提方案控制' }); else if (hazardText.indexOf('化学') !== -1 || hazardText.indexOf('农药') !== -1 || hazardText.indexOf('重金属') !== -1 || hazardText.indexOf('残留') !== -1) result.hazardChem.push({ desc: stepName + '-' + hazardText, severity: isCCP ? '高' : '中', likelihood: isCCP ? '高' : '中', control: isCCP ? '通过CCP控制' : '通过前提方案控制' }); else if (hazardText.indexOf('物理') !== -1 || hazardText.indexOf('金属') !== -1 || hazardText.indexOf('砂石') !== -1 || hazardText.indexOf('异物') !== -1) result.hazardPhys.push({ desc: stepName + '-' + hazardText, severity: isCCP ? '中' : '低', likelihood: isCCP ? '中' : '低', control: isCCP ? '通过CCP控制' : '通过前提方案控制' }); } }
       }
     }
     var stdMatch = text.match(/(?:依据|按照|根据|执行标准)[：:。]?\s*([A-Za-z]{1,5}\s*\d+[\d-]*)/);
     if (stdMatch) { var stdCode = stdMatch[1].toLowerCase(); if (stdCode.indexOf('gb') !== -1) result.execStandard = 'gb'; else if (stdCode.indexOf('iso') !== -1 || stdCode.indexOf('国际') !== -1) result.execStandard = 'international'; }
-    if (!result.execStandard) { if (text.indexOf('GB 14881') !== -1 || text.indexOf('国标') !== -1 || text.indexOf('国家标准') !== -1) result.execStandard = 'gb'; else if (text.indexOf('行业标准') !== -1) result.execStandard = 'industry'; else if (text.indexOf('企业标准') !== -1) result.execStandard = 'enterprise'; }
+    if (!result.execStandard) { if (text.indexOf('GB 14881') !== -1 || text.indexOf('国标') !== -1 || text.indexOf('国家标准') !== -1) result.execStandard = 'gb'; else if (text.indexOf('' + I18n.t('q.clStdIndustry') + '') !== -1) result.execStandard = 'industry'; else if (text.indexOf('' + I18n.t('q.clStdEnterprise') + '') !== -1) result.execStandard = 'enterprise'; }
     var planTables = []; for (var pt = 0; pt < tables.length; pt++) { var rows = tables[pt].rows; if (rows.length < 3) continue; var headerStr = rows[0].join(' ').toLowerCase(); if (headerStr.indexOf('关键控制点') !== -1 && (headerStr.indexOf('关键限值') !== -1 || headerStr.indexOf('cl') !== -1)) planTables.push(tables[pt]); }
     if (planTables.length > 0) { var clParts = []; for (var pti = 0; pti < planTables.length; pti++) { var table = planTables[pti]; for (var ri4 = 1; ri4 < table.rows.length; ri4++) { var row = table.rows[ri4]; if (row.length >= 2) { var ccpName = row[0], clVal = row[1]; if (ccpName && clVal) clParts.push(ccpName + '：' + clVal); } } } if (clParts.length > 0) result.criticalLimits = clParts.join('\n'); }
-    if (planTables.length > 0) { for (var pti2 = 0; pti2 < planTables.length; pti2++) { var table = planTables[pti2], headerRow = table.rows[0]; var ccpIdx = -1, clIdx = -1, objIdx = -1, methodIdx = -1, freqIdx = -1, personIdx = -1, remarkIdx = -1, correctiveIdx = -1, verificationIdx = -1, recordIdx = -1; for (var ci2 = 0; ci2 < headerRow.length; ci2++) { var h = headerRow[ci2].toLowerCase(); if (h.indexOf('关键控制点') !== -1 || h === 'ccp') ccpIdx = ci2; if (h.indexOf('关键限值') !== -1 || h.indexOf('cl') !== -1) clIdx = ci2; if (h.indexOf('监控对象') !== -1 || h.indexOf('对象') !== -1) objIdx = ci2; if (h.indexOf('监控方法') !== -1 || h.indexOf('方法') !== -1) methodIdx = ci2; if (h.indexOf('监控频率') !== -1 || h.indexOf('频率') !== -1) freqIdx = ci2; if (h.indexOf('监控人员') !== -1 || h.indexOf('人员') !== -1) personIdx = ci2; if (h.indexOf('备注') !== -1) remarkIdx = ci2; if (h.indexOf('纠偏') !== -1 || h.indexOf('实施人员') !== -1) correctiveIdx = ci2; if (h.indexOf('验证') !== -1 || h.indexOf('偏离原因') !== -1) verificationIdx = ci2; if (h.indexOf('记录') !== -1 || h.indexOf('产品处理') !== -1) recordIdx = ci2; } for (var ri5 = 1; ri5 < table.rows.length; ri5++) { var row = table.rows[ri5], ccpName = ccpIdx !== -1 ? (row[ccpIdx] || '') : ''; if (ccpName) { result.monitoring.push({ ccp: ccpName, object: objIdx !== -1 ? (row[objIdx] || '') : '', method: methodIdx !== -1 ? (row[methodIdx] || '') : '', frequency: freqIdx !== -1 ? (row[freqIdx] || '') : '', personnel: personIdx !== -1 ? (row[personIdx] || '') : '', remark: remarkIdx !== -1 ? (row[remarkIdx] || '') : '' }); if (correctiveIdx !== -1) result.correctiveActions.push({ ccp: ccpName, personnel: correctiveIdx !== -1 ? (row[correctiveIdx] || '') : '', causeAnalysis: verificationIdx !== -1 ? (row[verificationIdx] || '') : '', productHandling: recordIdx !== -1 ? (row[recordIdx] || '') : '' }); } } } }
+    if (planTables.length > 0) { for (var pti2 = 0; pti2 < planTables.length; pti2++) { var table = planTables[pti2], headerRow = table.rows[0]; var ccpIdx = -1, clIdx = -1, objIdx = -1, methodIdx = -1, freqIdx = -1, personIdx = -1, remarkIdx = -1, correctiveIdx = -1, verificationIdx = -1, recordIdx = -1; for (var ci2 = 0; ci2 < headerRow.length; ci2++) { var h = headerRow[ci2].toLowerCase(); if (h.indexOf('关键控制点') !== -1 || h === 'ccp') ccpIdx = ci2; if (h.indexOf('关键限值') !== -1 || h.indexOf('cl') !== -1) clIdx = ci2; if (h.indexOf('' + I18n.t('q.monitorObject') + '') !== -1 || h.indexOf('对象') !== -1) objIdx = ci2; if (h.indexOf('' + I18n.t('q.monitorMethod') + '') !== -1 || h.indexOf('方法') !== -1) methodIdx = ci2; if (h.indexOf('' + I18n.t('q.monitorFreq') + '') !== -1 || h.indexOf('频率') !== -1) freqIdx = ci2; if (h.indexOf('' + I18n.t('q.monitorPersonnel') + '') !== -1 || h.indexOf('人员') !== -1) personIdx = ci2; if (h.indexOf('' + I18n.t('q.monAddRemark') + '') !== -1) remarkIdx = ci2; if (h.indexOf('纠偏') !== -1 || h.indexOf(I18n.t('q.corPersonnel')) !== -1) correctiveIdx = ci2; if (h.indexOf('验证') !== -1 || h.indexOf(I18n.t('q.corCause')) !== -1) verificationIdx = ci2; if (h.indexOf('记录') !== -1 || h.indexOf(I18n.t('q.corProduct')) !== -1) recordIdx = ci2; } for (var ri5 = 1; ri5 < table.rows.length; ri5++) { var row = table.rows[ri5], ccpName = ccpIdx !== -1 ? (row[ccpIdx] || '') : ''; if (ccpName) { result.monitoring.push({ ccp: ccpName, object: objIdx !== -1 ? (row[objIdx] || '') : '', method: methodIdx !== -1 ? (row[methodIdx] || '') : '', frequency: freqIdx !== -1 ? (row[freqIdx] || '') : '', personnel: personIdx !== -1 ? (row[personIdx] || '') : '', remark: remarkIdx !== -1 ? (row[remarkIdx] || '') : '' }); if (correctiveIdx !== -1) result.correctiveActions.push({ ccp: ccpName, personnel: correctiveIdx !== -1 ? (row[correctiveIdx] || '') : '', causeAnalysis: verificationIdx !== -1 ? (row[verificationIdx] || '') : '', productHandling: recordIdx !== -1 ? (row[recordIdx] || '') : '' }); } } } }
     var recordMatch = text.match(/(?:记录保存|保存期限|记录期限)[：:。]?\s*(\d+\s*[年月])/);
     if (recordMatch) result.recordPeriod = recordMatch[1];
     if (text.indexOf('电子') !== -1 && text.indexOf('纸质') !== -1) result.recordFormat = '电子版+纸质版'; else if (text.indexOf('电子') !== -1) result.recordFormat = '电子版'; else if (text.indexOf('纸质') !== -1) result.recordFormat = '纸质版';
@@ -447,7 +447,7 @@ const Questionnaire15min = (() => {
   const TOTAL_STEPS = 5;
   const SECTION_NAMES = (function() {
     try { return [I18n.t('q15.step0'), I18n.t('q15.step1'), I18n.t('q15.step2'), I18n.t('q15.step3'), I18n.t('q15.step4')]; }
-    catch(e) { return ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立纠偏措施']; }
+    catch(e) { return ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立' + I18n.t('q.correctiveTitle') + '']; }
   })();
 
   function renderSectionNav() {
@@ -519,13 +519,13 @@ const Questionnaire15min = (() => {
     }
     var navRightBtn = '';
     if (currentStep === 4) {
-      navRightBtn = '<button class="btn btn-primary btn-lg" id="q15GeneratePlanBtn">生成计划</button>';
+      navRightBtn = '<button class="btn btn-primary btn-lg" id="q15GeneratePlanBtn">' + I18n.t('q.generatePlan') + '</button>';
     } else if (currentStep < TOTAL_STEPS - 1) {
-      navRightBtn = '<button class="btn btn-primary" id="q15NextBtn">下一步 \u2192</button>';
+      navRightBtn = '<button class="btn btn-primary" id="q15NextBtn">' + I18n.t('q15.nextBtn') + '</button>';
     } else {
       navRightBtn = '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>';
     }
-    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>\u2190 上一步</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
+    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>' + I18n.t('q15.prevBtn') + '</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
     // 更新审查横幅（独立于内容区域）
     updateReviewBanner();
     bindSectionEvents(content, data);
@@ -550,14 +550,14 @@ const Questionnaire15min = (() => {
   // ==================== 渲染各章节 ====================
   function renderCompanyInfo(data) {
     var extraHtml = '';
-    if (data.extraItems && data.extraItems.length > 0) { extraHtml = data.extraItems.map(function(e, i) { return '<tr data-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="项目名称" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="项目内容" style="width:100%"></td><td><button class="q15-del-row" data-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
-    return '<div class="q15-field-group"><label>企业名称 <span class="required">*</span></label><input type="text" data-q15-field="companyName" value="' + esc(data.companyName) + '" placeholder="请输入企业名称"></div><div class="q15-field-group"><label>制定部门 <span class="required">*</span></label><input type="text" data-q15-field="deptName" value="' + esc(data.deptName) + '" placeholder="请输入制定部门"></div><div class="q15-field-group"><label>审核人员</label><input type="text" data-q15-field="auditor" value="' + esc(data.auditor) + '" placeholder="请输入审核人员姓名"></div><div class="q15-table-section"><h3>HACCP小组成员 <span class="required">*</span></h3><p class="q15-table-hint">成员涵盖生产、品控、设备、仓储、采购等部门负责人，必要时需要外部专家参与</p><table class="q15-table" id="teamTable"><thead><tr><th>姓名</th><th>部门</th><th>职位</th><th>小组职责</th><th>备注</th><th style="width:50px">操作</th></tr></thead><tbody id="teamBody">' + data.haccpTeam.map(function(m, i) { return '<tr data-team-idx="' + i + '"><td><input type="text" value="' + esc(m.name) + '" placeholder="姓名"></td><td><input type="text" value="' + esc(m.dept) + '" placeholder="部门"></td><td><input type="text" value="' + esc(m.position) + '" placeholder="职位"></td><td><input type="text" value="' + esc(m.role) + '" placeholder="如：组长、副组长"></td><td><input type="text" value="' + esc(m.remark) + '" placeholder="备注信息"></td><td><button class="q15-del-row" data-team-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addTeamRow">+ 添加成员</button></div><div class="q15-table-section" style="margin-top:16px;"><h3>其他项目 <span style="font-weight:400;font-size:13px;color:var(--gray-400);">（手动添加未列出的补充信息）</span></h3><p class="q15-table-hint">添加额外信息项，例如：地址、联系人、电话、邮箱等</p><table class="q15-table" id="extraItemsTable"><thead><tr><th>项目名称</th><th>项目内容</th><th style="width:50px">操作</th></tr></thead><tbody id="extraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addExtraItemRow">+ 添加项目</button></div>';
+    if (data.extraItems && data.extraItems.length > 0) { extraHtml = data.extraItems.map(function(e, i) { return '<tr data-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%"></td><td><button class="q15-del-row" data-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
+    return '<div class="q15-field-group"><label>企业名称 <span class="required">*</span></label><input type="text" data-q15-field="companyName" value="' + esc(data.companyName) + '" placeholder="请输入企业名称"></div><div class="q15-field-group"><label>制定部门 <span class="required">*</span></label><input type="text" data-q15-field="deptName" value="' + esc(data.deptName) + '" placeholder="请输入制定部门"></div><div class="q15-field-group"><label>审核人员</label><input type="text" data-q15-field="auditor" value="' + esc(data.auditor) + '" placeholder="请输入审核人员姓名"></div><div class="q15-table-section"><h3>HACCP小组成员 <span class="required">*</span></h3><p class="q15-table-hint">成员涵盖生产、品控、设备、仓储、采购等部门负责人，必要时需要外部专家参与</p><table class="q15-table" id="teamTable"><thead><tr><th>姓名</th><th>部门</th><th>职位</th><th>小组职责</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="teamBody">' + data.haccpTeam.map(function(m, i) { return '<tr data-team-idx="' + i + '"><td><input type="text" value="' + esc(m.name) + '" placeholder="姓名"></td><td><input type="text" value="' + esc(m.dept) + '" placeholder="部门"></td><td><input type="text" value="' + esc(m.position) + '" placeholder="职位"></td><td><input type="text" value="' + esc(m.role) + '" placeholder="如：组长、副组长"></td><td><input type="text" value="' + esc(m.remark) + '" placeholder="' + I18n.t('q.monAddRemark') + '信息"></td><td><button class="q15-del-row" data-team-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addTeamRow">+ 添加成员</button></div><div class="q15-table-section" style="margin-top:16px;"><h3>其他项目 <span style="font-weight:400;font-size:13px;color:var(--gray-400);">（手动添加未列出的补充信息）</span></h3><p class="q15-table-hint">添加额外信息项，例如：地址、联系人、电话、邮箱等</p><table class="q15-table" id="extraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="extraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addExtraItemRow">+ 添加项目</button></div>';
   }
 
   function renderProductInfo(data) {
     var extraHtml = '';
-    if (data.productExtraItems && data.productExtraItems.length > 0) { extraHtml = data.productExtraItems.map(function(e, i) { return '<tr data-p-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="项目名称" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="项目内容" style="width:100%"></td><td><button class="q15-del-row" data-p-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
-    return '<div class="q15-field-group"><label>产品名称 <span class="required">*</span></label><input type="text" data-q15-field="productName" value="' + esc(data.productName) + '" placeholder="请输入产品名称"></div><div class="q15-field-group"><label>主要原料</label><textarea data-q15-field="rawMaterials" placeholder="列出主要原料，不同原料用逗号分隔">' + esc(data.rawMaterials) + '</textarea></div><div class="q15-field-group"><label>添加剂</label><textarea data-q15-field="additives" placeholder="列出使用的添加剂，不同添加剂用逗号分隔">' + esc(data.additives) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>产品的特性PH</label><input type="number" step="0.01" data-q15-field="productPH" value="' + esc(data.productPH) + '" placeholder="如：6.5"></div><div class="q15-field-group"><label>水分活度</label><input type="number" step="0.01" data-q15-field="waterActivity" value="' + esc(data.waterActivity) + '" placeholder="如：0.85"></div></div><div class="q15-field-group"><label>预期用途</label><textarea data-q15-field="intendedUse" placeholder="描述产品的预期用途和消费群体如何使用该产品">' + esc(data.intendedUse) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>储存条件</label><input type="text" data-q15-field="storageCondition" value="' + esc(data.storageCondition) + '" placeholder="如：阴凉干燥处"></div><div class="q15-field-group"><label>包装方式</label><input type="text" data-q15-field="packagingMethod" value="' + esc(data.packagingMethod) + '" placeholder="如：真空包装"></div></div><div class="q15-row"><div class="q15-field-group"><label>目标消费者</label><input type="text" data-q15-field="targetConsumer" value="' + esc(data.targetConsumer) + '" placeholder="如：一般人群"></div><div class="q15-field-group"><label>保质期</label><input type="text" data-q15-field="shelfLife" value="' + esc(data.shelfLife) + '" placeholder="如：12个月"></div></div><div class="q15-table-section" style="margin-top:16px;"><h3>其他项目 <span style="font-weight:400;font-size:13px;color:var(--gray-400);">（手动添加未列出的补充信息）</span></h3><p class="q15-table-hint">添加额外信息项，例如：产品型号、规格、批号等</p><table class="q15-table" id="productExtraItemsTable"><thead><tr><th>项目名称</th><th>项目内容</th><th style="width:50px">操作</th></tr></thead><tbody id="productExtraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addProductExtraItemRow">+ 添加项目</button></div>';
+    if (data.productExtraItems && data.productExtraItems.length > 0) { extraHtml = data.productExtraItems.map(function(e, i) { return '<tr data-p-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%"></td><td><button class="q15-del-row" data-p-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
+    return '<div class="q15-field-group"><label>产品名称 <span class="required">*</span></label><input type="text" data-q15-field="productName" value="' + esc(data.productName) + '" placeholder="请输入产品名称"></div><div class="q15-field-group"><label>主要原料</label><textarea data-q15-field="rawMaterials" placeholder="列出主要原料，不同原料用逗号分隔">' + esc(data.rawMaterials) + '</textarea></div><div class="q15-field-group"><label>添加剂</label><textarea data-q15-field="additives" placeholder="列出使用的添加剂，不同添加剂用逗号分隔">' + esc(data.additives) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>产品的特性PH</label><input type="number" step="0.01" data-q15-field="productPH" value="' + esc(data.productPH) + '" placeholder="如：6.5"></div><div class="q15-field-group"><label>水分活度</label><input type="number" step="0.01" data-q15-field="waterActivity" value="' + esc(data.waterActivity) + '" placeholder="如：0.85"></div></div><div class="q15-field-group"><label>预期用途</label><textarea data-q15-field="intendedUse" placeholder="描述产品的预期用途和消费群体如何使用该产品">' + esc(data.intendedUse) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>储存条件</label><input type="text" data-q15-field="storageCondition" value="' + esc(data.storageCondition) + '" placeholder="如：阴凉干燥处"></div><div class="q15-field-group"><label>包装方式</label><input type="text" data-q15-field="packagingMethod" value="' + esc(data.packagingMethod) + '" placeholder="如：真空包装"></div></div><div class="q15-row"><div class="q15-field-group"><label>目标消费者</label><input type="text" data-q15-field="targetConsumer" value="' + esc(data.targetConsumer) + '" placeholder="如：一般人群"></div><div class="q15-field-group"><label>保质期</label><input type="text" data-q15-field="shelfLife" value="' + esc(data.shelfLife) + '" placeholder="如：12个月"></div></div><div class="q15-table-section" style="margin-top:16px;"><h3>其他项目 <span style="font-weight:400;font-size:13px;color:var(--gray-400);">（手动添加未列出的补充信息）</span></h3><p class="q15-table-hint">添加额外信息项，例如：产品型号、规格、批号等</p><table class="q15-table" id="productExtraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="productExtraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addProductExtraItemRow">+ 添加项目</button></div>';
   }
 
   // ===== 精简版文件上传区域（仅用于"进行危害分析"步骤内部）=====
@@ -598,7 +598,7 @@ const Questionnaire15min = (() => {
     var ccpSteps = data.ccpSteps || [];
     var hazardTypes = ['bio', 'chem', 'phys'];
     var hazardLabels = { bio: 'B', chem: 'C', phys: 'P' };
-    var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
+    var hazardFull = { bio: I18n.t('q.ccpHazardBio'), chem: I18n.t('q.ccpHazardChem'), phys: I18n.t('q.ccpHazardPhys') };
     var isEditMode = data.ccpViewMode === 'edit';
     
     var html = '<div class="ccp-nav-panel">';
@@ -618,7 +618,7 @@ const Questionnaire15min = (() => {
       html += '<div class="ccp-nav-step">';
       html += '<div class="ccp-nav-step-header ' + stepClass + '" data-nav-step="' + si + '">';
       html += '<span class="ccp-nav-step-num">' + (si + 1) + '</span>';
-      html += '<span class="ccp-nav-step-name">' + esc(step.stepName || '步骤' + (si + 1)) + '</span>';
+      html += '<span class="ccp-nav-step-name">' + esc(step.stepName || I18n.t('q.ccpSummaryStep') + ' ' + (si + 1)) + '</span>';
       html += '<span class="ccp-nav-toggle">▶</span>';
       html += '</div>';
       
@@ -713,14 +713,14 @@ const Questionnaire15min = (() => {
     var stepData = (editIdx >= 0 && editIdx < data.processSteps.length) ? data.processSteps[editIdx] : { stepName: '', equipmentName: '', operationMethod: '', parameters: '' };
     var savedSteps = data.processSteps || [];
     var html = '<div class="q15-step-form">';
-    html += '<div class="q15-field-group"><label>步骤名称</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName || '') + '" placeholder="如：清洗"></div>';
-    html += '<div class="q15-field-group"><label>设备名称</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName || '') + '" placeholder="如：清洗机"></div>';
-    html += '<div class="q15-field-group"><label>操作方法</label><textarea id="stepFormMethod" rows="2" placeholder="描述操作方法">' + esc(stepData.operationMethod || '') + '</textarea></div>';
-    html += '<div class="q15-field-group"><label>工艺参数</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters || '') + '" placeholder="如：温度85℃，时间15分钟"></div>';
-    html += '<button class="btn btn-primary btn-sm" id="stepFormSaveBtn">确认保存</button>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.stepName') + '</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName || '') + '" placeholder="如：清洗"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.equipment') + '</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName || '') + '" placeholder="如：清洗机"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.method') + '</label><textarea id="stepFormMethod" rows="2" placeholder="描述' + I18n.t('q.method') + '">' + esc(stepData.operationMethod || '') + '</textarea></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.params') + '</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters || '') + '" placeholder="如：温度85℃，时间15分钟"></div>';
+    html += '<button class="btn btn-primary btn-sm" id="stepFormSaveBtn">' + I18n.t('q.saveStep') + '</button>';
     html += '</div>';
     if (savedSteps.length > 0) {
-      html += '<div style="margin-top:20px;"><h3>已添加步骤</h3><ul style="list-style:none;padding:0;margin:8px 0;">';
+      html += '<div style="margin-top:20px;"><h3>' + I18n.t('q.addedSteps') + '</h3><ul style="list-style:none;padding:0;margin:8px 0;">';
       savedSteps.forEach(function(s, i) {
         // 检查该步骤是否有CCP判定结果
         var stepCcp = (data.ccpSteps && data.ccpSteps[i] && data.ccpSteps[i].hazards) ? data.ccpSteps[i].hazards : null;
@@ -738,7 +738,7 @@ const Questionnaire15min = (() => {
           ccpBadge = '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0;margin-left:8px;" title="已判定为CCP: ' + ccpTypes.join('/') + '危害">CCP</span>';
         }
         html += '<li style="padding:8px 10px;margin:6px 0;background:' + bg + ';border:1px solid ' + border + ';border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;" data-step-edit="' + i + '">';
-        html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || '未命名') + '</strong>';
+        html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || I18n.t('q.unnamed')) + '</strong>';
         if (s.equipmentName) html += ' | 设备：' + esc(s.equipmentName);
         if (s.operationMethod) html += ' | 方法：' + esc(s.operationMethod);
         if (s.parameters) html += ' | 参数：' + esc(s.parameters);
@@ -748,38 +748,38 @@ const Questionnaire15min = (() => {
       });
       html += '</ul></div>';
     } else {
-      html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请先填写上方表单并点击“确认保存”。</p>';
+      html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请先填写上方表单并点击“' + I18n.t('q.saveStep') + '”。</p>';
     }
     html += '<hr class="q15-divider"><div class="q15-field-group"><label>CCP判断树版本</label>';
-    html += '<div style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">标准版</div>';
-    html += '<div style="margin-top:4px;font-size:12px;color:var(--gray-400);">Q1有控制措施存在吗？→Q1.1控制对安全必要吗？→Q2专门设计消除/降低？→Q3污染超标？→Q4后续消除？</div>';
+    html += '<div style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">' + I18n.t('q.ccpTreeVersion') + '</div>';
+    html += '<div style="margin-top:4px;font-size:12px;color:var(--gray-400);">' + I18n.t('q.ccpTreeDesc') + '</div>';
     html += '<div style="margin-top:12px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#475569;line-height:1.7;">';
-    html += '<div style="font-weight:500;margin-bottom:4px;font-size:13px;color:#1e293b;">CCP判断树使用说明</div>';
+    html += '<div style="font-weight:500;margin-bottom:4px;font-size:13px;color:#1e293b;">' + I18n.t('q.ccpTreeUsage') + '</div>';
     html += '<div style="padding-left:0;list-style:none;">';
-    html += '<div style="margin-bottom:2px;">a) 判断树表在危害分析后和显著危害被确定的步骤中使用；</div>';
-    html += '<div style="margin-bottom:2px;">b) CCP判断树仅有助于确定CCP，但不能代替专业知识；</div>';
-    html += '<div style="margin-bottom:2px;">c) 随后的加工步骤对控制危害可能更有效，可能是更应该选择的CCP；</div>';
-    html += '<div>d) 加工中一个以上的步骤可以控制一种危害。</div>';
+    html += '<div style="margin-bottom:2px;">' + I18n.t('q.ccpInstrA') + '</div>';
+    html += '<div style="margin-bottom:2px;">' + I18n.t('q.ccpInstrB') + '</div>';
+    html += '<div style="margin-bottom:2px;">' + I18n.t('q.ccpInstrC') + '</div>';
+    html += '<div>' + I18n.t('q.ccpInstrD') + '</div>';
     html += '</div></div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary btn-sm" id="aiCcpBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>🤖 AI辅助CCP判定</button>';
-    html += '<button class="btn btn-outline btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>📋 手动CCP判断</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">新增步骤</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>完成</button>';
+    html += '<button class="btn btn-primary btn-sm" id="aiCcpBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>' + I18n.t('q.ccpAiBtn') + '</button>';
+    html += '<button class="btn btn-outline btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>' + I18n.t('q.ccpManualBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">' + I18n.t('q.addStep') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>' + I18n.t('q.ccpCompleteBtn') + '</button>';
     html += '<span id="aiCcpHint" style="font-size:12px;color:var(--gray-400);margin-left:4px;align-self:center;"></span>';
     html += '</div>';
     return html;
   }
   
   function getCcpQuestionText(hazardType, currentQ) {
-    var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
+    var hazardFull = { bio: I18n.t('q.ccpHazardBio'), chem: I18n.t('q.ccpHazardChem'), phys: I18n.t('q.ccpHazardPhys') };
     var name = hazardFull[hazardType] || '危害';
     var map = {
-      1: 'Q1：针对此加工步骤已识别的' + name + '，有控制措施存在吗？',
-      1.1: 'Q1（续）：该步骤上的控制对安全是必要的吗？',
-      2: 'Q2：该步骤是否专门设计用于把' + name + '的可能发生消除、降低到可接受水平？',
-      3: 'Q3：' + name + '产生的污染是否会超过可接受水平，或增加到不可接受水平？',
-      4: 'Q4：后续步骤可否消除' + name + '或将' + name + '的发生降低到可接受水平？'
+      1: 'Q1：针对此加工步骤已识别的|||Q1: For the identified ' + name + '，有控制措施存在吗？||| at this processing step, are there control measures in place?',
+      1.1: 'Q1（续）：该步骤上的控制对安全是必要的吗？|||Q1 (cont.): Is control at this step necessary for safety?',
+      2: 'Q2：该步骤是否专门设计用于把|||Q2: Is this step specifically designed to eliminate ' + name + '的可能发生消除、降低到可接受水平？||| or reduce its occurrence to an acceptable level?',
+      3: 'Q3：|||Q3: Could contamination from ' + name + '产生的污染是否会超过可接受水平，或增加到不可接受水平？||| exceed acceptable levels or increase to unacceptable levels?',
+      4: 'Q4：后续步骤可否消除|||Q4: Can subsequent steps eliminate ' + name + '或将||| or reduce ' + name + '的发生降低到可接受水平？||| to an acceptable level?'
     };
     return map[currentQ] || '';
   }
@@ -787,17 +787,17 @@ const Questionnaire15min = (() => {
     if (!hazard || hazard.isCCP === undefined || hazard.isCCP === null) return '';
     var hts = ['bio','chem','phys']; var hti = hts.indexOf(hazardType);
     var lastH = hti === hts.length-1;
-    var label = hazard.isCCP===true?'是（CCP）':(hazard.isCCP==='modify'?'需修改后重新评估':'否（非CCP）');
+    var label = hazard.isCCP===true?I18n.t('q.ccpYes'):(hazard.isCCP==='modify'?I18n.t('q.ccpNeedModifyReEval'):I18n.t('q.ccpNoNonCcp'));
     var c = hazard.isCCP===true?'#dc2626':(hazard.isCCP==='modify'?'#d97706':'#16a34a');
     var bg = hazard.isCCP===true?'#fef2f2':(hazard.isCCP==='modify'?'#fffbeb':'#f0fdf4');
     var path=[];[1,2,3,4,5].forEach(function(qn){if(hazard['q'+qn]!==undefined)path.push('Q'+qn+':'+hazard['q'+qn]);});
-    if(hazard.q2_need!==undefined)path.push('Q2续:'+hazard.q2_need);
+    if(hazard.q2_need!==undefined)path.push('Q2' + I18n.t('q.cont') + ''+hazard.q2_need);
     var h='<div style="margin-top:16px;padding:12px;background:'+bg+';border:1px solid '+c+';border-radius:8px;color:'+c+';">';
     h+='<div style="font-weight:600;margin-bottom:6px;">判定结果：'+label+'</div>';
     h+='<div style="font-size:13px;color:#475569;">判定路径：'+(path.length?path.join(' → '):'—')+'</div>';
-    h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="ccpNextHazardBtn">'+(lastH?'完成':'下一步')+'</button>';
+    h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="ccpNextHazardBtn">'+(lastH?'完成':I18n.t('q.ccpNextQ'))+'</button>';
     // 添加上一步按钮，回退到当前问题的上一个问题
-    h+='<button class="btn btn-secondary btn-sm" id="ccpPrevStepBtn">← 上一步</button>';
+    h+='<button class="btn btn-secondary btn-sm" id="ccpPrevStepBtn">' + I18n.t('q.ccpPrevStep') + '</button>';
     // 添加重新判定按钮，清除当前危害所有答案重新判断
     h+='<button class="btn btn-secondary btn-sm" id="ccpResetAllBtn">🔄 重新判定本危害</button></div></div>';
     return h;
@@ -809,7 +809,7 @@ const Questionnaire15min = (() => {
     var idx=parseInt(data.ccpStepIndex);
     if(isNaN(idx)||idx<0||idx>=steps.length)idx=0;
     data.ccpStepIndex=idx;var step=steps[idx]||{};
-    var hts=['bio','chem','phys'];var hf={bio:'生物危害',chem:'化学危害',phys:'物理危害'};
+    var hts=['bio','chem','phys'];var hf={bio:I18n.t('q.ccpHazardBio'),chem:I18n.t('q.ccpHazardChem'),phys:I18n.t('q.ccpHazardPhys')};
     var ht=data.ccpHazardType||'bio';if(hts.indexOf(ht)===-1)ht='bio';
     data.ccpHazardType=ht;var hti=hts.indexOf(ht);var cq=data.ccpCurrentQ||1;
     if(!data.ccpSteps[idx])data.ccpSteps[idx]={stepName:step.stepName||'',hazards:{},completed:false};
@@ -817,11 +817,11 @@ const Questionnaire15min = (() => {
     if(!data.ccpSteps[idx].hazards[ht])data.ccpSteps[idx].hazards[ht]={};
     var ch=data.ccpSteps[idx].hazards[ht];
     var html='<div class="ccp-judging-flow"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">';
-    html+='<span style="color:var(--gray-500);font-size:13px;">步骤 '+(idx+1)+'/'+steps.length+'：'+esc(step.stepName||'未命名')+' — '+hf[ht]+'（'+(hti+1)+'/3）</span>';
+    html+='<span style="color:var(--gray-500);font-size:13px;">步骤 '+(idx+1)+'/'+steps.length+'：'+esc(step.stepName||I18n.t('q.unnamed'))+' — '+hf[ht]+'（'+(hti+1)+'/3）</span>';
     html+='<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;">'+{bio:'B',chem:'C',phys:'P'}[ht]+'</span></div>';
     if(ch.isCCP!==undefined&&ch.isCCP!==null){
       html+=renderCcpResultBlock(data,ch,ht);
-      html+='<div style="margin-top:10px;"><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">返回步骤填写</button></div></div>';
+      html+='<div style="margin-top:10px;"><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">' + I18n.t('q.ccpBackToEdit') + '</button></div></div>';
       return html;
     }
     var sv=cq==='q2_need'?ch.q2_need:ch['q'+cq];
@@ -831,7 +831,7 @@ const Questionnaire15min = (() => {
     if(cq===1){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
     else if(cq==='q2_need'){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是，需要修改后重新评估</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否，非关键控制点</label>';}
     else{html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
-    html+='</div><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确定</button><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">返回步骤填写</button></div></div>';
+    html+='</div><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确定</button><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">' + I18n.t('q.ccpBackToEdit') + '</button></div></div>';
     return html;
   }
 
@@ -874,7 +874,7 @@ const Questionnaire15min = (() => {
       var hazardTypes = ['bio', 'chem', 'phys'];
       var hazardTypeIdx = isLastHazard ? hazardTypes.indexOf(isLastHazard) : -1;
       var isLast = hazardTypeIdx >= hazardTypes.length - 1;
-      var nextLabel = isLast ? '完成' : '下一步';
+      var nextLabel = isLast ? I18n.t('common.done') : I18n.t('q.navNext');
       
       html += '<button class="btn btn-primary btn-sm" id="ccpNextHazardBtn" style="margin-top:10px;">' + nextLabel + '</button>';
     }
@@ -916,7 +916,7 @@ const Questionnaire15min = (() => {
     if (!data.ccpSteps) data.ccpSteps = [];
     var hazardTypes = ['bio', 'chem', 'phys'];
     var hazardLabels = { bio: 'B', chem: 'C', phys: 'P' };
-    var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
+    var hazardFull = { bio: I18n.t('q.ccpHazardBio'), chem: I18n.t('q.ccpHazardChem'), phys: I18n.t('q.ccpHazardPhys') };
     var qLabels = { 1: 'Q1', 2: 'Q2', 3: 'Q3', 4: 'Q4', 5: 'Q5' };
     
     // 初始化所有步骤的ccpStep数据
@@ -954,7 +954,7 @@ const Questionnaire15min = (() => {
         var hData = data.ccpSteps[si].hazards[ht] || {};
         var rowClass = (hi === 0) ? '' : '';
         if (hi === 0) {
-          html += '<tr class="step-group-header"><td colspan="10">步骤 ' + (si + 1) + '：' + esc(step.stepName || '未命名') + '</td></tr>';
+          html += '<tr class="step-group-header"><td colspan="10">步骤 ' + (si + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</td></tr>';
         }
         
         // 危害描述 
@@ -977,7 +977,7 @@ const Questionnaire15min = (() => {
         else if (isCCP === 'modify') { resultClass = 'modify'; resultText = '需修改'; }
         
         html += '<tr data-ut-row="' + si + '-' + ht + '">';
-        // 步骤名称
+        // ' + I18n.t('q.stepName') + '
         html += '<td class="ccp-ut-step">' + (hi === 1 ? '' : esc(step.stepName || '')) + '</td>';
         // 危害类型
         html += '<td><span class="ccp-ut-hazard-badge ' + ht + '">' + hazardLabels[ht] + '</span><span class="ccp-ut-hazard-label">' + hazardFull[ht] + '</span></td>';
@@ -1052,7 +1052,7 @@ const Questionnaire15min = (() => {
     };
     var qHelps = {
       1: '请列出该加工步骤可能存在的生物/化学/物理危害',
-      2: '（例如：是否有SOP、工艺参数控制、设备防护等措施）',
+      2: '（例如：是否有SOP、' + I18n.t('q.params') + '控制、设备防护等措施）',
       3: '（例如：金属检测器专门设计用于去除金属异物）',
       4: '（例如：清洗不彻底可能导致微生物交叉污染）',
       5: '（例如：后道杀菌工序可消除微生物危害）'
@@ -1109,10 +1109,10 @@ const Questionnaire15min = (() => {
 
     var qHtml = '<div class="ccp-decision-tree">';
     qHtml += '<div class="ccp-dt-header">';
-    qHtml += '<span class="ccp-dt-step">步骤 ' + (idx + 1) + '：' + esc(step.stepName || '未命名') + '</span>';
+    qHtml += '<span class="ccp-dt-step">步骤 ' + (idx + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</span>';
     qHtml += '<span class="ccp-dt-hazard-type">' + hazardLabels[hazardType] + '判定 (' + (hazardTypeIdx + 1) + '/3)</span>';
     qHtml += '</div>';
-    qHtml += '<div class="ccp-dt-hazard-desc">潜在危害提示：' + stepHazardDesc + '</div>';
+    qHtml += '<div class="ccp-dt-hazard-desc">' + I18n.t('q.ccpHazardHint') + '' + stepHazardDesc + '</div>';
 
     // Q1特殊：显示危害描述输入框
     if (currentQ === 1) {
@@ -1122,23 +1122,23 @@ const Questionnaire15min = (() => {
       qHtml += '<div class="ccp-dt-q-help">' + qHelps[1] + '</div>';
       qHtml += '<textarea class="ccp-dt-textarea" id="ccpHazardDescInput" placeholder="请描述该步骤存在的具体危害..." rows="3">' + esc(hazardDescVal) + '</textarea>';
       qHtml += '<div class="ccp-dt-options">';
-      qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>是</span></label>';
-      qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>否</span></label>';
+      qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>' + I18n.t('q.ccpYesSpan') + '</span></label>';
+      qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>' + I18n.t('q.ccpNoSpan') + '</span></label>';
       qHtml += '</div>';
       qHtml += '<div class="ccp-dt-actions">';
-      qHtml += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确认回答</button>';
+      qHtml += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">' + I18n.t('q.ccpConfirmAnswer') + '</button>';
       qHtml += '</div></div>';
     } else if (currentQ === 'q2_need') {
       // Q2子判断：是否有必要在此步骤进行安全控制
       qHtml += '<div class="ccp-dt-question">';
-      qHtml += '<div class="ccp-dt-q-text">Q2（续）：是否有必要在此步骤进行安全控制？</div>';
-      qHtml += '<div class="ccp-dt-q-help">（若选"是"，需修改步骤、工艺或产品后重新评估；选"否"则判定为非CCP）</div>';
+      qHtml += '<div class="ccp-dt-q-text">' + I18n.t('q.ccpQ2NeedText') + '</div>';
+      qHtml += '<div class="ccp-dt-q-help">' + I18n.t('q.ccpQ2NeedHelp') + '</div>';
       qHtml += '<div class="ccp-dt-options">';
-      qHtml += '<label class="ccp-dt-option"><input type="radio" name="ccpQAnswer" value="是"> <span>是，需修改后重新评估</span></label>';
-      qHtml += '<label class="ccp-dt-option"><input type="radio" name="ccpQAnswer" value="否"> <span>否，非关键控制点</span></label>';
+      qHtml += '<label class="ccp-dt-option"><input type="radio" name="ccpQAnswer" value="是"> <span>' + I18n.t('q.ccpYesModifySpan') + '</span></label>';
+      qHtml += '<label class="ccp-dt-option"><input type="radio" name="ccpQAnswer" value="否"> <span>' + I18n.t('q.ccpNoNonCcpSpan') + '</span></label>';
       qHtml += '</div>';
       qHtml += '<div class="ccp-dt-actions">';
-      qHtml += '<button class="btn btn-primary btn-sm" id="ccpQ2NeedBtn">确认</button>';
+      qHtml += '<button class="btn btn-primary btn-sm" id="ccpQ2NeedBtn">' + I18n.t('q.confirmBtn') + '</button>';
       qHtml += '</div></div>';
     } else {
       // 普通问题 Q2-Q5
@@ -1146,14 +1146,14 @@ const Questionnaire15min = (() => {
       qHtml += '<div class="ccp-dt-q-text">' + qTexts[currentQ] + '</div>';
       qHtml += '<div class="ccp-dt-q-help">' + (qHelps[currentQ] || '') + '</div>';
       qHtml += '<div class="ccp-dt-options">';
-      qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>是</span></label>';
-      qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>否</span></label>';
+      qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>' + I18n.t('q.ccpYesSpan') + '</span></label>';
+      qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>' + I18n.t('q.ccpNoSpan') + '</span></label>';
       qHtml += '</div>';
       qHtml += '<div class="ccp-dt-actions">';
       if (!answered) {
         qHtml += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确认回答</button>';
       } else {
-        qHtml += '<button class="btn btn-primary btn-sm" id="ccpNextQBtn">下一步</button>';
+        qHtml += '<button class="btn btn-primary btn-sm" id="ccpNextQBtn">' + I18n.t('q.ccpNextQ') + '</button>';
       }
       qHtml += '</div></div>';
     }
@@ -1171,14 +1171,14 @@ const Questionnaire15min = (() => {
           pathItems.push('<span class="ccp-dt-path-step">Q' + qn + '：' + qv + '</span>');
           // 根据决策树显示分支结果
           if (qn === 1 && qv === '否') {
-            pathItems.push('<span class="ccp-dt-path-result no-ccp">→ 非CCP（Q1=否，该危害不存在）</span>');
+            pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ1') + '</span>');
             break;
           }
           if (qn === 2 && qv === '否') {
             if (currentHazard.q2_need === '否') {
-              pathItems.push('<span class="ccp-dt-path-result no-ccp">→ 非CCP（Q2=否且无需控制）</span>');
+              pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ2') + '</span>');
             } else if (currentHazard.q2_need === '是') {
-              pathItems.push('<span class="ccp-dt-path-result is-ccp">→ 需修改步骤/工艺/产品，返回Q2重新评估</span>');
+              pathItems.push('<span class="ccp-dt-path-result is-ccp">' + I18n.t('q.ccpModifyStepHint') + '</span>');
             }
             break;
           }
@@ -1187,11 +1187,11 @@ const Questionnaire15min = (() => {
             break;
           }
           if (qn === 4 && qv === '否') {
-            pathItems.push('<span class="ccp-dt-path-result no-ccp">→ 非CCP（Q4=否，无污染风险）</span>');
+            pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ4') + '</span>');
             break;
           }
           if (qn === 5) {
-            if (qv === '是') pathItems.push('<span class="ccp-dt-path-result no-ccp">→ 非CCP（Q5=是，后续可消除危害）</span>');
+            if (qv === '是') pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ5') + '</span>');
             else pathItems.push('<span class="ccp-dt-path-result is-ccp">→ CCP（Q5=否，后续无法消除危害）</span>');
           }
         } else {
@@ -1205,7 +1205,7 @@ const Questionnaire15min = (() => {
     // 判定结果
     if (currentHazard.isCCP !== undefined && currentHazard.isCCP !== null) {
       var isCCPVal = currentHazard.isCCP;
-      var ccpLabel = isCCPVal === true ? '是 - 关键控制点(CCP)' : (isCCPVal === 'modify' ? '需修改后重新评估' : '否 - 非关键控制点');
+      var ccpLabel = isCCPVal === true ? I18n.t('q.ccpYesLabel') : (isCCPVal === 'modify' ? I18n.t('q.ccpNeedModifyReEval') : I18n.t('q.ccpNoLabel'));
       var ccpColor = isCCPVal === true ? '#dc2626' : (isCCPVal === 'modify' ? '#d97706' : '#16a34a');
       var ccpBg = isCCPVal === true ? '#fef2f2' : (isCCPVal === 'modify' ? '#fffbeb' : '#f0fdf4');
       qHtml += '<div class="ccp-dt-final" style="background:' + ccpBg + ';border:1px solid ' + ccpColor + ';color:' + ccpColor + ';">';
@@ -1213,14 +1213,14 @@ const Questionnaire15min = (() => {
       qHtml += '</div>';
       // 如果需修改，显示修改后重新评估按钮
       if (isCCPVal === 'modify') {
-        qHtml += '<div class="ccp-dt-actions" style="margin-top:12px;"><button class="btn btn-primary btn-sm" id="ccpResetQ2Btn">修改完成，重新评估Q2</button></div>';
+        qHtml += '<div class="ccp-dt-actions" style="margin-top:12px;"><button class="btn btn-primary btn-sm" id="ccpResetQ2Btn">' + I18n.t('q.ccpModifyReEval') + '</button></div>';
       }
     }
 
     qHtml += '</div>'; // .ccp-decision-tree close
 
     var isFirstPosition = (idx === 0 && hazardType === 'bio' && currentQ === 1);
-    var prevBtn = !isFirstPosition ? '<button class="btn btn-sm btn-secondary" id="ccpPrevStepBtn" style="margin-right:auto;">← 上一步</button>' : '';
+    var prevBtn = !isFirstPosition ? '<button class="btn btn-sm btn-secondary" id="ccpPrevStepBtn" style="margin-right:auto;">' + I18n.t('q15.prevBtn') + '</button>' : '';
     var maxQ = 5;
     var qnumStr = currentQ === 'q2_need' ? 'Q2子判断' : '问题 ' + currentQ + '/' + maxQ + '（' + hazardLabels[hazardType] + ' ' + (hazardTypeIdx + 1) + '/3）';
 
@@ -1237,24 +1237,24 @@ const Questionnaire15min = (() => {
     if (!step) return '<p>步骤数据不存在</p>';
     
     var html = '<div class="ccp-step-editor">';
-    html += '<h3>✏️ 编辑步骤 ' + (editIdx + 1) + '：' + esc(step.stepName || '未命名') + '</h3>';
+    html += '<h3>✏️ 编辑步骤 ' + (editIdx + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</h3>';
     html += '<p class="q15-table-hint">在此处修改本步骤的基本信息，修改完成后返回CCP判定</p>';
     
     // 步骤卡片编辑器
     html += '<div class="q15-process-card" data-ps-idx="' + editIdx + '" id="ccpEditStepCard">';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
-    html += '<div class="q15-field-group"><label>步骤名称</label><input type="text" class="ccp-edit-input" data-ps-field="stepName" value="' + esc(step.stepName || '') + '"></div>';
-    html += '<div class="q15-field-group"><label>设备名称</label><input type="text" class="ccp-edit-input" data-ps-field="equipmentName" value="' + esc(step.equipmentName || '') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.stepName') + '</label><input type="text" class="ccp-edit-input" data-ps-field="stepName" value="' + esc(step.stepName || '') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.equipment') + '</label><input type="text" class="ccp-edit-input" data-ps-field="equipmentName" value="' + esc(step.equipmentName || '') + '"></div>';
     html += '</div>';
-    html += '<div class="q15-field-group"><label>操作方法</label><textarea class="ccp-edit-input" data-ps-field="operationMethod" rows="2">' + esc(step.operationMethod || '') + '</textarea></div>';
-    html += '<div class="q15-field-group"><label>工艺参数</label><input type="text" class="ccp-edit-input" data-ps-field="parameters" value="' + esc(step.parameters || '') + '"></div>';
-    html += '<div class="q15-field-group"><label>控制点标识</label><input type="text" class="ccp-edit-input" data-ps-field="controlPoint" value="' + esc(step.controlPoint || '') + '" placeholder="如：CCP-1"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.method') + '</label><textarea class="ccp-edit-input" data-ps-field="operationMethod" rows="2">' + esc(step.operationMethod || '') + '</textarea></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.params') + '</label><input type="text" class="ccp-edit-input" data-ps-field="parameters" value="' + esc(step.parameters || '') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.controlPoint') + '</label><input type="text" class="ccp-edit-input" data-ps-field="controlPoint" value="' + esc(step.controlPoint || '') + '" placeholder="如：CCP-1"></div>';
     html += '</div>';
     
     // 操作按钮
     html += '<div class="ccp-step-editor-actions">';
     html += '<button class="btn btn-primary btn-sm" id="ccpEditSaveBtn">💾 保存修改</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpEditDeleteBtn" style="color:#dc2626;border-color:#fecaca;">🗑️ 删除此步骤</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpEditDeleteBtn" style="color:#dc2626;border-color:#fecaca;">🗑️ ' + I18n.t('q.ccpDeleteStep') + '</button>';
     html += '<button class="btn btn-secondary btn-sm" id="ccpEditBackToJudgeBtn">← 返回CCP判定</button>';
     html += '</div>';
     
@@ -1285,15 +1285,17 @@ const Questionnaire15min = (() => {
     });
     steps.forEach(function(step,si){hts.forEach(function(ht,hi){
       var h=(ccpSteps[si]&&ccpSteps[si].hazards&&ccpSteps[si].hazards[ht])?ccpSteps[si].hazards[ht]:{};
-      var ccp='未判定';if(h.isCCP===true)ccp='<span style="color:#dc2626;font-weight:600;">是（CCP）</span>';
-      else if(h.isCCP===false)ccp='<span style="color:#16a34a;font-weight:600;">否</span>';
-      else if(h.isCCP==='modify')ccp='<span style="color:#d97706;font-weight:600;">需修改</span>';
-      var aiTag = h.aiReasoning ? '<span style="font-size:10px;color:#7c3aed;font-weight:500;">🤖 AI分析</span>' : '';
-      var reasoningCell = h.aiReasoning ? '<td style="font-size:11px;color:#6b7280;">' + esc(h.aiReasoning.length > 40 ? h.aiReasoning.substring(0, 40) + '...' : h.aiReasoning) + '</td>' : '<td></td>';
+      var ccp=I18n.t('q.ccpUndetermined');if(h.isCCP===true)ccp='<span style="color:#dc2626;font-weight:600;">' + I18n.t('q.ccpYes') + '</span>';
+      else if(h.isCCP===false)ccp='<span style="color:#16a34a;font-weight:600;">' + I18n.t('q.ccpNo') + '</span>';
+      else if(h.isCCP==='modify')ccp='<span style="color:#d97706;font-weight:600;">' + I18n.t('q.ccpModify') + '</span>';
+      var aiTag = h.aiReasoning ? '<span style="font-size:10px;color:#7c3aed;font-weight:500;">' + I18n.t('common.aiAnalyzing') + '</span>' : '';
+      var displayReasoning = h.aiReasoning ? I18n.b(h.aiReasoning) : '';
+      var reasoningCell = h.aiReasoning ? '<td style="font-size:11px;color:#6b7280;">' + esc(displayReasoning.length > 40 ? displayReasoning.substring(0, 40) + '...' : displayReasoning) + '</td>' : '<td></td>';
+      var displayDesc = h.hazardDesc ? I18n.b(h.hazardDesc) : '';
       rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(step.stepName||('步骤'+(si+1)))+'</td>':'')+
-      '<td>'+hf[ht]+(h.hazardDesc?'<br><span style="font-size:12px;color:#64748b;">'+esc(h.hazardDesc)+'</span>':'')+'</td>'+
+      '<td>'+hf[ht]+(displayDesc?'<br><span style="font-size:12px;color:#64748b;">'+esc(displayDesc)+'</span>':'')+'</td>'+
       '<td style="text-align:center;">'+esc(h.q1||'—')+'</td>'+
-      '<td style="text-align:center;">'+esc(h.q2||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">续:'+esc(h.q2_need)+'</span>':'')+'</td>'+
+      '<td style="text-align:center;">'+esc(h.q2||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">' + I18n.t('q.cont') + ''+esc(h.q2_need)+'</span>':'')+'</td>'+
       '<td style="text-align:center;">'+esc(h.q3||'—')+'</td><td style="text-align:center;">'+esc(h.q4||'—')+'</td><td style="text-align:center;">'+esc(h.q5||'—')+'</td><td style="text-align:center;">'+ccp+aiTag+'</td>'+
       (hasAI ? reasoningCell : '') + '</tr>');
     });});
@@ -1304,13 +1306,13 @@ const Questionnaire15min = (() => {
       html += '</div>';
     }
     html+='<h3 style="margin-bottom:12px;">CCP判定汇总表</h3>';
-    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:' + (hasAI ? '960px' : '820px') + ';"><thead><tr><th>加工步骤</th><th>潜在危害</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th>' + (hasAI ? '<th>AI分析依据</th>' : '') + '</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:' + (hasAI ? '960px' : '820px') + ';"><thead><tr><th>加工步骤</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th>' + (hasAI ? '<th>AI分析依据</th>' : '') + '</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
     html+='<div style="margin-top:16px;display:flex;gap:10px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
     return html;
   }
 
   function renderCcpFooter(data) {
-    return '<hr class="q15-divider"><h3>流程图编辑 <span style="font-size:13px;font-weight:400;color:var(--gray-400);">使用 draw.io 绘制生产流程图</span></h3><p class="q15-table-hint">通过 draw.io 在线编辑器绘制专业的生产工艺流程图，直观展示各生产步骤的顺序关系</p><div class="q15-flowchart-area" id="flowchartArea">' + renderFlowchartPreview(data) + '</div><hr class="q15-divider"><h3>流程图现场确认</h3><div class="q15-confirm-box"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="flowConfirmed"' + (data.flowConfirmed ? ' checked' : '') + '> HACCP小组已到生产现场，对以上流程图的每一步进行核对确认，确保与实际操作完全一致</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">（确认内容包括：是否有额外的原料添加、步骤合并等）</p></div>';
+    return '<hr class="q15-divider"><h3>流程图编辑 <span style="font-size:13px;font-weight:400;color:var(--gray-400);">使用 draw.io 绘制生产流程图</span></h3><p class="q15-table-hint">通过 draw.io 在线编辑器绘制专业的生产工艺流程图，直观展示各生产步骤的顺序关系</p><div class="q15-flowchart-area" id="flowchartArea">' + renderFlowchartPreview(data) + '</div><hr class="q15-divider"><h3>' + I18n.t('q.ccpFlowConfirm') + '</h3><div class="q15-confirm-box"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="flowConfirmed"' + (data.flowConfirmed ? ' checked' : '') + '> HACCP小组已到生产现场，对以上流程图的每一步进行核对确认，确保与实际操作完全一致</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">（确认内容包括：是否有额外的原料添加、步骤合并等）</p></div>';
   }
 
   function renderCriticalLimits(data) {
@@ -1335,7 +1337,7 @@ const Questionnaire15min = (() => {
         }
       });
       if (hasCCP) {
-        var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+        var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || (I18n.t('q.ccpSummaryStep') + ' ' + (si + 1));
         ccpList.push({
           stepName: stepName,
           stepIndex: si,
@@ -1354,14 +1356,14 @@ const Questionnaire15min = (() => {
       }
     });
 
-    var hazardFull = { bio: '生物危害', chem: '化学危害', phys: '物理危害' };
+    var hazardFull = { bio: I18n.t('q.ccpHazardBio'), chem: I18n.t('q.ccpHazardChem'), phys: I18n.t('q.ccpHazardPhys') };
 
     var html = '';
 
     // CCP列表展示
     if (ccpList.length > 0) {
       html += '<div style="margin-bottom:16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">';
-      html += '<div style="font-weight:600;color:#dc2626;margin-bottom:8px;">已确定的CCP（关键控制点）</div>';
+      html += '<div style="font-weight:600;color:#dc2626;margin-bottom:8px;">' + I18n.t('q.clIdentifiedCCPs') + '</div>';
       html += '<ul style="margin:0;padding-left:20px;">';
       ccpList.forEach(function(c) {
         var hazardLabels = c.ccpHazardTypes.map(function(ht) { return hazardFull[ht]; }).join('、');
@@ -1381,58 +1383,58 @@ const Questionnaire15min = (() => {
         
         // 关键限值表
         html += '<div style="padding:12px 16px;">';
-        html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;">📊 关键限值（CL）</div>';
-        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>参数</th><th>限值</th><th>单位</th><th>法规依据</th><th style="width:50px;"></th></tr></thead><tbody id="clBody_' + li + '">';
+        html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;">' + I18n.t('q.clCLTitle') + '</div>';
+        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>' + I18n.t('q.clParam') + '</th><th>' + I18n.t('q.clValue') + '</th><th>' + I18n.t('q.clUnit') + '</th><th>' + I18n.t('q.clBasis') + '</th><th style="width:50px;"></th></tr></thead><tbody id="clBody_' + li + '">';
         clData.limits.forEach(function(lim, li2) {
           html += '<tr data-cl-idx="' + li + '" data-cl-lim="' + li2 + '">' +
-            '<td><input type="text" class="cl-input cl-param" value="' + esc(lim.param) + '" placeholder="如：中心温度" style="width:100%;"></td>' +
-            '<td><input type="text" class="cl-input cl-value" value="' + esc(lim.value) + '" placeholder="如：≥85" style="width:100%;"></td>' +
-            '<td><input type="text" class="cl-input cl-unit" value="' + esc(lim.unit) + '" placeholder="如：℃" style="width:100%;"></td>' +
-            '<td><input type="text" class="cl-input cl-basis" value="' + esc(lim.basis) + '" placeholder="如：GB 14881" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-param" value="' + esc(lim.param) + '" placeholder="' + I18n.t('q.clPhParam') + '" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-value" value="' + esc(lim.value) + '" placeholder="' + I18n.t('q.clPhValue') + '" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-unit" value="' + esc(lim.unit) + '" placeholder="' + I18n.t('q.clPhUnit') + '" style="width:100%;"></td>' +
+            '<td><input type="text" class="cl-input cl-basis" value="' + esc(lim.basis) + '" placeholder="' + I18n.t('q.clPhBasis') + '" style="width:100%;"></td>' +
             '<td><button class="btn btn-xs btn-secondary cl-del-limit" data-cl-idx="' + li + '" data-lim-idx="' + li2 + '" style="color:#dc2626;border-color:#fecaca;">✕</button></td>' +
           '</tr>';
         });
         html += '</tbody></table>';
-        html += '<button class="btn btn-xs btn-secondary cl-add-limit" data-cl-idx="' + li + '" style="margin-bottom:12px;">+ 添加关键限值</button>';
+        html += '<button class="btn btn-xs btn-secondary cl-add-limit" data-cl-idx="' + li + '" style="margin-bottom:12px;">' + I18n.t('q.clAdd') + '</button>';
         
         // 操作限值表
-        html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;color:#6366f1;">⚙️ 操作限值（OL）<span style="font-weight:400;font-size:11px;color:var(--gray-400);"> — 为防止偏离关键限值而设立更严格的内控限值</span></div>';
-        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>参数</th><th>操作限值</th><th>单位</th><th style="width:50px;"></th></tr></thead><tbody id="olBody_' + li + '">';
+        html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;color:#6366f1;">' + I18n.t('q.clOLTitle') + '<span style="font-weight:400;font-size:11px;color:var(--gray-400);">' + I18n.t('q.clOLHint') + '</span></div>';
+        html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>' + I18n.t('q.clParam') + '</th><th>' + I18n.t('q.clOLValue') + '</th><th>' + I18n.t('q.clUnit') + '</th><th style="width:50px;"></th></tr></thead><tbody id="olBody_' + li + '">';
         clData.operatingLimits.forEach(function(ol, oli) {
           html += '<tr data-ol-idx="' + li + '" data-ol-lim="' + oli + '">' +
-            '<td><input type="text" class="ol-input ol-param" value="' + esc(ol.param) + '" placeholder="如：中心温度" style="width:100%;"></td>' +
-            '<td><input type="text" class="ol-input ol-value" value="' + esc(ol.value) + '" placeholder="如：86-90" style="width:100%;"></td>' +
-            '<td><input type="text" class="ol-input ol-unit" value="' + esc(ol.unit) + '" placeholder="如：℃" style="width:100%;"></td>' +
+            '<td><input type="text" class="ol-input ol-param" value="' + esc(ol.param) + '" placeholder="' + I18n.t('q.clPhParam') + '" style="width:100%;"></td>' +
+            '<td><input type="text" class="ol-input ol-value" value="' + esc(ol.value) + '" placeholder="' + I18n.t('q.clPhOpValue') + '" style="width:100%;"></td>' +
+            '<td><input type="text" class="ol-input ol-unit" value="' + esc(ol.unit) + '" placeholder="' + I18n.t('q.clPhUnit') + '" style="width:100%;"></td>' +
             '<td><button class="btn btn-xs btn-secondary ol-del-limit" data-ol-idx="' + li + '" data-ol-lim="' + oli + '" style="color:#dc2626;border-color:#fecaca;">✕</button></td>' +
           '</tr>';
         });
         html += '</tbody></table>';
-        html += '<button class="btn btn-xs btn-secondary ol-add-limit" data-cl-idx="' + li + '" style="margin-bottom:8px;">+ 添加操作限值</button>';
+        html += '<button class="btn btn-xs btn-secondary ol-add-limit" data-cl-idx="' + li + '" style="margin-bottom:8px;">' + I18n.t('q.clAddOp') + '</button>';
         
         html += '</div></div>';
       });
       html += '</div>';
       
       // 汇总文本框
-      html += '<div class="q15-field-group" style="margin-top:12px;"><label>关键限值汇总说明</label>';
-      html += '<textarea data-q15-field="criticalLimits" rows="4" placeholder="关键限值汇总文本（会自动从上方表格生成）">' + esc(data.criticalLimits || '') + '</textarea></div>';
+      html += '<div class="q15-field-group" style="margin-top:12px;"><label>' + I18n.t('q.clSummary') + '</label>';
+      html += '<textarea data-q15-field="criticalLimits" rows="4" placeholder="' + I18n.t('q.clSummaryPh') + '">' + esc(data.criticalLimits || '') + '</textarea></div>';
       
     } else {
-      html = '<div style="margin-bottom:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:13px;">⚠️ 尚未完成CCP判定，请先完成「确定关键控制点」步骤</div>';
+      html = '<div style="margin-bottom:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;color:#92400e;font-size:13px;">' + I18n.t('q.clNoCcpWarning') + '</div>';
     }
 
     // 执行标准和AI按钮
-    html += '<p class="q15-table-hint">得到关键控制点CCP以后，根据用户选择的执行标准，系统将提出相应的关键限制的设立。需要有科学依据（如法规标准、文献数据、实验验证结果）</p>' +
-      '<div class="q15-field-group"><label>选择执行标准 <span class="required">*</span></label>' +
+    html += '<p class="q15-table-hint">' + I18n.t('q.clDesc') + '</p>' +
+      '<div class="q15-field-group"><label>' + I18n.t('q.clSelectStd') + ' <span class="required">*</span></label>' +
       '<select data-q15-field="execStandard">' +
-        '<option value="">请选择</option>' +
-        '<option value="gb"' + (data.execStandard === 'gb' ? ' selected' : '') + '>国标（GB）</option>' +
-        '<option value="industry"' + (data.execStandard === 'industry' ? ' selected' : '') + '>行业标准</option>' +
-        '<option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>企业标准</option>' +
-        '<option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>国际标准</option>' +
+        '<option value="">' + I18n.t('q.verSelectOption') + '</option>' +
+        '<option value="gb"' + (data.execStandard === 'gb' ? ' selected' : '') + '>' + I18n.t('q.clStdGb') + '</option>' +
+        '<option value="industry"' + (data.execStandard === 'industry' ? ' selected' : '') + '>' + I18n.t('q.clStdIndustry') + '</option>' +
+        '<option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>' + I18n.t('q.clStdEnterprise') + '</option>' +
+        '<option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>' + I18n.t('q.clStdInternational') + '</option>' +
       '</select></div>' +
       '<div class="q15-ai-btn-wrapper">' +
-        '<button class="btn btn-secondary btn-sm" id="aiCriticalBtn">\u{1F916} AI建议关键限制</button>' +
+        '<button class="btn btn-secondary btn-sm" id="aiCriticalBtn">' + I18n.t('q.clAIBtn') + '</button>' +
         '<span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>' +
       '</div>' +
       '<div id="aiCriticalResult" style="margin-top:12px;"></div>';
@@ -1440,9 +1442,9 @@ const Questionnaire15min = (() => {
     return html;
   }
 
-  // ===== CCP 判定结果自动同步到监控程序和纠正措施 =====
+  // ===== CCP 判定结果自动同步到监控程序和' + I18n.t('q.verCorrective') + ' =====
   function syncCCPToMonitoringAndCorrective(data) {
-    // 从 ccpSteps 中找出所有被判定为 CCP 的步骤名称
+    // 从 ccpSteps 中找出所有被判定为 CCP 的' + I18n.t('q.stepName') + '
     var ccpStepNames = [];
     (data.ccpSteps || []).forEach(function(cs, si) {
       if (!cs || !cs.hazards) return;
@@ -1483,37 +1485,37 @@ const Questionnaire15min = (() => {
 
   function renderMonitoring(data) {
     syncCCPToMonitoringAndCorrective(data);
-    return '<h3>监控程序设置</h3><p class="q15-table-hint">AI根据危害的严重性、发生概率、法规要求、企业历史数据给出建议</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">\u{1F916} AI规划监控方案</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>监控对象</th><th>监控方法</th><th>监控频率</th><th>监控人员</th><th>备注</th><th style="width:50px">操作</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="如：CCP-3杀菌工序" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="杀菌的温度、时间">' + esc(m.object) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="推荐：在线温度传感器连续监控">' + esc(m.method) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="如：每批次实时记录">' + esc(m.frequency) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="经过HACCP培训的品控专员">' + esc(m.personnel) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="依据 GB 14881-2013">' + esc(m.remark) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">+ 添加监控项</button>';
+    return '<h3>' + I18n.t('q.monitorTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.monitorHint') + '</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">' + I18n.t('q.monitorAI') + '</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.monitorObject') + '</th><th>' + I18n.t('q.monitorMethod') + '</th><th>' + I18n.t('q.monitorFreq') + '</th><th>' + I18n.t('q.monitorPersonnel') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="' + I18n.t('q.monitorPhCCP') + '" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhObject') + '">' + esc(m.object) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhMethod') + '">' + esc(m.method) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhFreq') + '">' + esc(m.frequency) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhPersonnel') + '">' + esc(m.personnel) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhRemark') + '">' + esc(m.remark) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">' + I18n.t('q.monitorAdd') + '</button>';
   }
 
   function renderCorrective(data) {
     syncCCPToMonitoringAndCorrective(data);
     var footerTips = '' +
       '<div style="margin:16px 0;padding:14px 18px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#991b1b;line-height:1.6;">' +
-        '<div style="font-weight:600;margin-bottom:4px;">⚠️ 评估说明</div>' +
-        '<p style="margin:0;">在评估受影响产品时，可进行生物、化学或物理特性的测量或检验。若核查结果表明危害处于可接受指标之内，可放行产品至后续操作；否则，应返工、降级、改变用途、废弃等。</p>' +
+        '<div style="font-weight:600;margin-bottom:4px;">' + I18n.t('q.correctiveWarnTitle') + '</div>' +
+        '<p style="margin:0;">' + I18n.t('q.correctiveWarnText') + '</p>' +
       '</div>' +
       '<div style="margin:10px 0 16px 0;padding:14px 18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1e40af;line-height:1.6;">' +
-        '<div style="font-weight:600;margin-bottom:4px;">🔄 重新评估说明</div>' +
-        '<p style="margin:0;">当某个关键限值的监视结果反复发生偏离或偏离原因涉及相应控制措施的控制能力时，HACCP小组应重新评估相关控制措施的有效性和适宜性，必要时对其予以改进并更新。</p>' +
+        '<div style="font-weight:600;margin-bottom:4px;">' + I18n.t('q.correctiveReEvalTitle') + '</div>' +
+        '<p style="margin:0;">' + I18n.t('q.correctiveReEvalText') + '</p>' +
       '</div>';
-    return '<h3>纠偏措施</h3><p class="q15-table-hint">根据偏差的实际情况，系统给出相应的验证措施建议。数据不满足关键限制的设定，即刻采取纠偏计划。AI可根据CCP类型和关键限值自动推荐纠偏方案。</p>' +
+    return '<h3>' + I18n.t('q.correctiveTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.correctiveHint') + '</p>' +
       '<div class="q15-ai-btn-wrapper" style="margin-bottom:12px;">' +
-        '<button class="btn btn-secondary btn-sm" id="aiCorrectiveBtn">🤖 AI规划纠偏措施</button>' +
+        '<button class="btn btn-secondary btn-sm" id="aiCorrectiveBtn">🤖 AI规划' + I18n.t('q.correctiveTitle') + '</button>' +
         '<span id="aiCorrectiveHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>' +
       '</div>' +
-      '<table class="q15-table"><thead><tr><th>关键控制点(CCP)</th><th>实施人员</th><th>偏离原因</th><th>产品处理</th><th style="width:50px;">操作</th></tr></thead><tbody id="correctiveBody">' +
+      '<table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.corPersonnel') + '</th><th>' + I18n.t('q.corCause') + '</th><th>' + I18n.t('q.corProduct') + '</th><th style="width:50px;">操作</th></tr></thead><tbody id="correctiveBody">' +
       data.correctiveActions.map(function(c, i) {
         return '<tr data-ca-idx="' + i + '">' +
-          '<td><input type="text" value="' + esc(c.ccp) + '" placeholder="如：杀菌工序" style="width:100%;"></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="实施纠偏措施和负责受影响产品放行的人员">' + esc(c.personnel) + '</textarea></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="偏离原因的识别和消除">' + esc(c.causeAnalysis) + '</textarea></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="受影响产品的隔离、评估和处理">' + esc(c.productHandling) + '</textarea></td>' +
+          '<td><input type="text" value="' + esc(c.ccp) + '" placeholder="' + I18n.t('q.correctivePhCCP') + '" style="width:100%;"></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="实施' + I18n.t('q.correctiveTitle') + '和负责受影响产品放行的人员">' + esc(c.personnel) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.corCause') + '的识别和消除">' + esc(c.causeAnalysis) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhProduct') + '">' + esc(c.productHandling) + '</textarea></td>' +
           '<td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td>' +
         '</tr>';
       }).join('') +
       '</tbody></table>' +
-      '<button class="btn btn-sm btn-secondary" id="addCorrectiveRow">+ 添加纠偏项</button>' +
+      '<button class="btn btn-sm btn-secondary" id="addCorrectiveRow">' + I18n.t('q.correctiveAdd') + '</button>' +
       footerTips;
   }
 
@@ -1524,16 +1526,16 @@ const Questionnaire15min = (() => {
     var ver = data.verification;
     var submitted = data.verificationSubmitted || false;
     var extraHtml = (data.verificationExtraItems || []).map(function(e, i) {
-      return '<tr data-vx-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="项目名称" style="width:100%;"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="项目内容" style="width:100%;"></td><td><button class="q15-del-row" data-vx-idx="' + i + '">&times;</button></td></tr>';
+      return '<tr data-vx-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%;"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%;"></td><td><button class="q15-del-row" data-vx-idx="' + i + '">&times;</button></td></tr>';
     }).join('');
 
     var fieldLabels = [
-      { key: 'basis', label: '验证的依据和方法', hint: '如：GB 14881-2013' },
-      { key: 'frequency', label: '验证的频次', hint: '如：每季度一次' },
-      { key: 'personnel', label: '验证的人员', hint: '如：HACCP小组组长' },
-      { key: 'content', label: '验证的内容', hint: '如：现场审核' },
-      { key: 'result', label: '验证结果及采取的措施', hint: '如：合格，无需整改' },
-      { key: 'record', label: '验证记录', hint: '如：记录表编号XXX' }
+      { key: 'basis', label: '' + I18n.t('q.verBasis') + '', hint: '' + I18n.t('q.clPhBasis') + '-2013' },
+      { key: 'frequency', label: '' + I18n.t('q.verFrequency') + '', hint: '' + I18n.t('q.verFrequencyPh') + '' },
+      { key: 'personnel', label: '' + I18n.t('q.verPersonnel') + '', hint: '' + I18n.t('q.verPersonnelPh') + '' },
+      { key: 'content', label: '' + I18n.t('q.verContent') + '', hint: '' + I18n.t('q.verContentPh') + '' },
+      { key: 'result', label: '' + I18n.t('q.verResult') + '', hint: '' + I18n.t('q.verResultPh') + '' },
+      { key: 'record', label: '' + I18n.t('q.verRecord') + '', hint: '' + I18n.t('q.verRecordPh') + '' }
     ];
     var cardsHtml = fieldLabels.map(function(f, i) {
       return '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-bottom:12px;">' +
@@ -1544,28 +1546,28 @@ const Questionnaire15min = (() => {
     }).join('');
     var extraCardsHtml = (data.verificationExtraItems || []).map(function(e, i) {
       return '<div class="pf-iu-row" data-vx-idx="' + i + '" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">' +
-        '<input type="text" value="' + esc(e.key) + '" class="vx-key" placeholder="项目名称" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
-        '<input type="text" value="' + esc(e.value) + '" class="vx-val" placeholder="项目内容" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
+        '<input type="text" value="' + esc(e.key) + '" class="vx-key" placeholder="' + I18n.t('q.verExtraKey') + '" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
+        '<input type="text" value="' + esc(e.value) + '" class="vx-val" placeholder="' + I18n.t('q.verExtraVal') + '" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:5px;font-size:12px;font-family:inherit;">' +
         '<button class="q15-del-row" data-vx-idx="' + i + '" style="flex-shrink:0;">&times;</button></div>';
     }).join('');
 
     // 管理评审区域
     var mr = data.managementReview || { reviewContent: '', reviewResult: '', correctiveMeasures: '', reVerification: '' };
     var managementReviewHtml = '<div style="background:#f8fafc;border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-top:16px;">' +
-      '<h3 style="font-size:15px;font-weight:600;color:var(--gray-800);margin-bottom:12px;">📊 管理评审</h3>' +
-      '<p class="q15-table-hint" style="margin-bottom:12px;">验证结果需要输入到管理评审中，以确保这些重要数据资源能够被适当考虑并对整个HACCP体系持续改进起作用；当验证结果不符合要求时，应采取纠正措施并进行再验证。</p>' +
-      '<div class="q15-field-group"><label>评审内容</label>' +
-      '<textarea data-q15-field="managementReview.reviewContent" rows="2" placeholder="描述管理评审的内容和范围">' + esc(mr.reviewContent || '') + '</textarea></div>' +
-      '<div class="q15-field-group"><label>评审结果</label>' +
+      '<h3 style="font-size:15px;font-weight:600;color:var(--gray-800);margin-bottom:12px;">' + I18n.t('q.verMgmtReviewTitle') + '</h3>' +
+      '<p class="q15-table-hint" style="margin-bottom:12px;">' + I18n.t('q.verMgmtReviewHint') + '</p>' +
+      '<div class="q15-field-group"><label>' + I18n.t('q.verReviewContent') + '</label>' +
+      '<textarea data-q15-field="managementReview.reviewContent" rows="2" placeholder="' + I18n.t('q.verReviewContentPh') + '">' + esc(mr.reviewContent || '') + '</textarea></div>' +
+      '<div class="q15-field-group"><label>' + I18n.t('q.verReviewResult') + '</label>' +
       '<select data-q15-field="managementReview.reviewResult" style="width:100%;padding:9px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:13px;font-family:inherit;background:#fff;">' +
-        '<option value="">请选择</option>' +
-        '<option value="符合" ' + (mr.reviewResult === '符合' ? 'selected' : '') + '>符合要求</option>' +
-        '<option value="不符合" ' + (mr.reviewResult === '不符合' ? 'selected' : '') + '>不符合要求</option>' +
+        '<option value="">' + I18n.t('q.verSelectOption') + '</option>' +
+        '<option value="符合" ' + (mr.reviewResult === '符合' ? 'selected' : '') + '>' + I18n.t('q.verCompliantOption') + '</option>' +
+        '<option value="不符合" ' + (mr.reviewResult === '不符合' ? 'selected' : '') + '>' + I18n.t('q.verNonCompliantOption') + '</option>' +
       '</select></div>' +
-      '<div class="q15-field-group" id="mrCorrectiveField" style="' + (mr.reviewResult === '不符合' ? '' : 'display:none;') + '"><label>纠正措施</label>' +
-      '<textarea data-q15-field="managementReview.correctiveMeasures" rows="2" placeholder="当验证结果不符合要求时，应采取的纠正措施">' + esc(mr.correctiveMeasures || '') + '</textarea></div>' +
-      '<div class="q15-field-group" id="mrReVerificationField" style="' + (mr.reviewResult === '不符合' ? '' : 'display:none;') + '"><label>再验证措施</label>' +
-      '<textarea data-q15-field="managementReview.reVerification" rows="2" placeholder="纠正措施完成后的再验证计划">' + esc(mr.reVerification || '') + '</textarea></div>' +
+      '<div class="q15-field-group" id="mrCorrectiveField" style="' + (mr.reviewResult === '不符合' ? '' : 'display:none;') + '"><label>' + I18n.t('q.verCorrective') + '</label>' +
+      '<textarea data-q15-field="managementReview.correctiveMeasures" rows="2" placeholder="' + I18n.t('q.verCorrectiveMeasuresPh') + '">' + esc(mr.correctiveMeasures || '') + '</textarea></div>' +
+      '<div class="q15-field-group" id="mrReVerificationField" style="' + (mr.reviewResult === '不符合' ? '' : 'display:none;') + '"><label>' + I18n.t('q.verReVerify') + '</label>' +
+      '<textarea data-q15-field="managementReview.reVerification" rows="2" placeholder="' + I18n.t('q.verReVerificationPh') + '">' + esc(mr.reVerification || '') + '</textarea></div>' +
       '</div>';
 
     // 签名区域
@@ -1574,32 +1576,32 @@ const Questionnaire15min = (() => {
       signerSection = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px 18px;margin-top:16px;">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
         '<span style="font-size:20px;">✅</span>' +
-        '<span style="font-size:14px;font-weight:600;color:#166534;">验证程序已提交</span></div>' +
+        '<span style="font-size:14px;font-weight:600;color:#166534;">' + I18n.t('q.verSubmitted') + '</span></div>' +
         '<div style="font-size:13px;color:#475569;">' +
-        '<span>组长签名：<strong>' + esc(data.verificationSignerName || '') + '</strong></span> | ' +
-        '<span>签名日期：<strong>' + esc(data.verificationSignerDate || '') + '</strong></span>' +
+        '<span>' + I18n.t('q.verSignerLabel') + '：<strong>' + esc(data.verificationSignerName || '') + '</strong></span> | ' +
+        '<span>' + I18n.t('q.verSignDateLabel') + '：<strong>' + esc(data.verificationSignerDate || '') + '</strong></span>' +
         '</div>' +
-        '<button class="btn btn-sm btn-secondary" id="verificationResetBtn" style="margin-top:8px;color:#dc2626;border-color:#fecaca;">🔄 重新提交验证程序</button>' +
+        '<button class="btn btn-sm btn-secondary" id="verificationResetBtn" style="margin-top:8px;color:#dc2626;border-color:#fecaca;">' + I18n.t('q.verResetBtn') + '</button>' +
         '</div>';
     } else {
       signerSection = '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 18px;margin-top:16px;">' +
-        '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">✍️ HACCP小组组长签名确认</h3>' +
-        '<p class="q15-table-hint">验证程序填写完成后，需由HACCP小组组长输入登录密码进行签名确认，提交后即生效。</p>' +
+        '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">' + I18n.t('q.verSignTitle') + '</h3>' +
+        '<p class="q15-table-hint">' + I18n.t('q.verSignHint') + '</p>' +
         '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">' +
-        '<input type="text" id="verificationSignerName" placeholder="组长姓名" style="flex:1;min-width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerName || '') + '">' +
+        '<input type="text" id="verificationSignerName" placeholder="' + I18n.t('q.verSignerPh') + '" style="flex:1;min-width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerName || '') + '">' +
         '<input type="date" id="verificationSignerDate" style="width:150px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data.verificationSignerDate || (new Date().toISOString().slice(0,10))) + '">' +
         '</div>' +
-        '<button class="btn btn-primary" id="verificationSubmitBtn" style="margin-top:12px;">🔐 组长密码签名提交</button>' +
+        '<button class="btn btn-primary" id="verificationSubmitBtn" style="margin-top:12px;">' + I18n.t('q.verSignBtn') + '</button>' +
         '</div>';
     }
 
-    return '<h3>验证程序</h3>' +
-      '<p class="q15-table-hint">企业应建立并实施对HACCP计划的确认和验证程序，以证实HACCP计划的完整性、适宜性、有效性。确认程序应包括对HACCP计划所有要素有效性的证实。确认应在HACCP计划实施前或变更后。</p>' +
+    return '<h3>' + I18n.t('q.verSectionTitle') + '</h3>' +
+      '<p class="q15-table-hint">' + I18n.t('q.verSectionHint') + '</p>' +
       cardsHtml +
       '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px;margin-top:16px;">' +
-      '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">📋 新增验证项目</h3>' +
+      '<h3 style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:8px;">' + I18n.t('q.verNewItemTitle') + '</h3>' +
       '<div id="verificationExtraBody">' +
-      (extraCardsHtml || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">暂无新增项目</div>') +
+      (extraCardsHtml || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">' + I18n.t('q.verNoExtra') + '</div>') +
       '</div>' +
       '<button class="btn btn-xs btn-secondary" id="addVerificationExtraRow" style="margin-top:4px;">+ 添加项目</button></div>' +
       managementReviewHtml +
@@ -1607,7 +1609,7 @@ const Questionnaire15min = (() => {
   }
 
   function renderRecordKeeping(data) {
-    return '<div class="q15-field-group"><label>记录保存期限</label><input type="text" data-q15-field="recordPeriod" value="' + esc(data.recordPeriod) + '" placeholder="如：2年"></div><div class="q15-field-group"><label>记录格式要求</label><textarea data-q15-field="recordFormat" rows="3" placeholder="描述记录格式要求，如：电子版、纸质版">' + esc(data.recordFormat) + '</textarea></div><div class="q15-records-summary"><h3>配套监控记录表格</h3><p class="q15-table-hint">AI自动汇总监控数据，纠偏记录，生成标准化的报表，减轻人工记录的负担</p><div class="q15-record-cards"><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CB}</div><h4>监控记录表</h4><p>记录各项关键控制点的监控数据</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CA}</div><h4>纠偏记录表</h4><p>记录偏差情况及采取的纠偏措施</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4C4}</div><h4>验证记录表</h4><p>记录验证活动的执行情况</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4D1}</div><h4>综合报表</h4><p>AI生成标准化HACCP综合报表</p></div></div><div class="q15-export-actions"><button class="btn btn-secondary btn-sm" id="exportTableBtn" style="margin-top:10px;">\u{1F4E5} 导出空白记录表格</button></div></div>';
+    return '<div class="q15-field-group"><label>' + I18n.t('q.recordPeriod') + '</label><input type="text" data-q15-field="recordPeriod" value="' + esc(data.recordPeriod) + '" placeholder="' + I18n.t('q.recordPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.recordFormat') + '</label><textarea data-q15-field="recordFormat" rows="3" placeholder="描述' + I18n.t('q.recordFormat') + '，如：电子版、纸质版">' + esc(data.recordFormat) + '</textarea></div><div class="q15-records-summary"><h3>' + I18n.t('q.recordTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.recordHint') + '</p><div class="q15-record-cards"><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CB}</div><h4>' + I18n.t('q.recMonitorTable') + '</h4><p>' + I18n.t('q.recMonitorDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CA}</div><h4>' + I18n.t('q.recCorrectiveTable') + '</h4><p>记录偏差情况及采取的' + I18n.t('q.correctiveTitle') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4C4}</div><h4>' + I18n.t('q.verRecord') + '表</h4><p>' + I18n.t('q.recVerifyDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4D1}</div><h4>' + I18n.t('q.recReportTable') + '</h4><p>AI生成标准化HACCP' + I18n.t('q.recReportTable') + '</p></div></div><div class="q15-export-actions"><button class="btn btn-secondary btn-sm" id="exportTableBtn" style="margin-top:10px;">' + I18n.t('q.recExportBtn') + '</button></div></div>';
   }
 
   // ==================== 事件绑定 ====================
@@ -1687,7 +1689,7 @@ const Questionnaire15min = (() => {
               if (h.bio && h.bio.risk) {
                 hazardBio.push({
                   material: m,
-                  hazardType: '生物危害',
+                  hazardType: I18n.t('q.ccpHazardBio'),
                   desc: h.bio.risk,
                   q1: h.bio.q1 || '',
                   q2: h.bio.q2 || '',
@@ -1703,7 +1705,7 @@ const Questionnaire15min = (() => {
               if (h.chem && h.chem.risk) {
                 hazardChem.push({
                   material: m,
-                  hazardType: '化学危害',
+                  hazardType: I18n.t('q.ccpHazardChem'),
                   desc: h.chem.risk,
                   q1: h.chem.q1 || '',
                   q2: h.chem.q2 || '',
@@ -1719,7 +1721,7 @@ const Questionnaire15min = (() => {
               if (h.phys && h.phys.risk) {
                 hazardPhys.push({
                   material: m,
-                  hazardType: '物理危害',
+                  hazardType: I18n.t('q.ccpHazardPhys'),
                   desc: h.phys.risk,
                   q1: h.phys.q1 || '',
                   q2: h.phys.q2 || '',
@@ -1794,7 +1796,7 @@ const Questionnaire15min = (() => {
             if (h && h.isCCP === true) isCCP = true;
           });
           if (isCCP) {
-            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || (I18n.t('q.ccpSummaryStep') + ' ' + (si + 1));
             ccpList.push({ stepName: stepName, isCCP: true, operationMethod: processSteps[si] ? processSteps[si].operationMethod : '', parameters: processSteps[si] ? processSteps[si].parameters : '' });
           }
         });
@@ -1837,7 +1839,7 @@ const Questionnaire15min = (() => {
             } else if (name.indexOf('验收') !== -1 || name.indexOf('接收') !== -1) {
               limitsText += '3. **' + s.stepName + '**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n';
             } else {
-              limitsText += '**' + s.stepName + '**：\n   - 需根据实际工艺参数确定\n   - 依据：企业内控标准\n\n';
+              limitsText += '**' + s.stepName + '**：\n   - 需根据实际' + I18n.t('q.params') + '确定\n   - 依据：企业内控标准\n\n';
             }
           });
           if (resultEl) resultEl.innerHTML = '<div class="q15-ai-result"><pre style="white-space:pre-wrap;font-size:13px;">' + limitsText + '</pre></div>';
@@ -1874,7 +1876,7 @@ const Questionnaire15min = (() => {
           var isCCP = false;
           ['bio', 'chem', 'phys'].forEach(function(ht) { var h = cs.hazards[ht]; if (h && h.isCCP === true) isCCP = true; });
           if (isCCP) {
-            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || (I18n.t('q.ccpSummaryStep') + ' ' + (si + 1));
             ccpList.push({ stepName: stepName, isCCP: true, operationMethod: processSteps[si] ? processSteps[si].operationMethod : '', parameters: processSteps[si] ? processSteps[si].parameters : '' });
           }
         });
@@ -1900,7 +1902,7 @@ const Questionnaire15min = (() => {
       });
     }
 
-    // ===== AI规划纠偏措施 =====
+    // ===== AI规划' + I18n.t('q.correctiveTitle') + ' =====
     var aiCorrectiveBtn = content.querySelector('#aiCorrectiveBtn');
     if (aiCorrectiveBtn) {
       aiCorrectiveBtn.addEventListener('click', async function() {
@@ -1928,7 +1930,7 @@ const Questionnaire15min = (() => {
             }
           });
           if (isCCP) {
-            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || ('步骤' + (si + 1));
+            var stepName = cs.stepName || (processSteps[si] ? processSteps[si].stepName : '') || (I18n.t('q.ccpSummaryStep') + ' ' + (si + 1));
             // 查找对应的关键限值
             var clInfo = '';
             criticalLimitsData.forEach(function(cl) {
@@ -1984,7 +1986,7 @@ const Questionnaire15min = (() => {
             } else {
               personnel = 'HACCP小组 / 相关工序负责人';
               causeAnalysis = ccp.stepName + '环节出现偏离，关键限值(' + (ccp.criticalLimit || '未设定') + ')未满足，可能原因：操作不规范、设备异常、原料波动';
-              productHandling = '1. 立即停止异常操作\n2. 隔离受影响产品\n3. 评估偏离程度和影响范围\n4. 采取纠正措施\n5. 加强后续监控频率';
+              productHandling = '1. 立即停止异常操作\n2. 隔离受影响产品\n3. 评估偏离程度和影响范围\n4. 采取' + I18n.t('q.verCorrective') + '\n5. 加强后续' + I18n.t('q.monitorFreq') + '';
             }
             
             newActions.push({
@@ -2097,12 +2099,12 @@ const Questionnaire15min = (() => {
     if (hwRefreshBtn) {
       hwRefreshBtn.addEventListener('click', function() {
         this.disabled = true;
-        this.textContent = '⏳ 重新匹配中...';
+        this.textContent = '\u23F3 ' + I18n.t('q.hwRefreshing');
         refreshStepHazards(data);
         setTimeout(function() {
           if (hwRefreshBtn) {
             hwRefreshBtn.disabled = false;
-            hwRefreshBtn.textContent = '🔄 重新匹配';
+            hwRefreshBtn.textContent = I18n.t('q.hwRefresh');
           }
         }, 1000);
       });
@@ -2135,17 +2137,17 @@ const Questionnaire15min = (() => {
         var signDate = dateEl ? dateEl.value : '';
         
         if (!signerName) {
-          alert('请输入HACCP小组组长姓名');
+          alert('请输入HACCP小组' + I18n.t('q.verSignerPh') + '');
           if (nameEl) nameEl.focus();
           return;
         }
         if (!signDate) {
-          alert('请选择签名日期');
+          alert('' + I18n.t('q.verSelectOption') + '签名日期');
           return;
         }
         
         // 弹出密码确认框
-        var password = prompt('请输入登录密码以确认组长签名：');
+        var password = prompt('请输入登录密码以确认' + I18n.t('q.verSignerLabel') + '：');
         if (!password) return;
         
         // 验证密码 - 通过后端API验证
@@ -2224,7 +2226,7 @@ const Questionnaire15min = (() => {
       });
     }
     
-    // 管理评审 - 评审结果变化时显示/隐藏纠正措施字段
+    // 管理评审 - ' + I18n.t('q.verReviewResult') + '变化时显示/隐藏' + I18n.t('q.verCorrective') + '字段
     var mrResultSelect = content.querySelector('[data-q15-field="managementReview.reviewResult"]');
     if (mrResultSelect) {
       mrResultSelect.addEventListener('change', function() {
@@ -2256,7 +2258,7 @@ const Questionnaire15min = (() => {
     saveData(data);
     renderActiveSection();
     renderSectionNav();
-    alert('✅ 验证程序已提交成功！\n\n组长签名：' + signerName + '\n签名日期：' + signDate);
+    alert('✅ ' + I18n.t('q.verSubmitted') + '成功！\n\n' + I18n.t('q.verSignerLabel') + '：' + signerName + '\n' + I18n.t('q.verSignDateLabel') + '：' + signDate);
   }
 
   // ===== CCP决策树辅助函数 (标准版) =====
@@ -2278,7 +2280,7 @@ const Questionnaire15min = (() => {
   // ===== AI辅助CCP判定 =====
   function aiCcpJudgment(data) {
     var steps = data.processSteps || [];
-    if (steps.length === 0) { alert('请先保存至少一个步骤'); return; }
+    if (steps.length === 0) { alert(I18n.t('q.needOneStep')); return; }
     normalizeCcpSteps(data);
 
     var stepPayload = steps.map(function(s) {
@@ -2372,11 +2374,11 @@ const Questionnaire15min = (() => {
       // Bio hazard judgment
       var bio = data.ccpSteps[si].hazards.bio || {};
       var bioDesc = '';
-      if (isHeat) bioDesc = '致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留';
-      else if (isReceiving) bioDesc = '原料可能携带致病菌（沙门氏菌、大肠杆菌等）';
+      if (isHeat) bioDesc = '致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留|||Pathogenic bacteria (Salmonella, E. coli O157:H7, Listeria, etc.) residue';
+      else if (isReceiving) bioDesc = '原料可能携带致病菌（沙门氏菌、大肠杆菌等）|||Raw materials may carry pathogenic bacteria (Salmonella, E. coli, etc.)';
       else if (isCooling) bioDesc = '冷却过程中温度适宜微生物繁殖，可能导致微生物增殖';
       else if (isPackaging) bioDesc = '包装环节在洁净环境下进行，无明显生物危害引入';
-      else if (isCleaning) bioDesc = '清洗不彻底可能导致微生物残留和交叉污染';
+      else if (isCleaning) bioDesc = '清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination';
       else if (isFilter) bioDesc = '过滤介质可能滋生微生物';
       else if (isStorage) bioDesc = '储存条件不当可能导致微生物增殖';
       else bioDesc = '可能存在的微生物污染风险';
@@ -2386,83 +2388,83 @@ const Questionnaire15min = (() => {
       if (isHeat) {
         bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '是'; bioQ4 = null; bioQ5 = null; bioQ2need = null;
         bioIsCCP = true;
-        bioReason = '该步骤存在生物危害风险（致病菌污染），热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。';
+        bioReason = '该步骤存在生物危害风险（致病菌污染），热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。|||This step has biological hazard risk (pathogen contamination). Heat treatment is specifically designed to eliminate microbial hazards (Q3=Yes), therefore it is a CCP.';
       } else if (isReceiving) {
         bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '是'; bioQ5 = '是'; bioQ2need = null;
         bioIsCCP = false;
-        bioReason = '原料可能存在生物危害，有验收控制措施（Q2=是），但验收非专门设计用于消除危害（Q3=否），后续加工步骤（杀菌）可消除该危害（Q5=是），故判定为非CCP。';
+        bioReason = '原料可能存在生物危害，有验收控制措施（Q2=是），但验收非专门设计用于消除危害（Q3=否），后续加工步骤（杀菌）可消除该危害（Q5=是），故判定为非CCP。|||Raw materials may carry biological hazards. Receiving inspection controls exist (Q2=Yes) but are not specifically designed to eliminate hazards (Q3=No). Subsequent sterilization eliminates the hazard (Q5=Yes), therefore NOT a CCP.';
       } else if (isCooling) {
         bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '是'; bioQ5 = '否'; bioQ2need = null;
         bioIsCCP = true;
-        bioReason = '冷却步骤存在微生物增殖风险，有温度/时间控制措施（Q2=是），冷却不当会导致污染升高至不可接受水平（Q4=是），后续无杀菌步骤可消除该危害（Q5=否），故判定为CCP。';
+        bioReason = '冷却步骤存在微生物增殖风险，有温度/时间控制措施（Q2=是），冷却不当会导致污染升高至不可接受水平（Q4=是），后续无杀菌步骤可消除该危害（Q5=否），故判定为CCP。|||Cooling step has microbial growth risk. Temperature/time controls exist (Q2=Yes). Improper cooling increases contamination to unacceptable levels (Q4=Yes). No subsequent sterilization step (Q5=No), therefore it is a CCP.';
       } else if (isPackaging) {
         bioQ1 = '否'; bioQ2 = null; bioQ3 = null; bioQ4 = null; bioQ5 = null; bioQ2need = null;
         bioIsCCP = false;
-        bioReason = '包装步骤在洁净环境下进行，无明显生物危害引入风险（Q1=否），故判定为非CCP。';
+        bioReason = '包装步骤在洁净环境下进行，无明显生物危害引入风险（Q1=否），故判定为非CCP。|||Packaging is performed in a clean environment. No significant biological hazard introduction risk (Q1=No), therefore NOT a CCP.';
       } else if (isStorage) {
         bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '是'; bioQ5 = '否'; bioQ2need = null;
         bioIsCCP = true;
-        bioReason = '储存条件不当可能导致微生物增殖，有温湿度控制措施（Q2=是），储存不当会导致危害升高（Q4=是），后续无杀菌步骤（Q5=否），故判定为CCP。';
+        bioReason = '储存条件不当可能导致微生物增殖，有温湿度控制措施（Q2=是），储存不当会导致危害升高（Q4=是），后续无杀菌步骤（Q5=否），故判定为CCP。|||Improper storage may cause microbial growth. Temperature/humidity controls exist (Q2=Yes). Improper storage increases hazard levels (Q4=Yes). No subsequent sterilization (Q5=No), therefore it is a CCP.';
       } else {
         bioQ1 = '是'; bioQ2 = '是'; bioQ3 = '否'; bioQ4 = '否'; bioQ2need = null; bioQ5 = null;
         bioIsCCP = false;
-        bioReason = '该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。';
+        bioReason = '该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP.';
       }
 
       // Chem hazard judgment
       var chem = data.ccpSteps[si].hazards.chem || {};
       var chemDesc = '';
-      if (isReceiving) chemDesc = '农药残留、重金属（铅、砷、镉）、兽药残留超标';
-      else if (isFilter) chemDesc = '加工助剂残留、化学物质溶出';
-      else if (isCleaning) chemDesc = '清洗剂/消毒剂残留';
-      else if (isDrying) chemDesc = '高温可能产生化学变化产物';
-      else chemDesc = '无明显化学危害';
+      if (isReceiving) chemDesc = '农药残留、重金属（铅、砷、镉）、兽药残留超标|||Pesticide residues, heavy metals (Pb, As, Cd), veterinary drug residues exceeding limits';
+      else if (isFilter) chemDesc = '加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching';
+      else if (isCleaning) chemDesc = '清洗剂/消毒剂残留|||Cleaning agent/disinfectant residues';
+      else if (isDrying) chemDesc = '高温可能产生化学变化产物|||High temperature may produce chemical change by-products';
+      else chemDesc = '无明显化学危害|||No significant chemical hazard';
 
       var chemQ1, chemQ2, chemQ3, chemQ4, chemQ5, chemQ2need, chemIsCCP, chemReason;
       if (isReceiving) {
         chemQ1 = '是'; chemQ2 = '是'; chemQ3 = '否'; chemQ4 = '否'; chemQ5 = null; chemQ2need = null;
         chemIsCCP = false;
-        chemReason = '原料可能存在化学危害，有验收检测控制（Q2=是），但验收步骤不会导致化学危害升高（Q4=否），故判定为非CCP。';
+        chemReason = '原料可能存在化学危害，有验收检测控制（Q2=是），但验收步骤不会导致化学危害升高（Q4=否），故判定为非CCP。|||Raw materials may contain chemical hazards. Receiving inspection controls exist (Q2=Yes), but receiving does not increase chemical hazards (Q4=No), therefore NOT a CCP.';
       } else if (isFilter) {
         chemQ1 = '是'; chemQ2 = '是'; chemQ3 = '是'; chemQ4 = null; chemQ5 = null; chemQ2need = null;
         chemIsCCP = true;
-        chemReason = '该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。';
+        chemReason = '该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP.';
       } else if (isCleaning) {
         chemQ1 = '是'; chemQ2 = '是'; chemQ3 = '否'; chemQ4 = '否'; chemQ5 = null; chemQ2need = null;
         chemIsCCP = false;
-        chemReason = '可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。';
+        chemReason = '可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。|||Cleaning agent residues may exist. Rinsing controls are in place (Q2=Yes). Proper operations prevent excessive residues (Q4=No), therefore NOT a CCP.';
       } else {
         chemQ1 = '否'; chemQ2 = null; chemQ3 = null; chemQ4 = null; chemQ5 = null; chemQ2need = null;
         chemIsCCP = false;
-        chemReason = '该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。';
+        chemReason = '该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP.';
       }
 
       // Phys hazard judgment
       var phys = data.ccpSteps[si].hazards.phys || {};
       var physDesc = '';
-      if (isMetal) physDesc = '金属碎片（设备磨损、刀片断裂等产生的铁、不锈钢碎片）';
-      else if (isReceiving) physDesc = '原料中可能混入砂石、金属、玻璃等异物';
-      else if (isPackaging) physDesc = '包装材料碎片、封口不良导致异物侵入';
-      else if (isFilter) physDesc = '过滤介质破损可能引入异物';
-      else physDesc = '无明显物理危害';
+      if (isMetal) physDesc = '金属碎片（设备磨损、刀片断裂等产生的铁、不锈钢碎片）|||Metal fragments (Fe, SUS from equipment wear, blade breakage, etc.)';
+      else if (isReceiving) physDesc = '原料中可能混入砂石、金属、玻璃等异物|||Raw materials may contain stones, metal, glass and other foreign objects';
+      else if (isPackaging) physDesc = '包装材料碎片、封口不良导致异物侵入|||Packaging material fragments, foreign object intrusion from poor sealing';
+      else if (isFilter) physDesc = '过滤介质破损可能引入异物|||Damaged filter media may introduce foreign objects';
+      else physDesc = '无明显物理危害|||No significant physical hazard';
 
       var physQ1, physQ2, physQ3, physQ4, physQ5, physQ2need, physIsCCP, physReason;
       if (isMetal) {
         physQ1 = '是'; physQ2 = '是'; physQ3 = '是'; physQ4 = null; physQ5 = null; physQ2need = null;
         physIsCCP = true;
-        physReason = '该步骤存在物理危害（金属异物），金属检测/筛选步骤专门设计用于去除金属异物（Q3=是），故判定为CCP。';
+        physReason = '该步骤存在物理危害（金属异物），金属检测/筛选步骤专门设计用于去除金属异物（Q3=是），故判定为CCP。|||This step has physical hazards (metal fragments). Metal detection/screening is specifically designed to remove metal foreign objects (Q3=Yes), therefore it is a CCP.';
       } else if (isReceiving) {
         physQ1 = '是'; physQ2 = '是'; physQ3 = '否'; physQ4 = '否'; physQ5 = null; physQ2need = null;
         physIsCCP = false;
-        physReason = '原料可能携带物理异物，有验收目视检查（Q2=是），但验收不会增加物理危害（Q4=否），故判定为非CCP。';
+        physReason = '原料可能携带物理异物，有验收目视检查（Q2=是），但验收不会增加物理危害（Q4=否），故判定为非CCP。|||Raw materials may contain physical foreign objects. Visual inspection exists (Q2=Yes), but receiving does not increase physical hazards (Q4=No), therefore NOT a CCP.';
       } else if (isPackaging) {
         physQ1 = '是'; physQ2 = '是'; physQ3 = '否'; physQ4 = '否'; physQ5 = null; physQ2need = null;
         physIsCCP = false;
-        physReason = '可能存在包装材料碎片，有目视检查和设备维护控制（Q2=是），风险较低（Q4=否），故判定为非CCP。';
+        physReason = '可能存在包装材料碎片，有目视检查和设备维护控制（Q2=是），风险较低（Q4=否），故判定为非CCP。|||Packaging material fragments may exist. Visual inspection and equipment maintenance controls are in place (Q2=Yes). Risk is low (Q4=No), therefore NOT a CCP.';
       } else {
         physQ1 = '否'; physQ2 = null; physQ3 = null; physQ4 = null; physQ5 = null; physQ2need = null;
         physIsCCP = false;
-        physReason = '该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。';
+        physReason = '该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP.';
       }
 
       data.ccpSteps[si].hazards.bio = {
@@ -2530,7 +2532,7 @@ const Questionnaire15min = (() => {
     if(saveBtn)saveBtn.addEventListener('click',function(){
       var n=content.querySelector('#stepFormName'),e=content.querySelector('#stepFormEquipment'),m=content.querySelector('#stepFormMethod'),pp=content.querySelector('#stepFormParams');
       var name=n?n.value.trim():'',eq=e?e.value.trim():'',mt=m?m.value.trim():'',params=pp?pp.value.trim():'';
-      if(!name){alert('请输入步骤名称');return;}
+      if(!name){alert('请输入' + I18n.t('q.stepName') + '');return;}
       if(!data.processSteps||!Array.isArray(data.processSteps))data.processSteps=[];
       var ei=parseInt(data.currentEditingStep);
       if(!isNaN(ei)&&ei>=0&&ei<data.processSteps.length){
@@ -2543,14 +2545,14 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('[data-step-delete]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.stepDelete);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)return;if(!confirm('确定要删除步骤 "'+esc(data.processSteps[idx].stepName||('步骤'+(idx+1)))+'" 吗？'))return;data.processSteps.splice(idx,1);if(data.ccpSteps&&data.ccpSteps.length>idx)data.ccpSteps.splice(idx,1);data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();});});
     var aBtn=content.querySelector('#addNewStepBtn');if(aBtn)aBtn.addEventListener('click',function(){data.currentEditingStep=-1;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
     var aiBtn=content.querySelector('#aiCcpBtn');if(aiBtn)aiBtn.addEventListener('click',function(){collectSectionData(content,data);aiCcpJudgment(data);});
-    var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);var stepCount=data.processSteps.length;var prevStepCount=data.ccpSteps?data.ccpSteps.length:0;if(stepCount!==prevStepCount){data.ccpSteps=[];normalizeCcpSteps(data);}// 步骤数未变化时保留已有的判定数据，不清空记录
+    var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert(I18n.t('q.needOneStep'));return;}normalizeCcpSteps(data);var stepCount=data.processSteps.length;var prevStepCount=data.ccpSteps?data.ccpSteps.length:0;if(stepCount!==prevStepCount){data.ccpSteps=[];normalizeCcpSteps(data);}// 步骤数未变化时保留已有的判定数据，不清空记录
     // 根据当前编辑的步骤确定起始判断步骤
     var startIdx=parseInt(data.currentEditingStep);if(isNaN(startIdx)||startIdx<0||startIdx>=data.processSteps.length)startIdx=0;data.ccpPageMode='judging';data.ccpStepIndex=startIdx;data.ccpHazardType='bio';data.ccpCurrentQ=1;saveData(data);renderActiveSection();renderSectionNav();});
-    var cBtn=content.querySelector('#completeStepsBtn');if(cBtn)cBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert('请先保存至少一个步骤');return;}normalizeCcpSteps(data);data.ccpPageMode='summary';saveData(data);renderActiveSection();renderSectionNav();});
+    var cBtn=content.querySelector('#completeStepsBtn');if(cBtn)cBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert(I18n.t('q.needOneStep'));return;}normalizeCcpSteps(data);data.ccpPageMode='summary';saveData(data);renderActiveSection();renderSectionNav();});
     var aBtn2=content.querySelector('#ccpAnswerBtn');if(aBtn2)aBtn2.addEventListener('click',function(){
       normalizeCcpSteps(data);var idx=parseInt(data.ccpStepIndex);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)idx=0;
       var ht=data.ccpHazardType||'bio';var cq=data.ccpCurrentQ||1;var sel=content.querySelector('input[name="ccpQAnswer"]:checked');
-      if(!sel){alert('请选择一个选项');return;}var ans=sel.value;var hz=data.ccpSteps[idx].hazards[ht];
+      if(!sel){alert('' + I18n.t('q.verSelectOption') + '一个选项');return;}var ans=sel.value;var hz=data.ccpSteps[idx].hazards[ht];
       if(cq===1){var di=content.querySelector('#ccpHazardDescInput');hz.hazardDesc=di?di.value.trim():(hz.hazardDesc||'');hz.q1=ans;}
       else if(cq==='q2_need'){
         hz.q1_need=ans;
@@ -2621,7 +2623,7 @@ const Questionnaire15min = (() => {
         var hazardType = data.ccpHazardType || 'bio';
         var currentQ = data.ccpCurrentQ || 1;
         var selected = content.querySelector('input[name="ccpQAnswer"]:checked');
-        if (!selected) { alert('请选择"有危害/无危害"或"是/否"'); return; }
+        if (!selected) { alert('' + I18n.t('q.verSelectOption') + '"有危害/无危害"或"是/否"'); return; }
         var answer = selected.value;
         if (!data.ccpSteps) data.ccpSteps = [];
         if (!data.ccpSteps[idx]) {
@@ -2670,7 +2672,7 @@ const Questionnaire15min = (() => {
         var idx = data.ccpStepIndex;
         var hazardType = data.ccpHazardType || 'bio';
         var selected = content.querySelector('input[name="ccpQAnswer"]:checked');
-        if (!selected) { alert('请选择"是"或"否"'); return; }
+        if (!selected) { alert('' + I18n.t('q.verSelectOption') + '"是"或"否"'); return; }
         var answer = selected.value;
         if (!data.ccpSteps) data.ccpSteps = [];
         if (!data.ccpSteps[idx]) {
@@ -2708,7 +2710,7 @@ const Questionnaire15min = (() => {
       });
     }
 
-    // 修改完成，重新评估Q2按钮
+    // ' + I18n.t('q.ccpModifyReEval') + '按钮
     var resetQ2Btn = content.querySelector('#ccpResetQ2Btn');
     if (resetQ2Btn) {
       resetQ2Btn.addEventListener('click', function() {
@@ -3163,7 +3165,7 @@ const Questionnaire15min = (() => {
     if (allHazards.length > 0) {
       html += '<div class="q15-hazard-preview" style="overflow-x:auto;"><table class="q15-table" style="min-width:900px;"><thead><tr><th style="min-width:70px;">原材料</th><th style="min-width:70px;">风险</th><th style="width:50px;">Q1</th><th style="width:50px;">Q2</th><th style="width:50px;">Q3</th><th style="width:70px;">CCP判断</th><th style="min-width:300px;">风险说明</th></tr></thead><tbody>';
       allHazards.forEach(function(h) {
-        var riskColor = h.hazardType === '生物危害' ? '#dc2626' : (h.hazardType === '化学危害' ? '#d97706' : '#6b7280');
+        var riskColor = h.hazardType === I18n.t('q.ccpHazardBio') ? '#dc2626' : (h.hazardType === I18n.t('q.ccpHazardChem') ? '#d97706' : '#6b7280');
         html += '<tr><td><strong>' + esc(h.material || '') + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + esc(h.hazardType || '') + '</td><td>' + esc(h.q1 || '') + '</td><td>' + esc(h.q2 || '') + '</td><td>' + esc(h.q3 || '') + '</td><td>' + esc(h.ccpResult || '') + '</td><td style="font-size:13px;line-height:1.5;">' + esc(h.detail || h.desc || '') + '</td></tr>';
       });
       html += '</tbody></table></div>';
@@ -3208,7 +3210,7 @@ const Questionnaire15min = (() => {
         try { localStorage.setItem('haccp_flowchart_mermaid', src); } catch(e) {}
         var editMode = false;
         function renderInulinBody() { body.innerHTML = ''; var tb = document.createElement('div'); tb.className = 'fc-toolbar'; tb.innerHTML = '<button class="btn btn-sm btn-secondary" id="inulinToggleEdit">' + (editMode ? '📖 预览流程图' : '✏️ 编辑流程图') + '</button><span class="fc-toolbar-info" id="inulinInfo">' + (editMode ? '修改节点表格后点击"应用修改"保存' : '点击编辑按钮编辑节点名称和箭头标签') + '</span>'; body.appendChild(tb); if (editMode) renderInulinEditor(body); else renderInulinChart(body); document.getElementById('inulinToggleEdit')?.addEventListener('click', function() { if (editMode) { var ta = document.getElementById('fcFullSourceEditor'); if (ta) { try { localStorage.setItem('haccp_flowchart_mermaid', ta.value); } catch(e) {} } } editMode = !editMode; renderInulinBody(); }); }
-        function renderInulinChart(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var chartDiv = document.createElement('div'); chartDiv.className = 'mermaid'; chartDiv.textContent = currentSrc; container.appendChild(chartDiv); var legend = document.createElement('div'); legend.className = 'fc-legend'; legend.innerHTML = '<div class="fc-legend-title">图 例</div><div class="fc-legend-items"><div class="fc-legend-item"><span class="fc-legend-dot ccp"></span>CCP - 关键控制点</div><div class="fc-legend-item"><span class="fc-legend-dot oprp"></span>OPRP - 操作性前提方案</div><div class="fc-legend-item"><span class="fc-legend-dot cqp"></span>CQP - 关键质量点</div><div class="fc-legend-item"><span class="fc-legend-dot io"></span>输入/输出/副产物</div></div>'; container.appendChild(legend); mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true } }); setTimeout(function() { mermaid.run({ nodes: [chartDiv] }).catch(function(err) { chartDiv.innerHTML = '<p style="color:red">渲染失败: ' + (err.message || err) + '</p>'; }); }, 100); }
+        function renderInulinChart(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var chartDiv = document.createElement('div'); chartDiv.className = 'mermaid'; chartDiv.textContent = currentSrc; container.appendChild(chartDiv); var legend = document.createElement('div'); legend.className = 'fc-legend'; legend.innerHTML = '<div class="fc-legend-title">' + I18n.t('q.flowchartLegend') + '</div><div class="fc-legend-items"><div class="fc-legend-item"><span class="fc-legend-dot ccp"></span>' + I18n.t('q.ccpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot oprp"></span>' + I18n.t('q.oprpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot cqp"></span>' + I18n.t('q.cqpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot io"></span>' + I18n.t('q.ioLegend') + '</div></div>'; container.appendChild(legend); mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true } }); setTimeout(function() { mermaid.run({ nodes: [chartDiv] }).catch(function(err) { chartDiv.innerHTML = '<p style="color:red">渲染失败: ' + (err.message || err) + '</p>'; }); }, 100); }
         function renderInulinEditor(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var parsed = parseInulinNodes(currentSrc); var help = document.createElement('div'); help.className = 'fc-editor-help'; help.innerHTML = '修改节点名称和箭头标签后点击「应用修改」保存，然后点击「预览流程图」查看效果。'; container.appendChild(help); var table = document.createElement('table'); table.className = 'fc-node-table'; table.innerHTML = '<thead><tr><th>ID</th><th>节点文字</th><th>类型</th><th style="width:40px"></th></tr></thead><tbody id="inulinNodeBody"></tbody></table>'; container.appendChild(table); var tbody = document.getElementById('inulinNodeBody'); for (var i = 0; i < parsed.nodes.length; i++) { var n = parsed.nodes[i]; var tr = document.createElement('tr'); tr.dataset.nodeid = n.id; tr.innerHTML = '<td><code>' + n.id + '</code></td><td><input class="fc-node-input" data-nodeid="' + n.id + '" value="' + n.label.replace(/"/g,'"') + '" /></td><td><span class="fc-node-badge ' + n.type + '">' + n.type.toUpperCase() + '</span></td><td><button class="fc-btn-del inulin-del-node" data-nodeid="' + n.id + '">✕</button></td>'; tbody.appendChild(tr); } var addBtn = document.createElement('button'); addBtn.className = 'btn btn-sm btn-secondary'; addBtn.style.margin = '8px 0'; addBtn.textContent = '+ 添加节点行'; addBtn.addEventListener('click', function() { var tb = document.getElementById('inulinNodeBody'); var newId = 'N' + Date.now(); var tr = document.createElement('tr'); tr.dataset.nodeid = newId; tr.innerHTML = '<td><code>' + newId + '</code></td><td><input class="fc-node-input" data-nodeid="' + newId + '" value="新步骤' + (tb.children.length + 1) + '" /></td><td><select class="fc-input-type"><option value="step">STEP</option><option value="ccp">CCP</option><option value="oprp">OPRP</option><option value="cqp">CQP</option><option value="io">IO</option></select></td><td><button class="fc-btn-del inulin-del-node" data-nodeid="' + newId + '">✕</button></td>'; tr.querySelector('.inulin-del-node').addEventListener('click', function() { tr.remove(); }); tb.appendChild(tr); }); container.appendChild(addBtn); container.querySelectorAll('.inulin-del-node').forEach(function(btn) { btn.addEventListener('click', function() { var row = this.closest('tr'); if (row) row.remove(); }); }); if (parsed.edges.length > 0) { var eHelp = document.createElement('div'); eHelp.className = 'fc-editor-help'; eHelp.style.marginTop = '16px'; eHelp.textContent = '箭头标签：'; container.appendChild(eHelp); var eTable = document.createElement('table'); eTable.className = 'fc-node-table'; eTable.innerHTML = '<thead><tr><th>连接</th><th>线上文字</th><th style="width:40px"></th></tr></thead><tbody id="inulinEdgeBody"></tbody></table>'; container.appendChild(eTable); var etbody = document.getElementById('inulinEdgeBody'); for (var i = 0; i < parsed.edges.length; i++) { var e = parsed.edges[i]; if (!e.label) continue; var tr = document.createElement('tr'); tr.innerHTML = '<td><code>' + e.from + ' → ' + e.to + '</code></td><td><input class="fc-edge-label" data-edge="' + e.from + '|' + e.to + '" value="' + (e.label || '') + '" style="width:100%" /></td><td><button class="fc-btn-del inulin-del-edge">✕</button></td>'; tr.querySelector('.inulin-del-edge').addEventListener('click', function() { this.closest('tr').remove(); }); etbody.appendChild(tr); } var addEdgeBtn = document.createElement('button'); addEdgeBtn.className = 'btn btn-sm btn-secondary'; addEdgeBtn.style.margin = '8px 0'; addEdgeBtn.textContent = '+ 添加箭头标签'; addEdgeBtn.addEventListener('click', function() { var tb = document.getElementById('inulinEdgeBody'); var newId1 = 'N' + Date.now(); var newId2 = 'N' + (Date.now() + 1); var tr = document.createElement('tr'); tr.innerHTML = '<td><input class="fc-edge-input" value="' + newId1 + '-->' + newId2 + '" style="width:120px;font-size:12px" /></td><td><input class="fc-edge-label" value="" style="width:100%" /></td><td><button class="fc-btn-del inulin-del-edge">✕</button></td>'; tr.querySelector('.inulin-del-edge').addEventListener('click', function() { tr.remove(); }); tb.appendChild(tr); }); container.appendChild(addEdgeBtn); } var actions = document.createElement('div'); actions.className = 'fc-editor-actions'; actions.style.marginTop = '12px'; actions.innerHTML = '<button class="btn btn-primary btn-sm" id="inulinApply">✅ 应用修改</button><button class="btn btn-secondary btn-sm" id="inulinReset">↩️ 恢复默认</button><span class="fc-editor-status" id="inulinEditStatus"></span>'; container.appendChild(actions); document.getElementById('inulinApply').addEventListener('click', function() { var ns = currentSrc; var changes = 0; container.querySelectorAll('.fc-node-input').forEach(function(inp) { var nid = inp.dataset.nodeid; var nl = inp.value.trim(); if (!nid || !nl) return; var lens = ns.split('\n'); for (var j = 0; j < lens.length; j++) { var l = lens[j].trim(); var m = l.match(new RegExp('^' + nid + '\\["(.+?)"\\]')); if (m) { var ol = m[1]; if (ol !== nl) { ns = ns.split(nid + '["' + ol + '"]').join(nid + '["' + nl + '"]'); changes++; } break; } } }); container.querySelectorAll('.fc-edge-label').forEach(function(inp) { var edge = inp.dataset.edge; var nl = inp.value.trim(); if (!edge) return; var parts = edge.split('|'); if (parts.length !== 2) return; var from = parts[0], to = parts[1]; var lens = ns.split('\n'); for (var j = 0; j < lens.length; j++) { var l = lens[j].trim(); var m = l.match(new RegExp('^' + from + '\\s*[-=.]+>\\|(.+?)\\|\\s*' + to + '$')); if (m) { var ol = m[1]; if (nl === '') { ns = ns.split(l).join(from + ' --> ' + to); } else if (ol !== nl) { ns = ns.split('|' + ol + '|').join('|' + nl + '|'); } changes++; break; } } }); if (changes > 0) { try { localStorage.setItem('haccp_flowchart_mermaid', ns); } catch(e) {} document.getElementById('inulinEditStatus').textContent = '✅ 已应用 ' + changes + ' 处修改'; currentSrc = ns; } else { document.getElementById('inulinEditStatus').textContent = 'ℹ️ 未检测到修改'; } }); document.getElementById('inulinReset').addEventListener('click', function() { if (window.INULIN_FLOWCHART && window.INULIN_FLOWCHART.mermaid) { try { localStorage.setItem('haccp_flowchart_mermaid', window.INULIN_FLOWCHART.mermaid); } catch(e) {} document.getElementById('inulinEditStatus').textContent = '✅ 已恢复默认'; renderInulinBody(); } }); }
         function parseInulinNodes(src) { var nodes = [], edges = [], lens = src.split('\n'), nodeRegex = /^(\w+)\["(.+?)"\]/, edgeRegex = /^(\w+)\s*[-=.]+>\s*(?:\|(.+?)\|)?\s*(\w+)/; for (var i = 0; i < lens.length; i++) { var l = lens[i].trim(); if (!l || l.startsWith('%%') || l.startsWith('graph') || l.startsWith('classDef')) continue; var m = l.match(nodeRegex); if (m) { var id = m[1], label = m[2]; if (id === 'loop_text' || id === 'L6_text' || id === 'L7_text' || id === 'R2_text' || id === 'R3_text') continue; var type = 'step'; if (l.indexOf(':::ccp') > -1) type = 'ccp'; else if (l.indexOf(':::oprp') > -1) type = 'oprp'; else if (l.indexOf(':::cqp') > -1) type = 'cqp'; else if (l.indexOf(':::io') > -1) type = 'io'; nodes.push({ id: id, label: label, type: type }); continue; } var e = l.match(edgeRegex); if (e) edges.push({ from: e[1], to: e[3], label: e[2] || '' }); } return { nodes: nodes, edges: edges }; }
         renderInulinBody(); document.getElementById('inulinModalClose').onclick = function() { modal.remove(); }; modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
@@ -3529,7 +3531,7 @@ const Questionnaire15min = (() => {
     }, 50);
   }
 
-  // 步骤名称模糊匹配（优先使用Map索引）
+  // ' + I18n.t('q.stepName') + '模糊匹配（优先使用Map索引）
   function matchStepName(userStepName, stepDb) {
     if (!userStepName) return null;
     var name = userStepName.trim().toLowerCase();
@@ -3692,12 +3694,12 @@ const Questionnaire15min = (() => {
       }, 100);
     }
 
-    var html = '<h3>识别潜在危害</h3><p class="q15-table-hint">根据创建档案中绘制的流程图操作步骤，系统自动匹配可能的危害</p>';
+    var html = '<h3>识别' + I18n.t('q.ccpPotentialHazard') + '</h3><p class="q15-table-hint">' + I18n.t('q.hwIdentifyHint') + '</p>';
 
     // 自动匹配中或匹配结果显示
     if (autoTriggered) {
       html += '<div id="stepHazardLoading" style="padding:20px;text-align:center;color:var(--gray-400);">' +
-        '<span class="spinner" style="width:18px;height:18px;"></span> 正在从档案中读取工艺流程并匹配危害数据...</div>';
+        '<span class="spinner" style="width:18px;height:18px;"></span> ' + I18n.t('q.hwLoadingMatch') + '</div>';
     }
 
     // 匹配结果展示（按步骤列出危害）
@@ -3708,14 +3710,14 @@ const Questionnaire15min = (() => {
         if (step.hazards && step.hazards.length > 0) matchedCount++;
       });
       html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
-      html += '已匹配 ' + matchedCount + '/' + ws.length + ' 个步骤的危害数据';
+      html += '' + I18n.t('q.hwMatchedSteps').replace('{0}', matchedCount).replace('{1}', ws.length) + '';
       html += '</div>';
 
       // 未匹配步骤提示
       var unmatched = data._unmatchedSteps || [];
       if (unmatched.length > 0) {
         html += '<div style="margin-bottom:12px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e;">';
-        html += '以下步骤未匹配到危害数据，可使用AI辅助识别：<strong>' + unmatched.join('、') + '</strong>';
+        html += '' + I18n.t('q.hwUnmatchedHint') + '<strong>' + unmatched.join('、') + '</strong>';
         html += '</div>';
       }
 
@@ -3725,7 +3727,7 @@ const Questionnaire15min = (() => {
         if (!step.hazards || step.hazards.length === 0) return;
         var catLabels = { biological: 'B', chemical: 'C', physical: 'P' };
         var catColors = { biological: '#dc2626', chemical: '#d97706', physical: '#6b7280' };
-        var catFull = { biological: '生物危害', chemical: '化学危害', physical: '物理危害' };
+        var catFull = { biological: I18n.t('q.ccpHazardBio'), chemical: I18n.t('q.ccpHazardChem'), physical: I18n.t('q.ccpHazardPhys') };
 
         html += '<div class="q15-step-hazard-card" style="margin-bottom:12px;padding:12px 16px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);">';
         html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px;">' + esc(step.stepName) + '</div>';
@@ -3739,7 +3741,7 @@ const Questionnaire15min = (() => {
             '<span style="display:inline-block;padding:0 6px;border-radius:3px;font-size:11px;font-weight:700;color:#fff;background:' + catColor + ';flex-shrink:0;">' + catLabel + '</span>' +
             '<div style="flex:1;font-size:13px;">' +
               '<div>' + esc(h.hazardDesc) + '</div>' +
-              '<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">' + catFullName + (h.isSignificant ? ' | <span style="color:#dc2626;">显著危害</span>' : ' | <span style="color:var(--gray-400);">非显著</span>') + '</div>' +
+              '<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">' + catFullName + (h.isSignificant ? ' | <span style="color:#dc2626;">' + I18n.t('q.hwSignificant') + '</span>' : ' | <span style="color:var(--gray-400);">' + I18n.t('q.hwNonSignificant') + '</span>') + '</div>' +
             '</div>' +
           '</label>';
         });
@@ -3747,14 +3749,14 @@ const Questionnaire15min = (() => {
       });
       html += '</div>';
     } else if (!autoTriggered) {
-      html += '<div style="padding:20px;text-align:center;color:var(--gray-400);">暂无工艺流程步骤数据，请先在"创建档案"中的流程图编辑器中添加操作步骤</div>';
+      html += '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('q.hwNoFlowSteps') + '</div>';
     }
     html += '</div>';
 
     // 操作按钮区（重新匹配 + AI辅助识别）
     html += '<div class="q15-ai-btn-wrapper" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">';
-    html += '<button class="btn btn-secondary btn-sm" id="aiHazardBtn">\u{1F916} AI辅助识别</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="hwRefreshBtn">\u{1F504} 重新匹配</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="aiHazardBtn">\u{1F916} ' + I18n.t('q.hwAiIdentify') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="hwRefreshBtn">\u{1F504} ' + I18n.t('q.hwRefresh') + '</button>';
     html += '<span id="aiHazardHint" style="font-size:12px;color:var(--gray-400);margin-left:5px;"></span>';
     html += '</div>';
     html += '<div id="aiHazardResult" style="margin-top:12px;"></div>';
@@ -3766,39 +3768,39 @@ const Questionnaire15min = (() => {
   function renderHazardAssess(data) {
     var ws = data.hazardWorksheet || [];
     if (ws.length === 0) {
-      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">请先在"危害识别"步骤中添加危害数据</div>';
+      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('q.hwNoDataAssess') + '</div>';
     }
     var html = '<div class="hw-assess-table-wrapper"><table class="hw-table"><thead><tr>' +
-      '<th style="min-width:80px;">加工步骤</th><th>潜在危害</th><th>危害类别</th>' +
-      '<th style="width:80px;">严重性</th><th style="width:80px;">可能性</th><th style="width:80px;">风险等级</th>' +
-      '<th style="min-width:150px;">判断依据</th><th style="width:70px;">显著危害</th></tr></thead><tbody>';
+      '<th style="min-width:80px;">' + I18n.t('q.hwStepCol') + '</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>' + I18n.t('q.hwHazardCategory') + '</th>' +
+      '<th style="width:80px;">' + I18n.t('q.hwSeverity') + '</th><th style="width:80px;">' + I18n.t('q.hwLikelihood') + '</th><th style="width:80px;">' + I18n.t('q.hwRiskLevel') + '</th>' +
+      '<th style="min-width:150px;">' + I18n.t('q.hwBasisCol') + '</th><th style="width:70px;">' + I18n.t('q.hwSignificantCol') + '</th></tr></thead><tbody>';
     ws.forEach(function(step, si) {
       if (!step.hazards || step.hazards.length === 0) return;
       step.hazards.forEach(function(h, hi) {
-        var catLabel = h.category === 'biological' ? '生物危害' : (h.category === 'chemical' ? '化学危害' : '物理危害');
+        var catLabel = h.category === 'biological' ? I18n.t('q.ccpHazardBio') : (h.category === 'chemical' ? I18n.t('q.ccpHazardChem') : I18n.t('q.ccpHazardPhys'));
         var catColor = h.category === 'biological' ? '#dc2626' : (h.category === 'chemical' ? '#d97706' : '#6b7280');
         html += '<tr>' +
           (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;"><strong>' + esc(step.stepName) + '</strong></td>' : '') +
           '<td>' + esc(h.hazardDesc) + '</td>' +
           '<td style="color:' + catColor + ';">' + catLabel + '</td>' +
           '<td><select class="hw-select" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="severity">' +
-            '<option value="高"' + (h.severity === '高' ? ' selected' : '') + '>高</option>' +
-            '<option value="中"' + (h.severity === '中' ? ' selected' : '') + '>中</option>' +
-            '<option value="低"' + (h.severity === '低' ? ' selected' : '') + '>低</option>' +
+            '<option value="高"' + (h.severity === '高' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityHigh') + '</option>' +
+            '<option value="中"' + (h.severity === '中' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityMid') + '</option>' +
+            '<option value="低"' + (h.severity === '低' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityLow') + '</option>' +
           '</select></td>' +
           '<td><select class="hw-select" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="likelihood">' +
-            '<option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>高</option>' +
-            '<option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>中</option>' +
-            '<option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>低</option>' +
+            '<option value="高"' + (h.likelihood === '高' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityHigh') + '</option>' +
+            '<option value="中"' + (h.likelihood === '中' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityMid') + '</option>' +
+            '<option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityLow') + '</option>' +
           '</select></td>' +
           '<td id="ws-risk-si' + si + '-hi' + hi + '" style="font-weight:500;">' + calcRiskLevel(h.severity || '中', h.likelihood || '中') + '</td>' +
-          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="basis" rows="2" placeholder="填写显著危害判断依据">' + esc(h.basis || '') + '</textarea></td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="basis" rows="2" placeholder="' + I18n.t('q.hwBasisPh') + '">' + esc(h.basis || '') + '</textarea></td>' +
           '<td style="text-align:center;"><input type="checkbox" class="hw-significant" data-ws-si="' + si + '" data-ws-hi="' + hi + '"' + (h.isSignificant ? ' checked' : '') + '></td>' +
         '</tr>';
       });
     });
     html += '</tbody></table></div>';
-    html += '<div style="margin-top:8px;font-size:12px;color:var(--gray-400);">💡 系统根据严重性和可能性自动计算风险等级，勾选"显著危害"表示该危害需要制定控制措施</div>';
+    html += '<div style="margin-top:8px;font-size:12px;color:var(--gray-400);">💡 ' + I18n.t('q.hwAssessAutoHint') + '</div>';
     return html;
   }
 
@@ -3807,16 +3809,16 @@ const Questionnaire15min = (() => {
     var s = severity === '高' ? 3 : (severity === '中' ? 2 : 1);
     var l = likelihood === '高' ? 3 : (likelihood === '中' ? 2 : 1);
     var r = s * l;
-    if (r >= 6) return '<span style="color:#dc2626;">高</span>';
-    if (r >= 3) return '<span style="color:#d97706;">中</span>';
-    return '<span style="color:#16a34a;">低</span>';
+    if (r >= 6) return '<span style="color:#dc2626;">' + I18n.t('q.hwSeverityHigh') + '</span>';
+    if (r >= 3) return '<span style="color:#d97706;">' + I18n.t('q.hwSeverityMid') + '</span>';
+    return '<span style="color:#16a34a;">' + I18n.t('q.hwSeverityLow') + '</span>';
   }
 
   // 控制措施子步骤
   function renderHazardControl(data) {
     var ws = data.hazardWorksheet || [];
     if (ws.length === 0) {
-      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">请先在"危害识别"步骤中添加危害数据</div>';
+      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('q.hwNoDataAssess') + '</div>';
     }
     // 只显示显著危害
     var hasSignificant = false;
@@ -3824,10 +3826,10 @@ const Questionnaire15min = (() => {
       if (step.hazards) step.hazards.forEach(function(h) { if (h.isSignificant) hasSignificant = true; });
     });
     if (!hasSignificant) {
-      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">请在"危害评估"步骤中勾选显著危害，以便制定控制措施</div>';
+      return '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('q.hwNoDataControl') + '</div>';
     }
     var html = '<div class="hw-control-table-wrapper"><table class="hw-table"><thead><tr>' +
-      '<th>加工步骤</th><th>潜在危害</th><th>控制措施</th><th style="min-width:200px;">控制措施与危害的关系</th></tr></thead><tbody>';
+      '<th>加工步骤</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>' + I18n.t('q.hwControlMeasureCol') + '</th><th style="min-width:200px;">' + I18n.t('q.hwControlRelationCol') + '</th></tr></thead><tbody>';
     ws.forEach(function(step, si) {
       if (!step.hazards) return;
       step.hazards.forEach(function(h, hi) {
@@ -3835,8 +3837,8 @@ const Questionnaire15min = (() => {
         html += '<tr>' +
           '<td><strong>' + esc(step.stepName) + '</strong></td>' +
           '<td>' + esc(h.hazardDesc) + '</td>' +
-          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlMeasure" rows="2" placeholder="填写控制措施">' + esc(h.controlMeasure || '') + '</textarea></td>' +
-          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlRelation" rows="2" placeholder="描述控制措施与危害的关系">' + esc(h.controlRelation || '') + '</textarea></td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlMeasure" rows="2" placeholder="' + I18n.t('q.hwControlPh') + '">' + esc(h.controlMeasure || '') + '</textarea></td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlRelation" rows="2" placeholder="' + I18n.t('q.hwControlRelationPh') + '">' + esc(h.controlRelation || '') + '</textarea></td>' +
         '</tr>';
       });
     });
@@ -3873,13 +3875,13 @@ const Questionnaire15min = (() => {
     html += '<div class="hw-actions" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gray-200);display:flex;gap:10px;justify-content:space-between;">';
     html += '<div>';
     if (step !== 'identify') {
-      html += '<button class="btn btn-secondary btn-sm" id="hwPrevBtn">← 上一步</button>';
+      html += '<button class="btn btn-secondary btn-sm" id="hwPrevBtn">' + I18n.t('q.hwPrevBtn') + '</button>';
     }
     html += '</div><div>';
     if (step !== 'control') {
-      html += '<button class="btn btn-primary btn-sm" id="hwNextBtn">下一步 →</button>';
+      html += '<button class="btn btn-primary btn-sm" id="hwNextBtn">' + I18n.t('q.hwNextBtn') + '</button>';
     } else {
-      html += '<button class="btn btn-primary btn-sm" id="hwViewWorksheetBtn">📋 查看分析工作单</button>';
+      html += '<button class="btn btn-primary btn-sm" id="hwViewWorksheetBtn">' + I18n.t('q.hwViewWorksheet') + '</button>';
     }
     html += '</div></div>';
 
@@ -4078,37 +4080,37 @@ const Questionnaire15min = (() => {
     
     var ws = data.hazardWorksheet || [];
     if (ws.length === 0) {
-      container.innerHTML = '<a class="back-link" href="javascript:App.navigateTo(\'questionnaire\')">← 返回问卷</a>' +
-        '<div class="empty-state"><div class="empty-icon">📋</div><h3>暂无危害分析数据</h3>' +
-        '<p>请先在问卷的第一步「进行危害分析」中添加危害数据</p>' +
-        '<button class="btn btn-primary" onclick="App.navigateTo(\'questionnaire\')">返回问卷</button></div>';
+      container.innerHTML = '<a class="back-link" href="javascript:App.navigateTo(\'questionnaire\')">' + I18n.t('q.hwBackToQuestionnaire') + '</a>' +
+        '<div class="empty-state"><div class="empty-icon">📋</div><h3>' + I18n.t('q.hwEmpty') + '</h3>' +
+        '<p>' + I18n.t('q.hwWorksheetEmptyHint') + '</p>' +
+        '<button class="btn btn-primary" onclick="App.navigateTo(\'questionnaire\')">' + I18n.t('q.hwBackToQuestionnaire') + '</button></div>';
       return;
     }
 
-    var html = '<a class="back-link" href="javascript:App.navigateTo(\'questionnaire\')">← 返回问卷</a>';
+    var html = '<a class="back-link" href="javascript:App.navigateTo(\'questionnaire\')">' + I18n.t('q.hwBackToQuestionnaire') + '</a>';
     html += '<div class="hw-worksheet-page">';
-    html += '<h1>危害分析工作单</h1>';
-    html += '<p class="q15-table-hint" style="margin-bottom:16px;">以下为完整的危害分析工作单，包含危害识别、评估及控制措施</p>';
+    html += '<h1>' + I18n.t('q.hwWorksheetTitle') + '</h1>';
+    html += '<p class="q15-table-hint" style="margin-bottom:16px;">' + I18n.t('q.hwWorksheetHint') + '</p>';
     
     // 表格
     html += '<div class="hw-worksheet-table-wrapper" style="overflow-x:auto;">';
     html += '<table class="hw-worksheet-table"><thead><tr>' +
-      '<th style="min-width:80px;">加工步骤</th>' +
-      '<th>潜在危害</th>' +
-      '<th>危害类别</th>' +
-      '<th>显著危害</th>' +
-      '<th style="min-width:140px;">判断依据</th>' +
-      '<th>控制措施</th>' +
-      '<th style="min-width:180px;">控制措施与危害的关系</th>' +
+      '<th style="min-width:80px;">' + I18n.t('q.hwStepCol') + '</th>' +
+      '<th>' + I18n.t('q.ccpPotentialHazard') + '</th>' +
+      '<th>' + I18n.t('q.hwHazardCategory') + '</th>' +
+      '<th>' + I18n.t('q.hwSignificantCol') + '</th>' +
+      '<th style="min-width:140px;">' + I18n.t('q.hwBasisCol') + '</th>' +
+      '<th>' + I18n.t('q.hwControlMeasureCol') + '</th>' +
+      '<th style="min-width:180px;">' + I18n.t('q.hwControlRelationCol') + '</th>' +
       '</tr></thead><tbody>';
 
     ws.forEach(function(step, si) {
       if (!step.hazards || step.hazards.length === 0) {
-        html += '<tr><td>' + esc(step.stepName) + '</td><td colspan="6" style="color:var(--gray-400);text-align:center;">无危害数据</td></tr>';
+        html += '<tr><td>' + esc(step.stepName) + '</td><td colspan="6" style="color:var(--gray-400);text-align:center;">' + I18n.t('q.hwNoData') + '</td></tr>';
         return;
       }
       step.hazards.forEach(function(h, hi) {
-        var catLabel = h.category === 'biological' ? '生物危害' : (h.category === 'chemical' ? '化学危害' : '物理危害');
+        var catLabel = h.category === 'biological' ? I18n.t('q.ccpHazardBio') : (h.category === 'chemical' ? I18n.t('q.ccpHazardChem') : I18n.t('q.ccpHazardPhys'));
         html += '<tr>' +
           (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;font-weight:500;">' + esc(step.stepName) + '</td>' : '') +
           '<td>' + esc(h.hazardDesc) + '</td>' +
@@ -4123,7 +4125,7 @@ const Questionnaire15min = (() => {
 
     html += '</tbody></table></div>';
     html += '<div style="margin-top:16px;display:flex;gap:10px;">';
-    html += '<button class="btn btn-secondary" onclick="App.navigateTo(\'questionnaire\')">← 返回问卷</button>';
+    html += '<button class="btn btn-secondary" onclick="App.navigateTo(\'questionnaire\')">' + I18n.t('q.hwBackToQuestionnaire') + '</button>';
     html += '<button class="btn btn-secondary" id="hwPrintBtn">🖨️ 打印/导出</button>';
     html += '</div></div>';
 
@@ -4152,7 +4154,7 @@ const Questionnaire15min = (() => {
     { key: 'ccp', label: 'CCP判定已完成', step: 1, icon: '🎯' },
     { key: 'limits', label: '关键限值已设定', step: 2, icon: '📏' },
     { key: 'monitor', label: '监控程序已建立', step: 3, icon: '📡' },
-    { key: 'corrective', label: '纠偏措施已建立', step: 4, icon: '🛠️' },
+    { key: 'corrective', label: '' + I18n.t('q.correctiveTitle') + '已建立', step: 4, icon: '🛠️' },
   ];
 
   function showHaccpConfirmationModal(data) {
@@ -4180,7 +4182,7 @@ const Questionnaire15min = (() => {
         '<div style="margin-bottom:14px;">' +
           '<label style="font-size:13px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">授权人员签署</label>' +
           '<div style="display:flex;gap:10px;">' +
-            '<input type="text" id="haccpSignerName" placeholder="签署人姓名（如：HACCP小组组长）" style="flex:1;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignerName || '') + '">' +
+            '<input type="text" id="haccpSignerName" placeholder="签署人姓名（' + I18n.t('q.verPersonnelPh') + '）" style="flex:1;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignerName || '') + '">' +
             '<input type="date" id="haccpSignerDate" style="width:140px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignDate || (new Date().toISOString().slice(0,10))) + '">' +
           '</div>' +
         '</div>' +
@@ -4339,7 +4341,7 @@ const Questionnaire15min = (() => {
         return;
       }
       if (!signDate) {
-        alert('请选择签署日期');
+        alert('' + I18n.t('q.verSelectOption') + '签署日期');
         return;
       }
 
@@ -4350,34 +4352,80 @@ const Questionnaire15min = (() => {
       data._haccpConfirmDate = new Date().toISOString();
       saveData(data);
 
-      // 保存到 HACCP 计划文档结果
-      localStorage.setItem('haccp_15min_submitted', JSON.stringify(data));
-      localStorage.setItem('haccp_submitted', 'true');
-      localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
-      
-      // 清除审查状态
-      try { localStorage.removeItem('haccp_review_status'); } catch(e) {}
+      // 保存到后端
+      savePlanToBackend(data).then(function(savedPlan) {
+        if (savedPlan) {
+          console.log('Plan saved to backend, id:', savedPlan.id);
+        }
+        // localStorage 仍然保存作为离线兜底
+        localStorage.setItem('haccp_15min_submitted', JSON.stringify(data));
+        localStorage.setItem('haccp_submitted', 'true');
+        localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
+        try { localStorage.removeItem('haccp_review_status'); } catch(e) {}
+      });
 
       overlay.remove();
-      alert('✅ HACCP计划已生成并提交成功！\n\n签署人：' + signerName + '\n签署日期：' + signDate + '\n\n可前往「查看结果」页面查看完整的HACCP计划文档。');
+      alert(I18n.t('q.alertHACCPGenerated') + '\n\n' + I18n.t('ver.alertSubmitDetail1') + signerName + '\n' + I18n.t('ver.alertSubmitDetail2') + signDate + '\n\n' + I18n.t('q.alertGotoResults'));
       App.navigateTo('results');
     });
   }
 
   // ==================== 提交问卷 ====================
+
+  async function savePlanToBackend(data) {
+    var token = null;
+    try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+    if (!token) {
+      var needsLogin = confirm(I18n.t('plan.loginRequired'));
+      if (needsLogin) { if (typeof App !== 'undefined') App.showLoginModal(); }
+      return null;
+    }
+    try {
+      var planName = data.productName || data.companyName || ('Plan ' + new Date().toISOString().slice(0,10));
+      var resp = await fetch('/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+          plan_name: planName,
+          product_name: data.productName || '',
+          company_name: data.companyName || '',
+          content: data
+        })
+      });
+      if (resp.ok) {
+        var result = await resp.json();
+        localStorage.setItem('haccp_current_plan_id', String(result.plan.id));
+        return result.plan;
+      }
+      if (resp.status === 401) {
+        alert(I18n.t('plan.loginRequired'));
+        return null;
+      }
+    } catch(e) {
+      console.warn('Backend save failed, falling back to localStorage:', e);
+    }
+    return null;
+  }
+
   function submitQuestionnaire(data) {
     const finalData = loadData();
     // 当计划书重新提交时，重置验证程序状态（触发联锁）
     finalData.verificationSubmitted = false;
     finalData.verificationSignerName = '';
     finalData.verificationSignerDate = '';
+
+    // 保存到后端
+    savePlanToBackend(finalData).then(function(savedPlan) {
+      if (savedPlan) console.log('Plan saved to backend, id:', savedPlan.id);
+    });
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
     localStorage.setItem('haccp_15min_submitted', JSON.stringify(finalData));
     localStorage.setItem('haccp_submitted', 'true');
     localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
     // 清除验证程序提醒记录，触发24小时重新提醒
     try { localStorage.removeItem('haccp_verification_reminder_time'); } catch(e) {}
-    alert('问卷提交成功！\n\n您的HACCP问卷信息已保存，可前往「查看结果」页面查看。');
+    alert(I18n.t('q.alertSubmitSuccess') + '\n\n' + I18n.t('q.alertSubmitMsg'));
     App.navigateTo('results');
   }
 

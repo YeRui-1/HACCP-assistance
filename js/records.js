@@ -57,6 +57,23 @@ const Records = (() => {
     } catch(e) {}
     return null;
   }
+
+  // ===== 同步计划数据到后端（后台静默执行，不阻塞UI）=====
+  function syncPlanToBackend(data) {
+    var planId = null;
+    try { planId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+    if (planId) {
+      var token = null;
+      try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+      if (token) {
+        fetch('/api/plans/' + planId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ content: data })
+        }).catch(function() {});
+      }
+    }
+  }
   
   // ===== 数据提取辅助函数 =====
   function getCompanyInfo(planData) {
@@ -68,7 +85,7 @@ const Records = (() => {
       productName: planData.productName || '',
       ingredients: planData.rawMaterials || '',
       additives: planData.additives || '',
-      productCharacteristics: (planData.productPH ? 'PH:' + planData.productPH : '') + (planData.waterActivity ? ' 水分活度:' + planData.waterActivity : ''),
+      productCharacteristics: (planData.productPH ? 'PH:' + planData.productPH : '') + (planData.waterActivity ? ' ' + I18n.t('r15.waterActivity') + ':' + planData.waterActivity : ''),
       intendedUse: planData.intendedUse || '',
       targetConsumer: planData.targetConsumer || '',
       consumptionMethod: planData.intendedUse || '',

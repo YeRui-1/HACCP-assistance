@@ -20,6 +20,24 @@ const Verification = (() => {
 
   function savePlanData(data) {
     try { localStorage.setItem('haccp_15min_data', JSON.stringify(data)); } catch(e) {}
+    // 同步到后端（静默，不阻塞）
+    syncPlanToBackend(data);
+  }
+
+  function syncPlanToBackend(data) {
+    var planId = null;
+    try { planId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+    if (planId) {
+      var token = null;
+      try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+      if (token) {
+        fetch('/api/plans/' + planId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ content: data })
+        }).catch(function() {});
+      }
+    }
   }
 
   function init() {

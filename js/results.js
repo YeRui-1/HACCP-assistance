@@ -1,6 +1,12 @@
 // 结果展示：自动调用 AI 生成报告 + 用户答案 + HACCP 计划章节
 const Results = (() => {
   let activeSection = 'aiReport';
+  var API_HOST = (function() {
+    if (window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+      return 'http://localhost:8000';
+    }
+    return '';
+  })();
 
   function getEl(id) { return document.getElementById(id); }
 
@@ -66,8 +72,112 @@ const Results = (() => {
     return !!localStorage.getItem('haccp_15min_submitted');
   }
 
+  // ===== Plans backend loading =====
+  var _plansCache = [];
+  var _currentPlanId = null;
+
+  function getCurrentPlanId() {
+    if (_currentPlanId) return _currentPlanId;
+    try { _currentPlanId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+    return _currentPlanId;
+  }
+
+  function setCurrentPlanId(id) {
+    _currentPlanId = id;
+    try { localStorage.setItem('haccp_current_plan_id', String(id || '')); } catch(e) {}
+  }
+
+  async function loadPlansList() {
+    try {
+      var token = localStorage.getItem('haccp_token');
+      if (!token) return [];
+      var resp = await fetch(API_HOST + '/api/plans', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (resp.ok) {
+        var data = await resp.json();
+        _plansCache = data.plans || [];
+        return _plansCache;
+      }
+    } catch(e) {}
+    return [];
+  }
+
+  async function loadPlanFromBackend(planId) {
+    try {
+      var token = localStorage.getItem('haccp_token');
+      if (!token) return null;
+      var resp = await fetch(API_HOST + '/api/plans/' + planId, { headers: { 'Authorization': 'Bearer ' + token } });
+      if (resp.ok) {
+        var data = await resp.json();
+        return data.plan.content;
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  async function deletePlanFromBackend(planId) {
+    try {
+      var token = localStorage.getItem('haccp_token');
+      if (!token) return false;
+      var resp = await fetch(API_HOST + '/api/plans/' + planId, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+      return resp.ok;
+    } catch(e) { return false; }
+  }
+
+  function renderPlanBar(plans) {
+    var currentId = getCurrentPlanId();
+    var html = '<div class="plan-bar">';
+    html += '<select id="planSelector">';
+    html += '<option value="">' + I18n.t('plan.placeholder') + '</option>';
+    plans.forEach(function(p) {
+      var selected = String(p.id) === String(currentId) ? ' selected' : '';
+      var label = (p.product_name || p.plan_name || 'Plan #' + p.id) + ' — ' + (p.created_at ? p.created_at.slice(0,10) : '');
+      html += '<option value="' + p.id + '"' + selected + '>' + label + '</option>';
+    });
+    html += '</select>';
+    html += '<button class="btn-plan" id="btnNewPlan" title="' + I18n.t('plan.newPlan') + '">' + I18n.t('plan.newPlan') + '</button>';
+    html += '<button class="btn-plan danger" id="btnDeletePlan" title="' + I18n.t('plan.deletePlan') + '">' + I18n.t('plan.deletePlan') + '</button>';
+    html += '<span class="plan-count">' + I18n.t('lobby.status.plans').replace('{n}', plans.length) + '</span>';
+    html += '</div>';
+    return html;
+  }
+
   async function init() {
     await syncTemplateFromBackend();
+
+    // Load plans list from backend
+    var plans = await loadPlansList();
+    var currentId = getCurrentPlanId();
+
+    // Render plan bar
+    var planBar = document.getElementById('resultsPlanBar');
+    if (planBar && plans.length > 0) {
+      planBar.innerHTML = renderPlanBar(plans);
+      var sel = document.getElementById('planSelector');
+      if (sel) sel.addEventListener('change', function() {
+        if (this.value) { setCurrentPlanId(this.value); init(); }
+      });
+      var btnNew = document.getElementById('btnNewPlan');
+      if (btnNew) btnNew.addEventListener('click', function() { App.navigateTo('questionnaire'); });
+      var btnDel = document.getElementById('btnDeletePlan');
+      if (btnDel) btnDel.addEventListener('click', async function() {
+        var id = getCurrentPlanId();
+        if (!id) return;
+        if (!confirm(I18n.t('plan.deleteConfirm'))) return;
+        if (await deletePlanFromBackend(id)) {
+          setCurrentPlanId('');
+          init();
+        }
+      });
+    } else if (planBar) {
+      planBar.innerHTML = '';
+    }
+
+    // Auto-select first plan if none selected
+    if (!currentId && plans.length > 0) {
+      currentId = String(plans[0].id);
+      setCurrentPlanId(currentId);
+    }
+
     renderSidebar();
     renderContent();
     setupScrollSpy();
@@ -359,14 +469,14 @@ const Results = (() => {
 
           html += '<tr style="background:' + rowBg + ';">';
           html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600;color:' + htColors[ht] + ';">' + htLabels[ht] + '</td>';
-          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:12px;">' + esc(h.hazardDesc || '') + '</td>';
+          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:12px;">' + esc(I18n.b(h.hazardDesc || '')) + '</td>';
           html += '<td ' + qStyle(q1, true) + '>' + (q1||'—') + '</td>';
           html += '<td style="text-align:center;color:' + (q2 ? '#475569' : '#cbd5e1') + ';">' + (q2||'—') + '</td>';
           html += '<td ' + qStyle(q3, !!q3) + '>' + (q3||'—') + '</td>';
           html += '<td style="text-align:center;color:' + (q4 ? '#475569' : '#cbd5e1') + ';">' + (q4||'—') + '</td>';
           html += '<td style="text-align:center;color:' + (q5 ? '#475569' : '#cbd5e1') + ';">' + (q5||'—') + '</td>';
           html += '<td style="padding:6px 4px;border:1px solid #e2e8f0;text-align:center;">' + resultHtml + '</td>';
-          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:11px;color:#64748b;">' + esc(h.aiReasoning || '') + '</td>';
+          html += '<td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:11px;color:#64748b;">' + esc(I18n.b(h.aiReasoning || '')) + '</td>';
           html += '</tr>';
         });
         html += '</tbody></table></div>';
@@ -441,13 +551,21 @@ const Results = (() => {
 
 
   // ===== 主内容 =====
-  function renderContent() {
+  async function renderContent() {
     const container = getEl('resultsContent');
     const submitted = localStorage.getItem('haccp_submitted');
     const lang = I18n.getLang();
 
-    // 检查是否有15min问卷提交数据
-    const q15Data = load15minData();
+    // Try loading selected plan from backend first
+    const planId = getCurrentPlanId();
+    var q15Data = null;
+    if (planId) {
+      q15Data = await loadPlanFromBackend(planId);
+    }
+    // Fallback to localStorage
+    if (!q15Data) {
+      q15Data = load15minData();
+    }
 
     if (!submitted) {
       container.innerHTML = [
@@ -905,86 +1023,10 @@ const Results = (() => {
     html += '<!--FLOWCHART_IMG-->';
     html += '</div>';
 
-    // ===== 5. Hazard Analysis =====
-    html += '<h2 class="section-title" style="page-break-before:always;">' + T('5. 危害分析与CCP判定', '5. Hazard Analysis and CCP Determination') + '</h2>';
-    html += '<p class="sub-title">' + T('5.1 原料危害分析', '5.1 Raw Material / Step Hazard Analysis') + '</p>';
-    var hazDone = false;
-
-    // hazardWorksheet
-    var hw = data.hazardWorksheet || [];
-    if (hw.length > 0) {
-      hazDone = true;
-      html += '<table class="hazard-table"><thead><tr><th style="width:110px;">' + T('加工步骤/原料', 'Process Step / Material') + '</th><th style="width:70px;">' + T('危害类别', 'Hazard Category') + '</th><th>' + T('识别到的危害', 'Identified Hazard') + '</th><th style="width:40px;">Q1</th><th style="width:40px;">Q2</th><th style="width:40px;">Q3</th><th style="width:60px;">' + T('是否为CCP', 'CCP?') + '</th><th>' + T('控制措施 / 判定依据', 'Control Measure / Justification') + '</th></tr></thead><tbody>';
-      hw.forEach(function(ws) {
-        var sn = ws.stepName || '';
-        var hz = ws.hazards || [];
-        var groups = { 'B': [], 'C': [], 'P': [] };
-        var typeMap = { '生物危害':'B', 'biological':'B', '化学危害':'C', 'chemical':'C', '物理危害':'P', 'physical':'P' };
-        hz.forEach(function(h) { var ct = typeMap[h.hazardType || h.category || ''] || 'B'; groups[ct].push(h); });
-        var allRows = [];
-        ['B','C','P'].forEach(function(t) {
-          var items = groups[t];
-          var label = isZh ? ({'B':'生物危害','C':'化学危害','P':'物理危害'}[t]) : ({'B':'Biological','C':'Chemical','P':'Physical'}[t]);
-          if (items && items.length > 0) { items.forEach(function(h) { allRows.push({type:t, typeLabel:label, h:h}); }); }
-          else { allRows.push({type:t, typeLabel:label, h:null}); }
-        });
-        allRows.forEach(function(rd, ri) {
-          html += '<tr>';
-          if (ri === 0) html += '<td rowspan="' + allRows.length + '" style="vertical-align:middle;font-weight:bold;">' + esc(sn) + '</td>';
-          html += '<td style="font-weight:500;">' + rd.typeLabel + '</td>';
-          if (rd.h) {
-            html += td(rd.h.hazardDesc || '');
-            html += '<td style="text-align:center;">' + (rd.h.isSignificant ? 'yes' : 'yes') + '</td>';
-            html += '<td style="text-align:center;">yes</td>';
-            html += '<td style="text-align:center;">yes</td>';
-            html += '<td style="text-align:center;">' + (rd.h.isSignificant ? '<span class="ccp-yes">YES</span>' : 'NO') + '</td>';
-            html += td((rd.h.controlMeasure || rd.h.control || '') + (rd.h.basis ? ' (' + rd.h.basis + ')' : ''));
-          } else {
-            html += '<td style="color:#888;font-style:italic;" colspan="5">' + T('该步骤无显著', 'No significant ') + rd.typeLabel + T('危害', ' hazard identified.') + '</td>';
-          }
-          html += '</tr>';
-        });
-      });
-      html += '</tbody></table>';
-    }
-
-    // Fallback legacy
-    if (!hazDone) {
-      var bio2 = data.hazardBio || [], chem2 = data.hazardChem || [], phys2 = data.hazardPhys || [];
-      var matMap = {};
-      bio2.forEach(function(h) { var m = h.material || T('未指定材料', 'Unspecified Material'); if (!matMap[m]) matMap[m]={B:null,C:null,P:null}; matMap[m].B=h; });
-      chem2.forEach(function(h) { var m = h.material || T('未指定材料', 'Unspecified Material'); if (!matMap[m]) matMap[m]={B:null,C:null,P:null}; matMap[m].C=h; });
-      phys2.forEach(function(h) { var m = h.material || T('未指定材料', 'Unspecified Material'); if (!matMap[m]) matMap[m]={B:null,C:null,P:null}; matMap[m].P=h; });
-      var mats = Object.keys(matMap);
-      if (mats.length > 0) {
-        hazDone = true;
-        html += '<table class="hazard-table"><thead><tr><th style="width:110px;">' + T('原料', 'Raw Material') + '</th><th style="width:70px;">' + T('危害类别', 'Hazard Category') + '</th><th>' + T('识别到的危害', 'Identified Hazard') + '</th><th style="width:40px;">Q1</th><th style="width:40px;">Q2</th><th style="width:40px;">Q3</th><th style="width:60px;">' + T('是否为CCP', 'CCP?') + '</th><th>' + T('控制措施', 'Control Measure') + '</th></tr></thead><tbody>';
-        mats.forEach(function(mat) {
-          var g = matMap[mat];
-          var labelB = isZh ? '生物危害' : 'Biological', labelC = isZh ? '化学危害' : 'Chemical', labelP = isZh ? '物理危害' : 'Physical';
-          [{type:labelB,h:g.B},{type:labelC,h:g.C},{type:labelP,h:g.P}].forEach(function(r,ri){
-            html += '<tr>';
-            if (ri===0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:bold;">' + esc(mat) + '</td>';
-            html += '<td style="font-weight:500;">' + r.type + '</td>';
-            if (r.h) {
-              html += td(r.h.desc||r.h.detail) + '<td style="text-align:center;">'+(r.h.q1||'—')+'</td><td style="text-align:center;">'+(r.h.q2||'—')+'</td><td style="text-align:center;">'+(r.h.q3||'—')+'</td>';
-              html += '<td style="text-align:center;">' + (r.h.isCCP ? '<span class="ccp-yes">YES</span>' : 'NO') + '</td>';
-              html += td(r.h.control||'');
-            } else {
-              html += '<td style="color:#888;font-style:italic;" colspan="5">' + T('该材料无显著', 'No significant ') + r.type + T('危害', ' hazard.') + '</td>';
-            }
-            html += '</tr>';
-          });
-        });
-        html += '</tbody></table>';
-      }
-    }
-    if (!hazDone) { html += '<p style="color:#888;font-style:italic;">' + T('暂未填写危害分析信息。', 'No hazard analysis data available.') + '</p>'; }
-
-    // --- 5.2 Process Step CCP Determination ---
+    // ===== 5. CCP判定表 =====
     var ccpSteps = data.ccpSteps || [];
     if (ccpSteps.length > 0) {
-      html += '<p class="sub-title" style="page-break-before:always;margin-top:24pt;">' + T('5.2 加工步骤CCP判定表', '5.2 Process Step CCP Determination') + '</p>';
+      html += '<h2 class="section-title" style="page-break-before:always;">' + T('5. CCP判定表', '5. CCP Determination Table') + '</h2>';
       html += '<table><thead><tr><th style="width:70px;">' + T('加工步骤', 'Process Step') + '</th><th style="width:55px;">' + T('危害', 'Hazard') + '</th><th>' + T('危害描述', 'Hazard Description') + '</th><th style="width:32px;">Q1</th><th style="width:32px;">Q2a</th><th style="width:32px;">Q2b</th><th style="width:32px;">Q3</th><th style="width:32px;">Q4</th><th style="width:32px;">Q5</th><th style="width:48px;">' + T('CCP?', 'CCP?') + '</th><th>' + T('评注 / 判定依据', 'Comment / Justification') + '</th></tr></thead><tbody>';
       var hf = isZh ? {bio:'生物危害',chem:'化学危害',phys:'物理危害'} : {bio:'Biological',chem:'Chemical',phys:'Physical'};
       ccpSteps.forEach(function(s, si) {
@@ -1000,7 +1042,7 @@ const Results = (() => {
           html += '<tr>';
           if (hi === 0) html += '<td rowspan="3" style="vertical-align:middle;font-weight:bold;">' + esc(s.stepName || T('步骤','Step ')+(si+1)) + '</td>';
           html += '<td style="font-weight:500;">' + hf[ht] + '</td>';
-          html += '<td style="font-size:7.5pt;">' + esc(h.hazardDesc || '') + '</td>';
+          html += '<td style="font-size:7.5pt;">' + esc(I18n.b(h.hazardDesc || '')) + '</td>';
           html += '<td style="text-align:center;">' + (h.q1||'—') + '</td>';
           html += '<td style="text-align:center;">' + (h.q2||'—') + '</td>';
           html += '<td style="text-align:center;">' + (h.q2_need||'—') + '</td>';
@@ -1008,7 +1050,7 @@ const Results = (() => {
           html += '<td style="text-align:center;">' + (h.q4||'—') + '</td>';
           html += '<td style="text-align:center;">' + (h.q5||'—') + '</td>';
           html += '<td style="text-align:center;">' + r + '</td>';
-          html += '<td style="font-size:7pt;">' + esc((h.aiReasoning || '').length > 100 ? (h.aiReasoning || '').substring(0,100)+'...' : (h.aiReasoning||'')) + '</td>';
+          html += '<td style="font-size:7pt;">' + esc((I18n.b(h.aiReasoning || '').length > 100 ? I18n.b(h.aiReasoning || '').substring(0,100)+'...' : I18n.b(h.aiReasoning||''))) + '</td>';
           html += '</tr>';
         });
       });
@@ -1028,7 +1070,7 @@ const Results = (() => {
           var h = s.hazards[ht];
           if (h && h.isCCP === true) {
             var hf2 = isZh ? {bio:'生物危害',chem:'化学危害',phys:'物理危害'} : {bio:'Biological',chem:'Chemical',phys:'Physical'};
-            ccpList.push({ stepName: s.stepName, hazard: hf2[ht] + ': ' + (h.hazardDesc || '') });
+            ccpList.push({ stepName: s.stepName, hazard: hf2[ht] + ': ' + I18n.b(h.hazardDesc || '') });
           }
         });
       });
@@ -1153,5 +1195,5 @@ const Results = (() => {
   }
 
 
-  return { init };
+  return { init: init, selectPlan: function(id) { setCurrentPlanId(id); init(); } };
 })();

@@ -42,6 +42,11 @@ from database import (
     create_user,
     get_user_by_username,
     get_user_by_id,
+    create_plan,
+    get_plan,
+    list_plans,
+    update_plan,
+    delete_plan,
 )
 
 app = FastAPI(title="HACCP AI 助手后端")
@@ -167,6 +172,20 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class CreatePlanRequest(BaseModel):
+    plan_name: str = ""
+    product_name: str = ""
+    company_name: str = ""
+    content: dict = {}
+
+
+class UpdatePlanRequest(BaseModel):
+    plan_name: str | None = None
+    product_name: str | None = None
+    company_name: str | None = None
+    content: dict | None = None
 
 
 class FillFromTextRequest(BaseModel):
@@ -301,7 +320,7 @@ async def api_publish_template(template_id: int):
 
 FILL_PROMPT = """你是一位专业的HACCP体系审核专家。请根据用户提供的产品/企业文本内容，从中提取出HACCP问卷所需的信息。
 
-请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）：
+请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）。所有文本字段必须使用双语格式（中文|||英文）：
 
 {
   "companyName": "企业名称（如未找到则留空字符串）",
@@ -339,17 +358,17 @@ FILL_PROMPT = """你是一位专业的HACCP体系审核专家。请根据用户�
 
 HAZARD_PROMPT = """你是一位专业的HACCP危害分析专家。请根据用户提供的产品信息，分析该产品可能存在的生物、化学、物理危害。
 
-请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）：
+请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）。desc和control字段必须使用双语格式（中文|||英文）：
 
 {
   "hazardBio": [
-    {"desc": "危害描述（需具体到微生物种类）", "severity": "高/中/低", "likelihood": "高/中/低", "control": "控制措施"}
+    {"desc": "沙门氏菌污染风险|||Salmonella contamination risk", "severity": "高", "likelihood": "中", "control": "充分加热至中心温度≥75℃|||Heat thoroughly to core temperature ≥75°C"}
   ],
   "hazardChem": [
-    {"desc": "危害描述（需具体到化学物质名称）", "severity": "高/中/低", "likelihood": "高/中/低", "control": "控制措施"}
+    {"desc": "农药残留（有机磷类）|||Pesticide residues (organophosphates)", "severity": "高", "likelihood": "低", "control": "原料验收查验检测报告|||Verify supplier test reports at receiving"}
   ],
   "hazardPhys": [
-    {"desc": "危害描述（需具体到异物类型）", "severity": "高/中/低", "likelihood": "高/中/低", "control": "控制措施"}
+    {"desc": "金属异物（设备磨损碎片）|||Metal fragments (equipment wear)", "severity": "中", "likelihood": "中", "control": "金属检测仪在线检测|||Online metal detector inspection"}
   ]
 }
 
@@ -357,9 +376,10 @@ HAZARD_PROMPT = """你是一位专业的HACCP危害分析专家。请根据用�
 1. hazardBio 至少列出 2-3 项该产品类型最常见的生物危害（如沙门氏菌、大肠杆菌、霉菌等）
 2. hazardChem 至少列出 2-3 项该产品类型最常见的化学危害（如农药残留、重金属、添加剂滥用等）
 3. hazardPhys 至少列出 1-2 项该产品类型最常见的物理危害（如金属异物、玻璃碎片、砂石等）
-4. severity 和 likelihood 要根据该产品类型的风险水平给出合理的评估
+4. severity 和 likelihood 要根据该产品类型的风险水平给出合理的评估（值只能是"高/中/低"）
 5. control 要给出具体可行的控制措施
-6. 所有字段都必须包含在返回的JSON中"""
+6. desc 和 control 字段必须使用双语格式（中文|||英文）
+7. 所有字段都必须包含在返回的JSON中"""
 
 
 @app.post("/api/ai/product-hazards")
@@ -428,68 +448,68 @@ def _mock_product_hazards(product_type: str) -> dict:
     if any(kw in product_lower for kw in ["饮料", "果汁", "乳", "牛奶", "酸奶", "奶"]):
         data = {
             "hazardBio": [
-                {"desc": "沙门氏菌污染", "severity": "高", "likelihood": "中", "control": "原料验收严格把关，充分杀菌处理（中心温度≥85℃保持15s以上）"},
-                {"desc": "大肠杆菌群超标", "severity": "高", "likelihood": "中", "control": "严格卫生控制，定时清洗消毒生产线"},
-                {"desc": "霉菌和酵母菌繁殖", "severity": "中", "likelihood": "中", "control": "控制灌装环境洁净度，无菌灌装"},
+                {"desc": "沙门氏菌污染|||Salmonella contamination", "severity": "高", "likelihood": "中", "control": "原料验收严格把关，充分杀菌处理（中心温度≥85℃保持15s以上）|||Strict raw material inspection, thorough sterilization (core temp ≥85°C for ≥15s)"},
+                {"desc": "大肠杆菌群超标|||Coliform bacteria exceeding limits", "severity": "高", "likelihood": "中", "control": "严格卫生控制，定时清洗消毒生产线|||Strict hygiene control, regular cleaning and disinfection of production line"},
+                {"desc": "霉菌和酵母菌繁殖|||Mold and yeast growth", "severity": "中", "likelihood": "中", "control": "控制灌装环境洁净度，无菌灌装|||Control filling environment cleanliness, aseptic filling"},
             ],
             "hazardChem": [
-                {"desc": "农药残留（有机磷、拟除虫菊酯等）", "severity": "高", "likelihood": "低", "control": "原料验收时查验农药残留检测报告"},
-                {"desc": "重金属污染（铅、砷、汞）", "severity": "高", "likelihood": "低", "control": "定期对原料进行重金属检测，符合GB 2762"},
-                {"desc": "食品添加剂超量使用（防腐剂、色素等）", "severity": "中", "likelihood": "低", "control": "严格按GB 2760标准控制添加量，建立配料复核制度"},
+                {"desc": "农药残留（有机磷、拟除虫菊酯等）|||Pesticide residues (organophosphates, pyrethroids, etc.)", "severity": "高", "likelihood": "低", "control": "原料验收时查验农药残留检测报告|||Verify pesticide residue test reports at receiving"},
+                {"desc": "重金属污染（铅、砷、汞）|||Heavy metal contamination (Pb, As, Hg)", "severity": "高", "likelihood": "低", "control": "定期对原料进行重金属检测，符合GB 2762|||Periodic heavy metal testing per GB 2762"},
+                {"desc": "食品添加剂超量使用（防腐剂、色素等）|||Excessive food additives (preservatives, colorants, etc.)", "severity": "中", "likelihood": "低", "control": "严格按GB 2760标准控制添加量，建立配料复核制度|||Strictly control dosage per GB 2760, establish ingredient verification system"},
             ],
             "hazardPhys": [
-                {"desc": "玻璃碎片（容器破损）", "severity": "高", "likelihood": "低", "control": "灯检工序检查，建立玻璃制品管理制度"},
-                {"desc": "金属异物（设备磨损碎片）", "severity": "中", "likelihood": "中", "control": "配备金属检测仪，定期检查设备磨损情况"},
+                {"desc": "玻璃碎片（容器破损）|||Glass fragments (container breakage)", "severity": "高", "likelihood": "低", "control": "灯检工序检查，建立玻璃制品管理制度|||Light inspection process, establish glassware management system"},
+                {"desc": "金属异物（设备磨损碎片）|||Metal fragments (equipment wear)", "severity": "中", "likelihood": "中", "control": "配备金属检测仪，定期检查设备磨损情况|||Install metal detectors, regularly check equipment wear"},
             ],
         }
     # 肉制品/水产类
     elif any(kw in product_lower for kw in ["肉", "鱼", "水产", "海鲜", "虾", "蟹"]):
         data = {
             "hazardBio": [
-                {"desc": "沙门氏菌污染", "severity": "高", "likelihood": "高", "control": "原料冷链控制（中心温度≤4℃），充分加热至中心温度≥75℃"},
-                {"desc": "李斯特菌污染", "severity": "高", "likelihood": "中", "control": "严格冷链管理，热处理后防止交叉污染"},
-                {"desc": "大肠杆菌O157:H7", "severity": "高", "likelihood": "中", "control": "原料来源管控，充分加热杀菌"},
+                {"desc": "沙门氏菌污染|||Salmonella contamination", "severity": "高", "likelihood": "高", "control": "原料冷链控制（中心温度≤4℃），充分加热至中心温度≥75℃|||Cold chain control (core temp ≤4°C), heat thoroughly to core temp ≥75°C"},
+                {"desc": "李斯特菌污染", "severity": "高", "likelihood": "中", "control": "严格冷链管理，热处理后防止交叉污染|||Strict cold chain management, prevent cross-contamination after heat treatment"},
+                {"desc": "大肠杆菌O157:H7", "severity": "高", "likelihood": "中", "control": "原料来源管控，充分加热杀菌|||Raw material source control, thorough heat sterilization"},
             ],
             "hazardChem": [
-                {"desc": "兽药残留（抗生素、激素）", "severity": "高", "likelihood": "中", "control": "查验供应商兽药残留检测报告，定期抽检"},
-                {"desc": "亚硝酸盐超标（腌制剂使用不当）", "severity": "高", "likelihood": "低", "control": "严格按GB 2760控制亚硝酸盐使用量"},
-                {"desc": "生物胺（组胺）超标", "severity": "中", "likelihood": "低", "control": "控制原料新鲜度，冷链运输储存"},
+                {"desc": "兽药残留（抗生素、激素）|||Veterinary drug residues (antibiotics, hormones)", "severity": "高", "likelihood": "中", "control": "查验供应商兽药残留检测报告，定期抽检|||Verify supplier veterinary drug residue reports, periodic spot checks"},
+                {"desc": "亚硝酸盐超标（腌制剂使用不当）|||Excessive nitrite (improper curing agent use)", "severity": "高", "likelihood": "低", "control": "严格按GB 2760控制亚硝酸盐使用量|||Strictly control nitrite usage per GB 2760"},
+                {"desc": "生物胺（组胺）超标|||Biogenic amines (histamine) exceeding limits", "severity": "中", "likelihood": "低", "control": "控制原料新鲜度，冷链运输储存|||Control raw material freshness, cold chain transport and storage"},
             ],
             "hazardPhys": [
-                {"desc": "碎骨残留", "severity": "中", "likelihood": "中", "control": "修割工序去除碎骨，配备X光异物检测"},
-                {"desc": "金属碎片（设备刀片磨损）", "severity": "中", "likelihood": "中", "control": "金属检测仪在线检测，定期维护刀具设备"},
+                {"desc": "碎骨残留|||Bone fragments", "severity": "中", "likelihood": "中", "control": "修割工序去除碎骨，配备X光异物检测|||Remove bone fragments during trimming, install X-ray inspection"},
+                {"desc": "金属碎片（设备刀片磨损）", "severity": "中", "likelihood": "中", "control": "金属检测仪在线检测，定期维护刀具设备|||Online metal detector inspection, regular blade maintenance"},
             ],
         }
     # 烘焙/糕点/面食类
     elif any(kw in product_lower for kw in ["面包", "蛋糕", "糕点", "饼干", "面粉", "面", "烘焙"]):
         data = {
             "hazardBio": [
-                {"desc": "霉菌污染（黄曲霉等产毒霉菌）", "severity": "高", "likelihood": "中", "control": "原料验收控制水分，储存环境湿度≤60%"},
-                {"desc": "金黄色葡萄球菌（操作人员污染）", "severity": "中", "likelihood": "中", "control": "严格人员卫生管理，手部消毒"},
-                {"desc": "沙门氏菌（蛋液污染）", "severity": "高", "likelihood": "低", "control": "使用灭菌蛋液/巴氏杀菌蛋液"},
+                {"desc": "霉菌污染（黄曲霉等产毒霉菌）|||Mold contamination (aflatoxin-producing molds)", "severity": "高", "likelihood": "中", "control": "原料验收控制水分，储存环境湿度≤60%|||Control moisture at receiving, storage humidity ≤60%"},
+                {"desc": "金黄色葡萄球菌（操作人员污染）|||Staphylococcus aureus (personnel contamination)", "severity": "中", "likelihood": "中", "control": "严格人员卫生管理，手部消毒|||Strict personnel hygiene, hand sanitization"},
+                {"desc": "沙门氏菌（蛋液污染）|||Salmonella (egg liquid contamination)", "severity": "高", "likelihood": "低", "control": "使用灭菌蛋液/巴氏杀菌蛋液|||Use sterilized/pasteurized egg liquid"},
             ],
             "hazardChem": [
-                {"desc": "食品添加剂超量（防腐剂、膨松剂、色素）", "severity": "中", "likelihood": "低", "control": "严格按GB 2760标准控制，建立双人复核制度"},
-                {"desc": "丙烯酰胺（高温烘烤产生）", "severity": "中", "likelihood": "中", "control": "控制烘烤温度≤200℃，避免过度烘烤"},
+                {"desc": "食品添加剂超量（防腐剂、膨松剂、色素）|||Excessive food additives (preservatives, leavening agents, colorants)", "severity": "中", "likelihood": "低", "control": "严格按GB 2760标准控制，建立双人复核制度|||Strict GB 2760 compliance, dual-person verification system"},
+                {"desc": "丙烯酰胺（高温烘烤产生）|||Acrylamide (from high-temperature baking)", "severity": "中", "likelihood": "中", "control": "控制烘烤温度≤200℃，避免过度烘烤|||Control baking temp ≤200°C, avoid over-baking"},
                 {"desc": "重金属污染（原料带入）", "severity": "中", "likelihood": "低", "control": "原料供应商审核，定期检测"},
             ],
             "hazardPhys": [
-                {"desc": "金属异物（设备刮片、筛网破损）", "severity": "中", "likelihood": "中", "control": "筛网定期检查，配备金属检测仪"},
-                {"desc": "砂石/硬质颗粒（原料带入）", "severity": "中", "likelihood": "低", "control": "原料过筛处理，磁选除杂"},
+                {"desc": "金属异物（设备刮片、筛网破损）|||Metal fragments (scraper/screen damage)", "severity": "中", "likelihood": "中", "control": "筛网定期检查，配备金属检测仪|||Regular screen inspection, install metal detectors"},
+                {"desc": "砂石/硬质颗粒（原料带入）|||Stones/hard particles (from raw materials)", "severity": "中", "likelihood": "低", "control": "原料过筛处理，磁选除杂|||Raw material sieving, magnetic separation"},
             ],
         }
     # 罐头/腌制品/酱料类
     elif any(kw in product_lower for kw in ["罐头", "腌制", "酱", "调味", "泡菜", "发酵"]):
         data = {
             "hazardBio": [
-                {"desc": "肉毒杆菌（低酸罐头）", "severity": "高", "likelihood": "低", "control": "杀菌釜充分杀菌（F0≥3min），监控中心温度和时间"},
-                {"desc": "乳酸菌超标（发酵控制不当）", "severity": "低", "likelihood": "中", "control": "控制发酵温度和时间，定期检测酸度"},
-                {"desc": "霉菌和酵母菌（密封不良）", "severity": "中", "likelihood": "低", "control": "确保密封完整，定期检查包装气密性"},
+                {"desc": "肉毒杆菌（低酸罐头）|||Clostridium botulinum (low-acid canned food)", "severity": "高", "likelihood": "低", "control": "杀菌釜充分杀菌（F0≥3min），监控中心温度和时间|||Thorough autoclave sterilization (F0≥3min), monitor core temp and time"},
+                {"desc": "乳酸菌超标（发酵控制不当）|||Lactic acid bacteria exceeding limits (improper fermentation control)", "severity": "低", "likelihood": "中", "control": "控制发酵温度和时间，定期检测酸度|||Control fermentation temp and time, periodic acidity testing"},
+                {"desc": "霉菌和酵母菌（密封不良）|||Mold and yeast (poor sealing)", "severity": "中", "likelihood": "低", "control": "确保密封完整，定期检查包装气密性|||Ensure seal integrity, periodic packaging leak testing"},
             ],
             "hazardChem": [
-                {"desc": "亚硝酸盐超标", "severity": "高", "likelihood": "中", "control": "控制腌制时间（≥20天充分分解），定期检测亚硝酸盐含量"},
+                {"desc": "亚硝酸盐超标", "severity": "高", "likelihood": "中", "control": "控制腌制时间（≥20天充分分解），定期检测亚硝酸盐含量|||Control curing time (≥20 days for full decomposition), periodic nitrite testing"},
                 {"desc": "防腐剂超量使用", "severity": "中", "likelihood": "低", "control": "严格按GB 2760控制，建立添加记录台账"},
-                {"desc": "重金属溶出（包装容器迁移）", "severity": "中", "likelihood": "低", "control": "使用食品级包装材料，定期检测迁移量"},
+                {"desc": "重金属溶出（包装容器迁移）|||Heavy metal migration (from packaging containers)", "severity": "中", "likelihood": "低", "control": "使用食品级包装材料，定期检测迁移量|||Use food-grade packaging, periodic migration testing"},
             ],
             "hazardPhys": [
                 {"desc": "金属异物（设备磨损）", "severity": "中", "likelihood": "低", "control": "金属检测仪检测，定期维护设备"},
@@ -500,35 +520,35 @@ def _mock_product_hazards(product_type: str) -> dict:
     elif any(kw in product_lower for kw in ["冷冻", "速冻", "冰", "冰淇淋"]):
         data = {
             "hazardBio": [
-                {"desc": "李斯特菌（耐低温）", "severity": "高", "likelihood": "中", "control": "原料控制，加工环境温度≤12℃，生产后迅速冷冻"},
-                {"desc": "沙门氏菌（原料带入）", "severity": "高", "likelihood": "低", "control": "原料验收把关，预处理充分清洗"},
-                {"desc": "金黄色葡萄球菌（操作污染）", "severity": "中", "likelihood": "中", "control": "严格人员卫生，冷链不断链"},
+                {"desc": "李斯特菌（耐低温）|||Listeria monocytogenes (cold-tolerant)", "severity": "高", "likelihood": "中", "control": "原料控制，加工环境温度≤12℃，生产后迅速冷冻|||Raw material control, processing temp ≤12°C, rapid freezing after production"},
+                {"desc": "沙门氏菌（原料带入）", "severity": "高", "likelihood": "低", "control": "原料验收把关，预处理充分清洗|||Strict receiving inspection, thorough pre-washing"},
+                {"desc": "金黄色葡萄球菌（操作污染）", "severity": "中", "likelihood": "中", "control": "严格人员卫生，冷链不断链|||Strict personnel hygiene, unbroken cold chain"},
             ],
             "hazardChem": [
                 {"desc": "兽药/农药残留（原料带入）", "severity": "高", "likelihood": "低", "control": "供应商审核和原料检测报告查验"},
-                {"desc": "添加剂（乳化剂、稳定剂）超量", "severity": "中", "likelihood": "低", "control": "按GB 2760控制，精确称量设备"},
+                {"desc": "添加剂（乳化剂、稳定剂）超量|||Excessive additives (emulsifiers, stabilizers)", "severity": "中", "likelihood": "低", "control": "按GB 2760控制，精确称量设备|||Control per GB 2760, precision weighing equipment"},
             ],
             "hazardPhys": [
                 {"desc": "金属异物（设备刀片磨损）", "severity": "中", "likelihood": "中", "control": "金属检测仪在线检测，设备定期维护"},
-                {"desc": "塑料碎片（包装材料）", "severity": "中", "likelihood": "低", "control": "包装材料验收，生产区域工具管理"},
+                {"desc": "塑料碎片（包装材料）|||Plastic fragments (packaging materials)", "severity": "中", "likelihood": "低", "control": "包装材料验收，生产区域工具管理|||Packaging material inspection, tool management in production area"},
             ],
         }
     # 通用/其他食品
     else:
         data = {
             "hazardBio": [
-                {"desc": "沙门氏菌", "severity": "高", "likelihood": "中", "control": "充分加热处理（中心温度≥75℃），防止交叉污染"},
-                {"desc": "大肠杆菌群超标", "severity": "中", "likelihood": "中", "control": "严格卫生控制，定时清洗消毒生产设备"},
-                {"desc": "霉菌和酵母菌繁殖", "severity": "中", "likelihood": "低", "control": "控制储存环境温湿度，确保包装密封性"},
+                {"desc": "沙门氏菌", "severity": "高", "likelihood": "中", "control": "充分加热处理（中心温度≥75℃），防止交叉污染|||Thorough heat treatment (core temp ≥75°C), prevent cross-contamination"},
+                {"desc": "大肠杆菌群超标|||Coliform bacteria exceeding limits", "severity": "中", "likelihood": "中", "control": "严格卫生控制，定时清洗消毒生产设备"},
+                {"desc": "霉菌和酵母菌繁殖|||Mold and yeast growth", "severity": "中", "likelihood": "低", "control": "控制储存环境温湿度，确保包装密封性|||Control storage temp/humidity, ensure packaging seal integrity"},
             ],
             "hazardChem": [
-                {"desc": "农药残留（种植原料带入）", "severity": "高", "likelihood": "低", "control": "原料验收查验检测报告，供应商资质审核"},
-                {"desc": "重金属污染（铅、砷、镉）", "severity": "高", "likelihood": "低", "control": "定期原料检测，符合GB 2762标准"},
-                {"desc": "食品添加剂超量/非法添加", "severity": "中", "likelihood": "低", "control": "严格按GB 2760标准控制，建立配料复核制度"},
+                {"desc": "农药残留（种植原料带入）|||Pesticide residues (from agricultural raw materials)", "severity": "高", "likelihood": "低", "control": "原料验收查验检测报告，供应商资质审核"},
+                {"desc": "重金属污染（铅、砷、镉）|||Heavy metal contamination (Pb, As, Cd)", "severity": "高", "likelihood": "低", "control": "定期原料检测，符合GB 2762标准|||Periodic raw material testing per GB 2762"},
+                {"desc": "食品添加剂超量/非法添加|||Excessive/illegal food additive use", "severity": "中", "likelihood": "低", "control": "严格按GB 2760标准控制，建立配料复核制度"},
             ],
             "hazardPhys": [
-                {"desc": "金属异物（设备磨损碎片）", "severity": "中", "likelihood": "中", "control": "配备金属检测仪，定期检查维护设备"},
-                {"desc": "砂石/杂质（原料带入）", "severity": "中", "likelihood": "低", "control": "原料清洗和过筛处理，磁选除杂"},
+                {"desc": "金属异物（设备磨损碎片）|||Metal fragments (equipment wear)", "severity": "中", "likelihood": "中", "control": "配备金属检测仪，定期检查维护设备"},
+                {"desc": "砂石/杂质（原料带入）", "severity": "中", "likelihood": "低", "control": "原料清洗和过筛处理，磁选除杂|||Raw material washing and sieving, magnetic separation"},
             ],
         }
 
@@ -794,10 +814,10 @@ def _mock_fill_from_text(text: str) -> dict:
     text_lower = text.lower()
     data = {
         "companyName": "",
-        "deptName": "品控部",
+        "deptName": "品控部|||QC Department",
         "haccpTeam": [
-            {"name": "张工", "dept": "品控部", "position": "主管", "role": "组长"},
-            {"name": "李工", "dept": "生产部", "position": "主任", "role": "副组长"},
+            {"name": "张工", "dept": "品控部|||QC Department", "position": "主管|||Supervisor", "role": "组长|||Team Leader"},
+            {"name": "李工", "dept": "生产部", "position": "主任|||Director", "role": "副组长|||Deputy Leader"},
         ],
         "auditor": "王审核员",
         "productName": "",
@@ -815,18 +835,18 @@ def _mock_fill_from_text(text: str) -> dict:
         "execStandard": "gb",
         "criticalLimits": "",
         "hazardBio": [
-            {"desc": "微生物污染", "severity": "高", "likelihood": "中", "control": "严格卫生控制"}
+            {"desc": "微生物污染|||Microbial contamination", "severity": "高", "likelihood": "中", "control": "严格卫生控制|||Strict hygiene control"}
         ],
         "hazardChem": [
-            {"desc": "化学残留", "severity": "中", "likelihood": "低", "control": "原料检测"}
+            {"desc": "化学残留|||Chemical residues", "severity": "中", "likelihood": "低", "control": "原料检测|||Raw material testing"}
         ],
         "hazardPhys": [
-            {"desc": "异物混入", "severity": "中", "likelihood": "中", "control": "金属检测"}
+            {"desc": "异物混入|||Foreign object contamination", "severity": "中", "likelihood": "中", "control": "金属检测|||Metal detection"}
         ],
         "monitoring": [],
         "correctiveActions": [],
-        "recordPeriod": "2年",
-        "recordFormat": "电子版+纸质版",
+        "recordPeriod": "2年|||2 years",
+        "recordFormat": "电子版+纸质版|||Electronic + paper copies",
     }
 
     # 简单关键词提取
@@ -851,16 +871,16 @@ def _mock_fill_from_text(text: str) -> dict:
 
 FLOWCHART_PROMPT = """你是一位专业的食品生产工艺工程师。请根据用户提供的产品信息，设计一份详细、合理、符合HACCP标准的生产工艺流程图步骤。
 
-请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）：
+请严格按照以下JSON格式返回结果（只返回JSON，不要任何额外文字）。所有文本字段必须使用双语格式（中文|||英文）：
 
 {
   "steps": [
     {
-      "stepName": "步骤名称",
-      "operationMethod": "具体操作方法",
-      "parameters": "工艺参数（如温度、时间、转速等）",
-      "controlPoint": "控制点/关键控制点说明，如果是CCP则标注CCP-X",
-      "equipmentName": "使用的设备名称"
+      "stepName": "原料验收|||Raw Material Receiving",
+      "operationMethod": "检查供应商检测报告，核对原料批次、感官检查|||Check supplier test reports, verify batch numbers, sensory inspection",
+      "parameters": "温度≤25℃，湿度≤65%|||Temperature ≤25°C, Humidity ≤65%",
+      "controlPoint": "CCP-1 原料接收|||CCP-1 Receiving",
+      "equipmentName": "称量设备|||Weighing equipment"
     }
   ]
 }
@@ -871,7 +891,8 @@ FLOWCHART_PROMPT = """你是一位专业的食品生产工艺工程师。请根�
 3. 根据HACCP原则标注关键控制点（CCP）
 4. 步骤数量：5-10个
 5. 每一步的操作方法要详细
-6. 返回的JSON中steps数组不能为空"""
+6. 所有文本字段必须包含双语（中文|||英文），stepName、operationMethod、parameters、controlPoint、equipmentName都需要
+7. 返回的JSON中steps数组不能为空"""
 
 
 CCP_JUDGMENT_PROMPT = """你是一位专业的HACCP危害分析与关键控制点（CCP）判定专家。请根据Codex Alimentarius CCP决策树，对用户提供的每个加工步骤，分析其中的生物危害、化学危害和物理危害，并给出CCP判定结果。
@@ -885,7 +906,7 @@ CCP_JUDGMENT_PROMPT = """你是一位专业的HACCP危害分析与关键控制�
       "stepName": "步骤名称",
       "hazards": {
         "bio": {
-          "hazardDesc": "该步骤可能存在的具体生物危害描述",
+          "hazardDesc": "致病菌污染风险（沙门氏菌、大肠杆菌等）|||Pathogenic bacteria contamination risk (Salmonella, E. coli, etc.)",
           "q1": "是",
           "q2": "是",
           "q2_need": null,
@@ -893,10 +914,10 @@ CCP_JUDGMENT_PROMPT = """你是一位专业的HACCP危害分析与关键控制�
           "q4": "是",
           "q5": "否",
           "isCCP": true,
-          "reasoning": "判定理由：该步骤存在生物危害（致病菌污染风险），已有温度控制措施（Q2=是），但该步骤并非专门设计用于消除危害（Q3=否），且后续无杀菌工序可消除该危害（Q5=否），故判定为CCP。"
+          "reasoning": "该步骤存在生物危害（致病菌污染风险），已有温度控制措施（Q2=是），但该步骤并非专门设计用于消除危害（Q3=否），且后续无杀菌工序可消除该危害（Q5=否），故判定为CCP。|||This step has biological hazard (pathogen risk). Temperature controls exist (Q2=Yes) but are not specifically designed to eliminate hazards (Q3=No). No subsequent sterilization step (Q5=No), therefore it is a CCP."
         },
         "chem": {
-          "hazardDesc": "该步骤可能存在的具体化学危害描述",
+          "hazardDesc": "农药残留、重金属超标风险|||Pesticide residue and heavy metal contamination risk",
           "q1": "是",
           "q2": "是",
           "q2_need": null,
@@ -904,10 +925,10 @@ CCP_JUDGMENT_PROMPT = """你是一位专业的HACCP危害分析与关键控制�
           "q4": "否",
           "q5": null,
           "isCCP": false,
-          "reasoning": "判定理由：该步骤存在化学危害，有控制措施（Q2=是），但该步骤不会导致化学危害升高至不可接受水平（Q4=否），故判定为非CCP。"
+          "reasoning": "该步骤存在化学危害，有控制措施（Q2=是），但该步骤不会导致化学危害升高至不可接受水平（Q4=否），故判定为非CCP。|||This step has chemical hazards. Controls exist (Q2=Yes), but this step does not increase chemical hazards to unacceptable levels (Q4=No), therefore NOT a CCP."
         },
         "phys": {
-          "hazardDesc": "该步骤可能存在的具体物理危害描述",
+          "hazardDesc": "金属碎片混入风险（设备磨损）|||Metal fragment contamination risk (equipment wear)",
           "q1": "是",
           "q2": "是",
           "q2_need": null,
@@ -915,7 +936,7 @@ CCP_JUDGMENT_PROMPT = """你是一位专业的HACCP危害分析与关键控制�
           "q4": null,
           "q5": null,
           "isCCP": true,
-          "reasoning": "判定理由：该步骤存在物理危害，该步骤专门设计用于消除物理危害（Q3=是），故判定为CCP。"
+          "reasoning": "该步骤存在物理危害，该步骤专门设计用于消除物理危害（Q3=是），故判定为CCP。|||This step has physical hazards. It is specifically designed to eliminate physical hazards (Q3=Yes), therefore it is a CCP."
         }
       }
     }
@@ -934,13 +955,14 @@ Q5: 后续步骤或操作是否会消除该危害，或将其降低至可接受�
 1. 每个步骤都必须对bio/chem/phys三类危害分别进行独立判定（共3个判定/步骤）
 2. q1-q5字段值只能是字符串"是"或"否"；q2_need仅在q2="否"时填写"是"或"否"，其他情况下为null
 3. isCCP: true=是CCP, false=不是CCP, "modify"=需修改后重新评估（仅当q2_need="是"时）
-4. reasoning字段请详细解释判定逻辑，引用决策树的具体分支
-5. hazardDesc字段请用中文具体描述危害（不仅是"微生物污染"，要具体到"沙门氏菌污染"、"农药残留超标"、"金属碎片混入"等）
+4. reasoning字段必须使用双语格式：中文判定理由后加|||再加英文翻译。例如："该步骤存在生物危害，热处理可消除（Q3=是），判定为CCP。|||This step has biological hazards. Heat treatment eliminates them (Q3=Yes), determined as CCP."
+5. hazardDesc字段必须使用双语格式：中文危害描述后加|||再加英文翻译。例如："沙门氏菌污染风险|||Salmonella contamination risk"
 6. 如果某个步骤明显不存在某种危害（如包装步骤通常无生物危害），Q1可以判定为"否"，此时q2-q5均设为null，isCCP=false
 7. 对于通用食品加工流程，请基于食品行业HACCP通用知识进行合理判断
 8. 返回的judgments数组长度必须等于步骤数，stepIndex从0开始递增
 9. 杀菌/热处理/灭菌/蒸煮类步骤通常Q3=是（专门设计消除生物危害），应判定为CCP
 10. 金属检测/X光/异物检测类步骤通常Q3=是（专门设计消除物理危害），应判定为CCP"""
+
 
 
 MATERIAL_MATCH_PROMPT = """你是一位食品原料数据库管理专家。用户输入了一些食品原料名称，你需要从数据库的原料列表中找到每个输入名称的语义最接近匹配项。
@@ -1035,42 +1057,42 @@ def _mock_generate_flowchart(req: GenerateFlowchartRequest) -> dict:
 
     if "饮料" in product or "乳" in product or "果汁" in product:
         steps = [
-            {"stepName": "原料验收", "operationMethod": "检查供应商检测报告，核对原料批次、生产日期，感官检查", "parameters": "温度≤25℃", "controlPoint": "CCP-1 原料接收", "equipmentName": ""},
-            {"stepName": "预处理", "operationMethod": "原料清洗、去皮、去核，按配方称量", "parameters": "清洗水温≤30℃，时间≥2min", "controlPoint": "", "equipmentName": "清洗机、称量设备"},
-            {"stepName": "调配混料", "operationMethod": "按配方将原料、辅料、添加剂投入调配罐，搅拌均匀", "parameters": "转速150-200rpm，搅拌时间15-20min，温度≤10℃", "controlPoint": "", "equipmentName": "调配罐、搅拌器"},
-            {"stepName": "均质", "operationMethod": "将混合液通过均质机处理，使组织均匀细腻", "parameters": "均质压力20-30MPa，温度60-70℃", "controlPoint": "", "equipmentName": "均质机"},
-            {"stepName": "杀菌", "operationMethod": "采用超高温瞬时杀菌（UHT）或巴氏杀菌", "parameters": "UHT:136-140℃，4-6s；巴氏:85-95℃，15-30s", "controlPoint": "CCP-2 杀菌工序", "equipmentName": "板式换热器/UHT杀菌机"},
-            {"stepName": "无菌灌装", "operationMethod": "在无菌环境下灌装至洁净包装容器，封口", "parameters": "灌装温度≤30℃，环境洁净度万级", "controlPoint": "CCP-3 灌装工序", "equipmentName": "无菌灌装机"},
-            {"stepName": "灯检", "operationMethod": "通过灯检设备检查产品外观、密封性、异物", "parameters": "光照强度≥1000lux，传送速度≤10m/min", "controlPoint": "", "equipmentName": "灯检机"},
-            {"stepName": "喷码/包装", "operationMethod": "瓶身喷印生产日期、批号，装盒/装箱", "parameters": "喷码清晰可辨，包装严密", "controlPoint": "", "equipmentName": "喷码机、包装机"},
-            {"stepName": "成品检验", "operationMethod": "按标准抽样进行微生物、理化、感官检验", "parameters": "抽样比例≥3‰，检验标准GB/T 27306", "controlPoint": "", "equipmentName": "实验室设备"},
-            {"stepName": "入库/出厂", "operationMethod": "检验合格品入库，不合格品隔离处理", "parameters": "库温≤25℃，湿度≤65%", "controlPoint": "", "equipmentName": "叉车"},
+            {"stepName": "原料验收|||Raw Material Receiving", "operationMethod": "检查供应商检测报告，核对原料批次、生产日期，感官检查|||Check supplier reports, verify batch/lot, production date, sensory inspection", "parameters": "温度≤25℃|||Temperature ≤25°C", "controlPoint": "CCP-1 原料接收|||CCP-1 Receiving", "equipmentName": ""},
+            {"stepName": "预处理|||Pre-treatment", "operationMethod": "原料清洗、去皮、去核，按配方称量|||Raw material washing, peeling, pitting, weigh per formula", "parameters": "清洗水温≤30℃，时间≥2min|||Wash water temp ≤30°C, time ≥2min", "controlPoint": "", "equipmentName": "清洗机、称量设备|||Washer, weighing equipment"},
+            {"stepName": "调配混料|||Blending/Mixing", "operationMethod": "按配方将原料、辅料、添加剂投入调配罐，搅拌均匀|||Add raw materials, excipients, additives to blending tank per formula, mix thoroughly", "parameters": "转速150-200rpm，搅拌时间15-20min，温度≤10℃|||Speed 150-200rpm, mixing time 15-20min, temp ≤10°C", "controlPoint": "", "equipmentName": "调配罐、搅拌器|||Blending tank, agitator"},
+            {"stepName": "均质|||Homogenization", "operationMethod": "将混合液通过均质机处理，使组织均匀细腻|||Pass mixture through homogenizer for uniform texture", "parameters": "均质压力20-30MPa，温度60-70℃|||Homogenization pressure 20-30MPa, temp 60-70°C", "controlPoint": "", "equipmentName": "均质机|||Homogenizer"},
+            {"stepName": "杀菌|||Sterilization", "operationMethod": "采用超高温瞬时杀菌（UHT）或巴氏杀菌|||Use UHT or pasteurization", "parameters": "UHT:136-140℃，4-6s；巴氏:85-95℃，15-30s|||UHT: 136-140°C, 4-6s; Pasteurization: 85-95°C, 15-30s", "controlPoint": "CCP-2 杀菌工序|||CCP-2 Sterilization", "equipmentName": "板式换热器/UHT杀菌机|||Plate heat exchanger / UHT sterilizer"},
+            {"stepName": "无菌灌装|||Aseptic Filling", "operationMethod": "在无菌环境下灌装至洁净包装容器，封口|||Fill into clean packaging containers in aseptic environment, seal", "parameters": "灌装温度≤30℃，环境洁净度万级|||Filling temp ≤30°C, Class 10,000 cleanroom", "controlPoint": "CCP-3 灌装工序|||CCP-3 Filling", "equipmentName": "无菌灌装机|||Aseptic filling machine"},
+            {"stepName": "灯检|||Light Inspection", "operationMethod": "通过灯检设备检查产品外观、密封性、异物|||Inspect product appearance, seal integrity, foreign objects via light inspection", "parameters": "光照强度≥1000lux，传送速度≤10m/min|||Light intensity ≥1000lux, conveyor speed ≤10m/min", "controlPoint": "", "equipmentName": "灯检机|||Light inspection machine"},
+            {"stepName": "喷码/包装|||Coding / Packaging", "operationMethod": "瓶身喷印生产日期、批号，装盒/装箱|||Print production date, batch number on bottle; carton/case packing", "parameters": "喷码清晰可辨，包装严密|||Clear coding, tight packaging", "controlPoint": "", "equipmentName": "喷码机、包装机|||Coding machine, packaging machine"},
+            {"stepName": "成品检验|||Finished Product Inspection", "operationMethod": "按标准抽样进行微生物、理化、感官检验|||Sample testing per standard for microbiological, chemical, sensory analysis", "parameters": "抽样比例≥3‰，检验标准GB/T 27306|||Sampling rate ≥3‰, per GB/T 27306", "controlPoint": "", "equipmentName": "实验室设备|||Laboratory equipment"},
+            {"stepName": "入库/出厂|||Warehousing / Shipping", "operationMethod": "检验合格品入库，不合格品隔离处理|||Store qualified products, isolate and handle non-conforming products", "parameters": "库温≤25℃，湿度≤65%|||Storage temp ≤25°C, humidity ≤65%", "controlPoint": "", "equipmentName": "叉车|||Forklift"},
         ]
     elif "肉" in product or "鱼" in product or "水产" in product:
         steps = [
-            {"stepName": "原料验收", "operationMethod": "检查原料肉/水产的检疫证明、新鲜度、中心温度", "parameters": "中心温度≤4℃，pH值5.8-6.2", "controlPoint": "CCP-1 原料接收", "equipmentName": ""},
-            {"stepName": "解冻/清洗", "operationMethod": "自然解冻或流动水解冻，去除不可食部分，清水漂洗", "parameters": "解冻温度≤15℃（水冷），清洗水温≤10℃", "controlPoint": "", "equipmentName": "解冻槽、清洗槽"},
-            {"stepName": "修割/切分", "operationMethod": "去除筋膜、淤血、碎骨，按规格切分成型", "parameters": "环境温度≤12℃，切分厚度均匀±2mm", "controlPoint": "", "equipmentName": "切肉机、刀具"},
-            {"stepName": "腌制/调味", "operationMethod": "按配方添加腌料、香辛料，真空滚揉或静置腌制", "parameters": "腌制温度0-4℃，滚揉时间30-60min", "controlPoint": "", "equipmentName": "真空滚揉机"},
-            {"stepName": "热处理", "operationMethod": "蒸煮/油炸/烘烤至中心温度达标", "parameters": "中心温度≥75℃，时间≥30s", "controlPoint": "CCP-2 热处理工序", "equipmentName": "蒸煮柜/油炸线/烤箱"},
-            {"stepName": "冷却", "operationMethod": "产品快速冷却至包装温度", "parameters": "中心温度降至≤10℃，冷却时间≤60min", "controlPoint": "", "equipmentName": "速冷装置/冷却间"},
-            {"stepName": "金属检测", "operationMethod": "产品通过金属检测仪，检测金属异物", "parameters": "Fe≥1.5mm，SUS≥2.0mm", "controlPoint": "CCP-3 金属检测", "equipmentName": "金属检测仪"},
-            {"stepName": "气调/真空包装", "operationMethod": "在包装机内充入保护气体或抽真空后封口", "parameters": "残氧量≤1%，封口温度140-160℃", "controlPoint": "", "equipmentName": "气调包装机/真空包装机"},
-            {"stepName": "二次杀菌（可选）", "operationMethod": "包装后巴氏杀菌，延长保质期", "parameters": "中心温度80-85℃，保持10-15min", "controlPoint": "", "equipmentName": "杀菌釜"},
-            {"stepName": "入库冷藏", "operationMethod": "快速入冷库，温度监控记录", "parameters": "库温0-4℃（冷藏）/ -18℃（冷冻）", "controlPoint": "", "equipmentName": "冷库"},
+            {"stepName": "原料验收|||Raw Material Receiving", "operationMethod": "检查原料肉/水产的检疫证明、新鲜度、中心温度|||Inspect quarantine certificate, freshness, core temp of raw meat/seafood", "parameters": "中心温度≤4℃，pH值5.8-6.2|||Core temp ≤4°C, pH 5.8-6.2", "controlPoint": "CCP-1 原料接收|||CCP-1 Receiving", "equipmentName": ""},
+            {"stepName": "解冻/清洗|||Thawing / Washing", "operationMethod": "自然解冻或流动水解冻，去除不可食部分，清水漂洗|||Natural or running water thawing, remove inedible parts, rinse", "parameters": "解冻温度≤15℃（水冷），清洗水温≤10℃|||Thawing temp ≤15°C (water), wash water temp ≤10°C", "controlPoint": "", "equipmentName": "解冻槽、清洗槽|||Thawing tank, washing tank"},
+            {"stepName": "修割/切分|||Trimming / Cutting", "operationMethod": "去除筋膜、淤血、碎骨，按规格切分成型|||Remove fascia, bruises, bone fragments; cut to specification", "parameters": "环境温度≤12℃，切分厚度均匀±2mm|||Ambient temp ≤12°C, cutting thickness uniform ±2mm", "controlPoint": "", "equipmentName": "切肉机、刀具|||Meat cutter, knives"},
+            {"stepName": "腌制/调味|||Marinating / Seasoning", "operationMethod": "按配方添加腌料、香辛料，真空滚揉或静置腌制|||Add marinade and spices per formula; vacuum tumbling or static marination", "parameters": "腌制温度0-4℃，滚揉时间30-60min|||Marinating temp 0-4°C, tumbling time 30-60min", "controlPoint": "", "equipmentName": "真空滚揉机|||Vacuum tumbler"},
+            {"stepName": "热处理", "operationMethod": "蒸煮/油炸/烘烤至中心温度达标|||Steam/fry/bake until core temp meets standard", "parameters": "中心温度≥75℃，时间≥30s|||Core temp ≥75°C, time ≥30s", "controlPoint": "CCP-2 热处理工序|||CCP-2 Heat Treatment", "equipmentName": "蒸煮柜/油炸线/烤箱|||Steam cabinet / frying line / oven"},
+            {"stepName": "冷却|||Cooling", "operationMethod": "产品快速冷却至包装温度|||Rapid cooling to packaging temperature", "parameters": "中心温度降至≤10℃，冷却时间≤60min|||Core temp reduced to ≤10°C, cooling time ≤60min", "controlPoint": "", "equipmentName": "速冷装置/冷却间|||Rapid cooling unit / cooling room"},
+            {"stepName": "金属检测|||Metal detection", "operationMethod": "产品通过金属检测仪，检测金属异物|||Pass products through metal detector to detect metal fragments", "parameters": "Fe≥1.5mm，SUS≥2.0mm|||Fe ≥1.5mm, SUS ≥2.0mm", "controlPoint": "CCP-3 金属检测|||CCP-3 Metal Detection", "equipmentName": "金属检测仪|||Metal detector"},
+            {"stepName": "气调/真空包装|||MAP / Vacuum Packaging", "operationMethod": "在包装机内充入保护气体或抽真空后封口|||Fill with protective gas or vacuum and seal in packaging machine", "parameters": "残氧量≤1%，封口温度140-160℃|||Residual O2 ≤1%, sealing temp 140-160°C", "controlPoint": "", "equipmentName": "气调包装机/真空包装机|||MAP machine / vacuum packaging machine"},
+            {"stepName": "二次杀菌（可选）|||Secondary Sterilization (Optional)", "operationMethod": "包装后巴氏杀菌，延长保质期|||Post-packaging pasteurization to extend shelf life", "parameters": "中心温度80-85℃，保持10-15min|||Core temp 80-85°C, hold 10-15min", "controlPoint": "", "equipmentName": "杀菌釜|||Autoclave"},
+            {"stepName": "入库冷藏|||Cold Storage", "operationMethod": "快速入冷库，温度监控记录|||Quick transfer to cold storage, temperature monitoring and recording", "parameters": "库温0-4℃（冷藏）/ -18℃（冷冻）|||Storage temp 0-4°C (chilled) / -18°C (frozen)", "controlPoint": "", "equipmentName": "冷库|||Cold storage"},
         ]
     else:
         steps = [
-            {"stepName": "原料验收", "operationMethod": f"检查{raw_materials}的供应商检测报告、合格证明及感官质量", "parameters": "温度≤25℃，湿度≤65%", "controlPoint": "CCP-1 原料接收", "equipmentName": ""},
-            {"stepName": "预处理/清洗", "operationMethod": "对原料进行分选、清洗、去皮/去壳等预处理", "parameters": "清洗水温≤30℃，清洗时间≥3min", "controlPoint": "", "equipmentName": "清洗槽/分选机"},
-            {"stepName": "称量/配料", "operationMethod": "按配方精确称量各原料、辅料和添加剂", "parameters": "称量精度±1g，复核检验", "controlPoint": "", "equipmentName": "电子秤、配料罐"},
-            {"stepName": "混合/搅拌", "operationMethod": "将各物料投入混合设备，搅拌均匀", "parameters": "搅拌转速120-180rpm，时间10-20min", "controlPoint": "", "equipmentName": "混合机/搅拌机"},
-            {"stepName": "成型/加工", "operationMethod": "根据产品特性进行成型、挤压、切割等加工", "parameters": "成型温度25-35℃，压力0.2-0.5MPa", "controlPoint": "", "equipmentName": "成型机/模具"},
-            {"stepName": "杀菌/热处理", "operationMethod": "根据产品特性选择杀菌方式，确保微生物安全", "parameters": "中心温度≥85℃，保持时间≥15s", "controlPoint": "CCP-2 杀菌工序", "equipmentName": "杀菌釜/隧道式杀菌机"},
-            {"stepName": "金属检测/异物检测", "operationMethod": "产品通过金属检测仪，检测并剔除含金属异物的产品", "parameters": "Fe≥1.0mm，SUS≥1.5mm", "controlPoint": "CCP-3 金属检测", "equipmentName": "金属检测仪"},
-            {"stepName": "内包装", "operationMethod": "在洁净环境中按规格进行内包装，密封", "parameters": "环境洁净度万级，封口温度130-150℃", "controlPoint": "", "equipmentName": "包装机"},
-            {"stepName": "外包装/喷码", "operationMethod": "装箱、喷印生产日期、批号、追溯码", "parameters": "喷码清晰，标识完整", "controlPoint": "", "equipmentName": "喷码机、封箱机"},
-            {"stepName": "成品检验入库", "operationMethod": "按标准抽样检验，合格品入库，不合格品隔离", "parameters": "抽样比例≥5‰，检验按产品执行标准", "controlPoint": "", "equipmentName": "实验室设备"},
+            {"stepName": "原料验收|||Raw Material Receiving", "operationMethod": f"检查{raw_materials}的供应商检测报告、合格证明及感官质量", "parameters": "温度≤25℃，湿度≤65%", "controlPoint": "CCP-1 原料接收|||CCP-1 Receiving", "equipmentName": ""},
+            {"stepName": "预处理/清洗", "operationMethod": "对原料进行分选、清洗、去皮/去壳等预处理", "parameters": "清洗水温≤30℃，清洗时间≥3min|||Wash water temp ≤30°C, time ≥3min", "controlPoint": "", "equipmentName": "清洗槽/分选机|||Washing tank / sorting machine"},
+            {"stepName": "称量/配料|||Weighing / Batching", "operationMethod": "按配方精确称量各原料、辅料和添加剂|||Precisely weigh raw materials, excipients and additives per formula", "parameters": "称量精度±1g，复核检验|||Weighing accuracy ±1g, double-check verification", "controlPoint": "", "equipmentName": "电子秤、配料罐|||Electronic scale, batching tank"},
+            {"stepName": "混合/搅拌|||Mixing / Stirring", "operationMethod": "将各物料投入混合设备，搅拌均匀|||Add materials to mixing equipment, stir until uniform", "parameters": "搅拌转速120-180rpm，时间10-20min|||Stirring speed 120-180rpm, time 10-20min", "controlPoint": "", "equipmentName": "混合机/搅拌机|||Mixer / blender"},
+            {"stepName": "成型/加工|||Forming / Processing", "operationMethod": "根据产品特性进行成型、挤压、切割等加工|||Form, extrude, cut etc. based on product characteristics", "parameters": "成型温度25-35℃，压力0.2-0.5MPa|||Forming temp 25-35°C, pressure 0.2-0.5MPa", "controlPoint": "", "equipmentName": "成型机/模具|||Forming machine / mold"},
+            {"stepName": "杀菌/热处理|||Sterilization / Heat Treatment", "operationMethod": "根据产品特性选择杀菌方式，确保微生物安全|||Select sterilization method based on product characteristics to ensure microbial safety", "parameters": "中心温度≥85℃，保持时间≥15s|||Core temp ≥85°C, hold time ≥15s", "controlPoint": "CCP-2 杀菌工序|||CCP-2 Sterilization", "equipmentName": "杀菌釜/隧道式杀菌机|||Autoclave / tunnel sterilizer"},
+            {"stepName": "金属检测/异物检测|||Metal / Foreign Object Detection", "operationMethod": "产品通过金属检测仪，检测并剔除含金属异物的产品|||Pass products through metal detector, detect and reject products with metal fragments", "parameters": "Fe≥1.0mm，SUS≥1.5mm|||Fe ≥1.0mm, SUS ≥1.5mm", "controlPoint": "CCP-3 金属检测|||CCP-3 Metal Detection", "equipmentName": "金属检测仪|||Metal detector"},
+            {"stepName": "内包装|||Inner Packaging", "operationMethod": "在洁净环境中按规格进行内包装，密封|||Perform inner packaging to specification in clean environment, seal", "parameters": "环境洁净度万级，封口温度130-150℃|||Class 10,000 cleanroom, sealing temp 130-150°C", "controlPoint": "", "equipmentName": "包装机|||Packaging machine"},
+            {"stepName": "外包装/喷码|||Outer Packaging / Coding", "operationMethod": "装箱、喷印生产日期、批号、追溯码|||Carton packing, print production date, batch number, traceability code", "parameters": "喷码清晰，标识完整|||Clear coding, complete labeling", "controlPoint": "", "equipmentName": "喷码机、封箱机|||Coding machine, carton sealer"},
+            {"stepName": "成品检验入库|||Finished Product Inspection & Warehousing", "operationMethod": "按标准抽样检验，合格品入库，不合格品隔离|||Sample testing per standard, store qualified products, isolate non-conforming", "parameters": "抽样比例≥5‰，检验按产品执行标准|||Sampling rate ≥5‰, testing per product standard", "controlPoint": "", "equipmentName": "实验室设备|||Laboratory equipment"},
         ]
 
     return {"ok": True, "data": {"steps": steps}}
@@ -1166,47 +1188,47 @@ def _mock_ccp_judgment(req: CcpJudgmentRequest) -> dict:
         combined = name_lower + om + pm
 
         # 判定规则
-        is_heat_step = any(kw in combined for kw in ["杀菌", "热处理", "蒸煮", "灭菌", "uht", "巴氏", "消毒"])
-        is_metal_step = any(kw in combined for kw in ["金属检测", "异物检测", "x光", "磁选", "筛选"])
+        is_heat_step = any(kw in combined for kw in ["杀菌|||Sterilization", "热处理", "蒸煮", "灭菌", "uht", "巴氏", "消毒"])
+        is_metal_step = any(kw in combined for kw in ["金属检测|||Metal detection", "异物检测", "x光", "磁选", "筛选"])
         is_receiving = any(kw in combined for kw in ["验收", "接收", "原料"])
         is_cleaning = any(kw in combined for kw in ["清洗", "清洁", "cip", "消毒"])
-        is_cooling = any(kw in combined for kw in ["冷却", "降温", "冷藏", "冷冻", "速冻"])
+        is_cooling = any(kw in combined for kw in ["冷却|||Cooling", "降温", "冷藏", "冷冻", "速冻"])
         is_packaging = any(kw in combined for kw in ["包装", "灌装", "封口", "封盖"])
         is_filter = any(kw in combined for kw in ["过滤", "膜滤", "超滤", "离心", "脱色"])
 
         def make_bio_hazard():
             if is_heat_step:
-                return {"hazardDesc": "致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留", "q1": "是", "q2": "是", "q2_need": None, "q3": "是", "q4": None, "q5": None, "isCCP": True, "reasoning": "该步骤存在生物危害风险（致病菌污染），加热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。"}
+                return {"hazardDesc": "致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留|||Pathogenic bacteria (Salmonella, E. coli O157:H7, Listeria, etc.) residual", "q1": "是", "q2": "是", "q2_need": None, "q3": "是", "q4": None, "q5": None, "isCCP": True, "reasoning": "该步骤存在生物危害风险（致病菌污染），加热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。|||This step has biological hazard risk (pathogen contamination). Heat treatment is specifically designed to eliminate microbial hazards (Q3=Yes), therefore it is a CCP."}
             if is_receiving:
-                return {"hazardDesc": "原料可能携带致病菌（沙门氏菌、大肠杆菌等）", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "是", "q5": "是", "isCCP": False, "reasoning": "原料可能存在生物危害，有验收控制措施（Q2=是），但验收非专门设计用于消除危害（Q3=否），污染可能在验收环节被发现而非消除（Q4=是），后续加工步骤（如清洗、杀菌）可消除该危害（Q5=是），故判定为非CCP。"}
+                return {"hazardDesc": "原料可能携带致病菌（沙门氏菌、大肠杆菌等）|||Raw materials may carry pathogens (Salmonella, E. coli, etc.)", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "是", "q5": "是", "isCCP": False, "reasoning": "原料可能存在生物危害，有验收控制措施（Q2=是），但验收非专门设计用于消除危害（Q3=否），污染可能在验收环节被发现而非消除（Q4=是），后续加工步骤（如清洗、杀菌）可消除该危害（Q5=是），故判定为非CCP。|||Raw materials may have biological hazards. Receiving inspection controls exist (Q2=Yes) but are not designed to eliminate hazards (Q3=No). Subsequent processing steps (washing, sterilization) eliminate the hazard (Q5=Yes), therefore NOT a CCP."}
             if is_cooling:
-                return {"hazardDesc": "冷却过程中温度处于适宜微生物繁殖区间，可能导致微生物增殖", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "是", "q5": "否", "isCCP": True, "reasoning": "冷却步骤存在微生物增殖风险，有温度/时间控制措施（Q2=是），但冷却步骤非专门设计用于消除危害（Q3=否），冷却不当会导致污染升高至不可接受水平（Q4=是），后续无杀菌步骤可消除该危害（Q5=否），故判定为CCP。"}
+                return {"hazardDesc": "冷却过程中温度处于适宜微生物繁殖区间，可能导致微生物增殖|||Cooling temperatures in microbial growth range may cause proliferation", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "是", "q5": "否", "isCCP": True, "reasoning": "冷却步骤存在微生物增殖风险，有温度/时间控制措施（Q2=是），但冷却步骤非专门设计用于消除危害（Q3=否），冷却不当会导致污染升高至不可接受水平（Q4=是），后续无杀菌步骤可消除该危害（Q5=否），故判定为CCP。|||Cooling step has microbial growth risk. Temperature/time controls exist (Q2=Yes), but cooling is not designed to eliminate hazards (Q3=No). Improper cooling increases contamination (Q4=Yes). No subsequent sterilization (Q5=No), therefore it is a CCP."}
             if is_cleaning:
-                return {"hazardDesc": "清洗不彻底可能导致微生物残留和交叉污染", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "清洗步骤存在生物危害，有操作规范控制（Q2=是），但清洗不当不会使生物危害升高至不可接受水平（Q4=否），后续通常有杀菌工序，故判定为非CCP。"}
+                return {"hazardDesc": "清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "清洗步骤存在生物危害，有操作规范控制（Q2=是），但清洗不当不会使生物危害升高至不可接受水平（Q4=否），后续通常有杀菌工序，故判定为非CCP。|||Cleaning step has biological hazards. Operational controls exist (Q2=Yes), but improper cleaning does not increase hazards to unacceptable levels (Q4=No). Subsequent sterilization typically follows, therefore NOT a CCP."}
             if is_packaging:
-                return {"hazardDesc": "无明显生物危害", "q1": "否", "q2": None, "q2_need": None, "q3": None, "q4": None, "q5": None, "isCCP": False, "reasoning": "包装步骤在洁净环境下进行，无明显生物危害引入风险（Q1=否），故判定为非CCP。"}
+                return {"hazardDesc": "无明显生物危害|||No significant biological hazard", "q1": "否", "q2": None, "q2_need": None, "q3": None, "q4": None, "q5": None, "isCCP": False, "reasoning": "包装步骤在洁净环境下进行，无明显生物危害引入风险（Q1=否），故判定为非CCP。|||Packaging is performed in a clean environment. No significant biological hazard introduction risk (Q1=No), therefore NOT a CCP."}
             # default
-            return {"hazardDesc": "可能存在的微生物污染风险", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。"}
+            return {"hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."}
 
         def make_chem_hazard():
             if is_receiving:
-                return {"hazardDesc": "农药残留、重金属（铅、砷、镉）、兽药残留超标", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "原料可能存在化学危害，有验收检测控制（Q2=是），但验收步骤不会导致化学危害升高（Q4=否），故判定为非CCP。"}
+                return {"hazardDesc": "农药残留、重金属（铅、砷、镉）、兽药残留超标|||Pesticide residues, heavy metals (Pb, As, Cd), veterinary drug residues", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "原料可能存在化学危害，有验收检测控制（Q2=是），但验收步骤不会导致化学危害升高（Q4=否），故判定为非CCP。|||Raw materials may have chemical hazards. Receiving inspection controls exist (Q2=Yes), but receiving does not increase chemical hazard levels (Q4=No), therefore NOT a CCP."}
             if is_filter:
-                return {"hazardDesc": "加工助剂残留、化学物质溶出", "q1": "是", "q2": "是", "q2_need": None, "q3": "是", "q4": None, "q5": None, "isCCP": True, "reasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。"}
+                return {"hazardDesc": "加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching", "q1": "是", "q2": "是", "q2_need": None, "q3": "是", "q4": None, "q5": None, "isCCP": True, "reasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP."}
             if is_cleaning:
-                return {"hazardDesc": "清洗剂/消毒剂残留", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。"}
+                return {"hazardDesc": "清洗剂/消毒剂残留|||Cleaning agent/disinfectant residues", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。|||Cleaning agent residues may exist. Rinsing controls are in place (Q2=Yes). Proper operations prevent excessive residues (Q4=No), therefore NOT a CCP."}
             # default
-            return {"hazardDesc": "无明显化学危害", "q1": "否", "q2": None, "q2_need": None, "q3": None, "q4": None, "q5": None, "isCCP": False, "reasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。"}
+            return {"hazardDesc": "无明显化学危害|||No significant chemical hazard", "q1": "否", "q2": None, "q2_need": None, "q3": None, "q4": None, "q5": None, "isCCP": False, "reasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."}
 
         def make_phys_hazard():
             if is_metal_step:
-                return {"hazardDesc": "金属碎片（设备磨损、刀片断裂等产生的铁、不锈钢碎片）", "q1": "是", "q2": "是", "q2_need": None, "q3": "是", "q4": None, "q5": None, "isCCP": True, "reasoning": "该步骤存在物理危害（金属异物），金属检测/筛选步骤专门设计用于去除金属异物（Q3=是），故判定为CCP。"}
+                return {"hazardDesc": "金属碎片（设备磨损、刀片断裂等产生的铁、不锈钢碎片）|||Metal fragments (Fe, SUS from equipment wear, blade breakage)", "q1": "是", "q2": "是", "q2_need": None, "q3": "是", "q4": None, "q5": None, "isCCP": True, "reasoning": "该步骤存在物理危害（金属异物），金属检测/筛选步骤专门设计用于去除金属异物（Q3=是），故判定为CCP。|||This step has physical hazards (metal fragments). Metal detection/screening is specifically designed to remove metal objects (Q3=Yes), therefore it is a CCP."}
             if is_receiving:
-                return {"hazardDesc": "原料中可能混入砂石、金属、玻璃等异物", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "原料可能携带物理异物，有验收目视检查（Q2=是），但验收不会增加物理危害（Q4=否），故判定为非CCP。"}
+                return {"hazardDesc": "原料中可能混入砂石、金属、玻璃等异物|||Raw materials may contain stones, metal, glass and other foreign objects", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "原料可能携带物理异物，有验收目视检查（Q2=是），但验收不会增加物理危害（Q4=否），故判定为非CCP。|||Raw materials may carry physical foreign objects. Visual inspection exists (Q2=Yes), but receiving does not increase physical hazards (Q4=No), therefore NOT a CCP."}
             if is_packaging:
-                return {"hazardDesc": "包装材料碎片、封口不良导致异物侵入", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "可能存在包装材料碎片，有目视检查和设备维护控制（Q2=是），风险较低（Q4=否），故判定为非CCP。"}
+                return {"hazardDesc": "包装材料碎片、封口不良导致异物侵入|||Packaging material fragments, foreign object intrusion from poor sealing", "q1": "是", "q2": "是", "q2_need": None, "q3": "否", "q4": "否", "q5": None, "isCCP": False, "reasoning": "可能存在包装材料碎片，有目视检查和设备维护控制（Q2=是），风险较低（Q4=否），故判定为非CCP。|||Packaging material fragments may exist. Visual inspection and equipment maintenance controls are in place (Q2=Yes). Risk is low (Q4=No), therefore NOT a CCP."}
             # default
-            return {"hazardDesc": "无明显物理危害", "q1": "否", "q2": None, "q2_need": None, "q3": None, "q4": None, "q5": None, "isCCP": False, "reasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。"}
+            return {"hazardDesc": "无明显物理危害|||No significant physical hazard", "q1": "否", "q2": None, "q2_need": None, "q3": None, "q4": None, "q5": None, "isCCP": False, "reasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."}
 
         judgments.append({
             "stepIndex": i,
@@ -1230,12 +1252,13 @@ CRITICAL_LIMITS_PROMPT = """你是一位专业的HACCP关键限值专家。请�
 2. 关键限值必须具体、可测量（温度、时间、尺寸、浓度等数值）
 3. 标注每个限值的法规依据（如GB 14881-2013、GB 2762-2022等）
 4. 如果执行标准是国标，则参考GB系列标准
+5. 所有文本字段必须使用双语格式（中文|||英文）
 
 请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
 {
-  "criticalLimits": "所有CCP的关键限值说明文本（Markdown格式，每个CCP一个段落）\n\n格式示例：\n1. **CCP名称**：\n   - 关键限值1：具体数值和单位\n   - 关键限值2：具体数值和单位\n   - 依据：XX标准第X条",
+  "criticalLimits": "1. **CCP名称|||CCP Name**：\n   - 温度≥85℃|||Temperature ≥85°C\n   - 时间≥15秒|||Time ≥15s\n   - 依据：GB 14881-2013|||Per GB 14881-2013",
   "details": [
-    {"ccp": "CCP名称", "limit": "关键限值", "basis": "法规依据", "rationale": "设置理由"}
+    {"ccp": "CCP名称|||CCP Name", "limit": "关键限值|||Critical Limit", "basis": "法规依据|||Regulatory Basis", "rationale": "设置理由|||Rationale"}
   ]
 }"""
 
@@ -1244,14 +1267,15 @@ MONITORING_PROMPT = """你是一位专业的HACCP监控程序专家。请根据�
 监控方案应包含：监控对象（测什么）、监控方法（怎么测）、监控频率（多久测一次）、监控人员（谁来测）。
 
 要求：
-1. 监控方法应具体可操作（如"在线温度传感器连续监控"而非"监控温度"）
+1. 监控方法应具体可操作（如"在线温度传感器连续监控|||Online temperature sensor continuous monitoring"）
 2. 监控频率应根据风险等级合理设置（连续监控/每批次/每日/每周）
 3. 监控人员应有明确资质要求
+4. 所有文本字段必须使用双语格式（中文|||英文）
 
 请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
 {
   "monitoring": [
-    {"ccp": "CCP名称", "object": "监控对象", "method": "监控方法", "frequency": "监控频率", "personnel": "监控人员", "remark": "备注（法规依据等）"}
+    {"ccp": "CCP名称|||CCP Name", "object": "监控对象|||Monitoring Object", "method": "监控方法|||Method", "frequency": "监控频率|||Frequency", "personnel": "监控人员|||Personnel", "remark": "备注|||Remarks"}
   ]
 }"""
 
@@ -1268,11 +1292,12 @@ CORRECTIVE_ACTIONS_PROMPT = """你是一位专业的HACCP纠偏措施专家。�
 1. 纠偏措施必须具体可操作，不能是笼统的描述
 2. 明确谁来执行纠偏、如何记录
 3. 考虑最坏情况（如产品如何处理：隔离/重新加工/销毁）
+4. 所有文本字段必须使用双语格式（中文|||英文）
 
 请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
 {
   "correctiveActions": [
-    {"ccp": "CCP名称", "cl": "关键限值", "corrective": "纠偏措施", "verification": "验证方法", "record": "记录表格名称"}
+    {"ccp": "CCP名称|||CCP Name", "cl": "关键限值|||Critical Limit", "corrective": "纠偏措施|||Corrective Action", "verification": "验证方法|||Verification Method", "record": "记录表格名称|||Record Form Name"}
   ]
 }"""
 
@@ -1285,11 +1310,13 @@ VERIFICATION_PROMPT = """你是一位专业的HACCP验证程序专家。请根�
 
 验证不同于监控——验证是确认整个HACCP体系是否有效运行，而不是对单个CCP的日常监控。
 
+要求：所有文本字段必须使用双语格式（中文|||英文）。
+
 请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
 {
-  "verificationMethod": "验证方法的详细描述文本（建议用编号列表）",
-  "verificationFrequency": "验证频率（如：每日、每周、每批次等）",
-  "verificationPersonnel": "建议的验证人员（如：HACCP小组组长、品控主管等）"
+  "verificationMethod": "1. CCP监控记录审核：每批次审核|||1. CCP Monitoring Review: Per batch audit\n2. 设备校准：每季度|||2. Equipment Calibration: Quarterly",
+  "verificationFrequency": "每日/每周/每月|||Daily/Weekly/Monthly",
+  "verificationPersonnel": "HACCP小组组长|||HACCP Team Leader"
 }"""
 
 
@@ -1373,18 +1400,18 @@ async def api_ai_critical_limits(req: CriticalLimitsRequest):
         details = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw in name for kw in ["杀菌", "热处理", "灭菌"]):
+            if any(kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌"]):
                 limits_text += f"1. **{s.get('stepName', '')}**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "中心温度≥85℃，保持时间≥15秒", "basis": "GB 14881-2013", "rationale": "充分杀灭致病菌"})
-            elif any(kw in name for kw in ["金属检测", "异物"]):
+                details.append({"ccp": s.get("stepName", ""), "limit": "中心温度≥85℃，保持时间≥15秒|||Core temp ≥85°C, hold ≥15s", "basis": "GB 14881-2013", "rationale": "充分杀灭致病菌|||Effectively kills pathogenic bacteria"})
+            elif any(kw in name for kw in ["金属检测|||Metal detection", "异物"]):
                 limits_text += f"2. **{s.get('stepName', '')}**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "Fe≤1.5mm，SUS≤2.0mm", "basis": "GB/T 25346-2010", "rationale": "防止金属异物进入成品"})
+                details.append({"ccp": s.get("stepName", ""), "limit": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "basis": "GB/T 25346-2010", "rationale": "防止金属异物进入成品|||Prevent metal foreign objects in finished product"})
             elif any(kw in name for kw in ["验收", "接收"]):
                 limits_text += f"3. **{s.get('stepName', '')}**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "符合GB 2763/2762限量标准", "basis": "GB 2763-2021、GB 2762-2022", "rationale": "原料安全是HACCP的基础"})
+                details.append({"ccp": s.get("stepName", ""), "limit": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "basis": "GB 2763-2021、GB 2762-2022", "rationale": "原料安全是HACCP的基础|||Raw material safety is the foundation of HACCP"})
             else:
                 limits_text += f"**{s.get('stepName', '')}**：\n   - 需根据实际工艺参数确定\n   - 依据：企业内控标准\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "待定", "basis": "企业内控标准", "rationale": "需根据实际工艺确定"})
+                details.append({"ccp": s.get("stepName", ""), "limit": "待定|||TBD", "basis": "企业内控标准", "rationale": "需根据实际工艺确定|||To be determined per actual process"})
         return {"ok": True, "data": {"criticalLimits": limits_text.strip(), "details": details}}
 
     try:
@@ -1415,14 +1442,14 @@ async def api_ai_monitoring(req: MonitoringRequest):
         monitor = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw in name for kw in ["杀菌", "热处理", "灭菌"]):
-                monitor.append({"ccp": s.get("stepName", ""), "object": "温度、时间", "method": "在线温度传感器连续监控", "frequency": "每批次实时记录", "personnel": "经HACCP培训的品控专员", "remark": "温度偏差需≤±1℃"})
-            elif any(kw in name for kw in ["金属检测", "异物"]):
-                monitor.append({"ccp": s.get("stepName", ""), "object": "金属异物", "method": "在线金属检测仪自动检测", "frequency": "连续监控", "personnel": "设备维护人员+品控专员", "remark": "按GB/T 25346-2010执行"})
+            if any(kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌"]):
+                monitor.append({"ccp": s.get("stepName", ""), "object": "温度、时间|||Temperature, time", "method": "在线温度传感器连续监控|||Online temperature sensor continuous monitoring", "frequency": "每批次实时记录|||Real-time recording per batch", "personnel": "经HACCP培训的品控专员|||HACCP-trained QC specialist", "remark": "温度偏差需≤±1℃|||Temperature deviation ≤±1°C"})
+            elif any(kw in name for kw in ["金属检测|||Metal detection", "异物"]):
+                monitor.append({"ccp": s.get("stepName", ""), "object": "金属异物", "method": "在线金属检测仪自动检测|||Online metal detector automatic inspection", "frequency": "连续监控|||Continuous monitoring", "personnel": "设备维护人员+品控专员|||Equipment maintenance staff + QC specialist", "remark": "按GB/T 25346-2010执行|||Per GB/T 25346-2010"})
             elif any(kw in name for kw in ["验收", "接收"]):
-                monitor.append({"ccp": s.get("stepName", ""), "object": "农药残留、重金属", "method": "供应商检测报告+抽检验证", "frequency": "每批次审核", "personnel": "经培训的采购专员", "remark": "依据GB 2763-2021、GB 2762-2022"})
+                monitor.append({"ccp": s.get("stepName", ""), "object": "农药残留、重金属", "method": "供应商检测报告+抽检验证|||Supplier test reports + spot check verification", "frequency": "每批次审核", "personnel": "经培训的采购专员|||Trained procurement specialist", "remark": "依据GB 2763-2021、GB 2762-2022|||Per GB 2763-2021, GB 2762-2022"})
             else:
-                monitor.append({"ccp": s.get("stepName", ""), "object": "工艺参数", "method": "在线/人工检测", "frequency": "按需确定", "personnel": "品控人员", "remark": "依据企业标准"})
+                monitor.append({"ccp": s.get("stepName", ""), "object": "工艺参数|||Process parameters", "method": "在线/人工检测|||Online/manual inspection", "frequency": "按需确定|||Determine as needed", "personnel": "品控人员|||QC personnel", "remark": "依据企业标准|||Per enterprise standard"})
         return {"ok": True, "data": {"monitoring": monitor}}
 
     try:
@@ -1453,14 +1480,14 @@ async def api_ai_corrective_actions(req: CorrectiveActionsRequest):
         actions = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw in name for kw in ["杀菌", "热处理", "灭菌"]):
-                actions.append({"ccp": s.get("stepName", ""), "cl": "中心温度≥85℃，保持≥15秒", "corrective": "温度不达标时：1)立即调整设备参数；2)对受影响产品隔离评估；3)重新杀菌或销毁不合格品", "verification": "1)复查温度记录曲线；2)对重新加工产品抽样检测微生物；3)校准温度传感器", "record": "《杀菌工序温度异常记录表》《产品隔离处理记录》"})
-            elif any(kw in name for kw in ["金属检测", "异物"]):
-                actions.append({"ccp": s.get("stepName", ""), "cl": "Fe≤1.5mm，SUS≤2.0mm", "corrective": "检测仪报警时：1)立即将受影响产品隔离；2)用标准试块测试设备；3)对上一批次检出时段产品重新检测；4)查找异物来源", "verification": "1)每小时用标准试块测试检测仪；2)对剔除产品进行确认；3)定期维护设备", "record": "《金属检测异常处理记录》《设备校验记录》"})
+            if any(kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "中心温度≥85℃，保持≥15秒", "corrective": "温度不达标时：1)立即调整设备参数；2)对受影响产品隔离评估；3)重新杀菌或销毁不合格品|||When temp fails: 1) Immediately adjust equipment; 2) Isolate and assess affected products; 3) Re-sterilize or destroy non-conforming products", "verification": "1)复查温度记录曲线；2)对重新加工产品抽样检测微生物；3)校准温度传感器|||1) Review temp record curves; 2) Micro testing of reworked products; 3) Calibrate temp sensors", "record": "《杀菌工序温度异常记录表》《产品隔离处理记录》|||Sterilization Temp Deviation Record, Product Isolation Record"})
+            elif any(kw in name for kw in ["金属检测|||Metal detection", "异物"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "corrective": "检测仪报警时：1)立即将受影响产品隔离；2)用标准试块测试设备；3)对上一批次检出时段产品重新检测；4)查找异物来源|||When alarm triggers: 1) Isolate affected products; 2) Test equipment with standard blocks; 3) Re-inspect products from previous batch; 4) Identify foreign object source", "verification": "1)每小时用标准试块测试检测仪；2)对剔除产品进行确认；3)定期维护设备|||1) Test detector hourly with standard blocks; 2) Verify rejected products; 3) Regular equipment maintenance", "record": "《金属检测异常处理记录》《设备校验记录》|||Metal Detection Anomaly Record, Equipment Calibration Record"})
             elif any(kw in name for kw in ["验收", "接收"]):
-                actions.append({"ccp": s.get("stepName", ""), "cl": "符合GB 2763/2762限量标准", "corrective": "检测不合格时：1)拒收该批原料；2)通知供应商整改；3)如已入库则立即隔离标识；4)评估是否需要更换供应商", "verification": "1)每批查验供应商检测报告；2)定期送第三方检测；3)年度供应商审核", "record": "《原料验收不合格记录》《供应商整改通知单》"})
+                actions.append({"ccp": s.get("stepName", ""), "cl": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "corrective": "检测不合格时：1)拒收该批原料；2)通知供应商整改；3)如已入库则立即隔离标识；4)评估是否需要更换供应商|||When test fails: 1) Reject batch; 2) Notify supplier for corrective action; 3) Isolate and label if already received; 4) Evaluate supplier replacement", "verification": "1)每批查验供应商检测报告；2)定期送第三方检测；3)年度供应商审核|||1) Verify supplier reports per batch; 2) Periodic third-party testing; 3) Annual supplier audit", "record": "《原料验收不合格记录》《供应商整改通知单》|||Raw Material Rejection Record, Supplier Corrective Action Notice"})
             else:
-                actions.append({"ccp": s.get("stepName", ""), "cl": "待定", "corrective": "偏离关键限值时：1)立即隔离受影响产品；2)查明原因并纠正；3)对受影响产品评估处理；4)记录处理过程", "verification": "复查纠正措施有效性", "record": "《CCP偏差处理记录》"})
+                actions.append({"ccp": s.get("stepName", ""), "cl": "待定|||TBD", "corrective": "偏离关键限值时：1)立即隔离受影响产品；2)查明原因并纠正；3)对受影响产品评估处理；4)记录处理过程|||On CL deviation: 1) Isolate affected products; 2) Identify and correct cause; 3) Assess and handle affected products; 4) Record the process", "verification": "复查纠正措施有效性|||Review effectiveness of corrective actions", "record": "《CCP偏差处理记录》|||CCP Deviation Handling Record"})
         return {"ok": True, "data": {"correctiveActions": actions}}
 
     try:
@@ -1489,8 +1516,8 @@ async def api_ai_verification(req: VerificationRequest):
     if _is_mock_mode():
         return {"ok": True, "data": {
             "verificationMethod": "1. **CCP监控记录审核**：每批次生产结束后，由品控主管审核所有CCP监控记录，确认关键限值符合要求。\n2. **纠偏记录回顾**：每周由HACCP小组组长回顾所有纠偏记录，确认纠偏措施有效执行。\n3. **成品抽样检测**：每月对成品进行微生物、理化指标抽样检测，验证HACCP体系有效性。\n4. **设备校准**：每季度对温度传感器、金属检测仪、pH计等CCP相关设备进行校准。\n5. **环境微生物监测**：每季度对生产车间进行环境微生物监测。\n6. **HACCP体系年度复审**：每年由HACCP小组进行完整的体系复审，修订HACCP计划。",
-            "verificationFrequency": "每日/每周/每月/每季度/每年（按上述各项分别执行）",
-            "verificationPersonnel": "HACCP小组组长、品控主管、QC检验员"
+            "verificationFrequency": "每日/每周/每月/每季度/每年（按上述各项分别执行）|||Daily/Weekly/Monthly/Quarterly/Annually (per above items)",
+            "verificationPersonnel": "HACCP小组组长、品控主管、QC检验员|||HACCP Team Leader, QC Supervisor, QC Inspector"
         }}
 
     try:
@@ -1517,6 +1544,82 @@ async def api_save_template(req: SaveTemplateRequest):
     """保留兼容：更新 id=1 的模板"""
     tpl = save_template(1, req.name, req.content)
     return {"ok": True, "template": tpl}
+
+
+# ===== Plans 接口（JWT 保护）=====
+
+@app.get("/api/plans")
+async def api_list_plans(user: dict = Depends(get_current_user)):
+    """列出当前用户的所有计划（摘要，不含 content）"""
+    if user is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+    plans = list_plans(user["id"])
+    return {"plans": plans}
+
+
+@app.post("/api/plans")
+async def api_create_plan(req: CreatePlanRequest, user: dict = Depends(get_current_user)):
+    """创建新计划（保存 HACCP 问卷提交数据）"""
+    if user is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+    content = req.content if req.content else {}
+    product_name = req.product_name or content.get("productName", "")
+    company_name = req.company_name or content.get("companyName", "")
+    plan_name = req.plan_name or product_name or f"Plan {_now()}"
+    plan = create_plan(user["id"], plan_name, product_name, company_name, content)
+    return {"ok": True, "plan": plan}
+
+
+@app.get("/api/plans/{plan_id}")
+async def api_get_plan(plan_id: int, user: dict = Depends(get_current_user)):
+    """获取单个计划完整数据"""
+    if user is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+    plan = get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="计划不存在")
+    if plan["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="无权访问此计划")
+    return {"plan": plan}
+
+
+@app.put("/api/plans/{plan_id}")
+async def api_update_plan(plan_id: int, req: UpdatePlanRequest, user: dict = Depends(get_current_user)):
+    """更新计划（验证程序、记录等）"""
+    if user is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+    existing = get_plan(plan_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="计划不存在")
+    if existing["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="无权修改此计划")
+    data = {}
+    if req.plan_name is not None:
+        data["plan_name"] = req.plan_name
+    if req.product_name is not None:
+        data["product_name"] = req.product_name
+    if req.company_name is not None:
+        data["company_name"] = req.company_name
+    if req.content is not None:
+        data["content"] = req.content
+    plan = update_plan(plan_id, data)
+    return {"ok": True, "plan": plan}
+
+
+@app.delete("/api/plans/{plan_id}")
+async def api_delete_plan(plan_id: int, user: dict = Depends(get_current_user)):
+    """删除计划"""
+    if user is None:
+        raise HTTPException(status_code=401, detail="请先登录")
+    existing = get_plan(plan_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="计划不存在")
+    if existing["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="无权删除此计划")
+    ok = delete_plan(plan_id)
+    if not ok:
+        raise HTTPException(status_code=400, detail="删除失败")
+    return {"ok": True}
 
 
 # ===== 用量接口（Mock）=====
@@ -1574,7 +1677,7 @@ app.mount("/data", StaticFiles(directory=str(PROJECT_ROOT / "data")), name="data
 
 @app.get("/")
 async def serve_index():
-    index_path = PROJECT_ROOT / "index.html"
+    index_path = PROJECT_ROOT / "HACCP Assistance.html"
     if index_path.exists():
         return FileResponse(str(index_path))
     return {"error": "index.html not found"}
@@ -1586,4 +1689,4 @@ async def serve_static(filename: str):
     file_path = PROJECT_ROOT / filename
     if file_path.exists() and file_path.is_file() and file_path.suffix in (".html", ".json", ".xml", ".png", ".jpg", ".svg", ".ico"):
         return FileResponse(str(file_path))
-    return FileResponse(str(PROJECT_ROOT / "index.html"))
+    return FileResponse(str(PROJECT_ROOT / "HACCP Assistance.html"))
