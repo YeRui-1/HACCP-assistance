@@ -95,7 +95,7 @@ const Profile = (() => {
   }
 
   function saveData(data) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.warn('Failed to write localStorage ' + STORAGE_KEY + ':', e); }
   }
 
   function syncToQuestionnaire(data) {
@@ -116,7 +116,7 @@ const Profile = (() => {
       qData.flowConfirmed = data.flowConfirmed;
       qData.flowchartXml = data.flowchartXml;
       localStorage.setItem('haccp_15min_data', JSON.stringify(qData));
-    } catch (e) {}
+    } catch (e) { console.warn('Failed to sync profile data to questionnaire localStorage:', e); }
   }
 
   let currentStep = 0;
@@ -132,11 +132,11 @@ const Profile = (() => {
     var reviewActive = false;
     var reviewedCount = 0;
     var totalItems = 8;
-    try { reviewActive = sessionStorage.getItem('haccp_review_active') === 'true'; } catch(e) {}
+    try { reviewActive = sessionStorage.getItem('haccp_review_active') === 'true'; } catch(e) { console.warn('Failed to read sessionStorage haccp_review_active:', e); }
     try {
       var reviewMap = JSON.parse(localStorage.getItem('haccp_review_status') || '{}');
       reviewedCount = Object.keys(reviewMap).length;
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to parse localStorage haccp_review_status:', e); }
     var reviewBanner = '';
     if (reviewActive) {
       reviewBanner = '<div class="haccp-review-banner" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
@@ -173,7 +173,7 @@ const Profile = (() => {
               qData._haccpSignerName = qData._haccpSignerName || '';
               qData._haccpSignDate = qData._haccpSignDate || '';
               // 导航到步骤5
-              try { currentStep = 4; renderActiveSection(); renderSectionNav(); } catch(e) {}
+              try { currentStep = 4; renderActiveSection(); renderSectionNav(); } catch(e) { console.warn('Failed to navigate to step 5 in profile review:', e); }
             }
           }
         }
@@ -434,12 +434,12 @@ const Profile = (() => {
     var ccp = [];
     var svg = '';
     try {
-      var stepsRaw = localStorage.getItem('steps');
+      var stepsRaw = localStorage.getItem('haccp_fc_steps');
       if (stepsRaw) steps = JSON.parse(stepsRaw);
-      var ccpRaw = localStorage.getItem('ccp');
+      var ccpRaw = localStorage.getItem('haccp_fc_ccp');
       if (ccpRaw) ccp = JSON.parse(ccpRaw);
       svg = localStorage.getItem('haccp_drawio_svg') || '';
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to read flow chart data from localStorage:', e); }
 
     if (steps && steps.length > 0) {
       // 更新 fcEditor
@@ -509,7 +509,7 @@ const Profile = (() => {
         if (iframe && iframe.contentWindow) {
           iframe.contentWindow.postMessage(JSON.stringify({ action: 'save' }), '*');
         }
-      } catch(e) {}
+      } catch(e) { console.warn('Failed to send postMessage to draw.io iframe:', e); }
       // 延时等待保存完成，然后关闭并同步
       setTimeout(function() {
         closeEditor(true);

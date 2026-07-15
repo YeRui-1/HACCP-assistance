@@ -54,23 +54,23 @@ const Records = (() => {
     try {
       const raw = localStorage.getItem('haccp_15min_data');
       if (raw) return JSON.parse(raw);
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to read or parse localStorage haccp_15min_data:', e); }
     return null;
   }
 
   // ===== 同步计划数据到后端（后台静默执行，不阻塞UI）=====
   function syncPlanToBackend(data) {
     var planId = null;
-    try { planId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+    try { planId = localStorage.getItem('haccp_current_plan_id'); } catch(e) { console.warn('Failed to read localStorage haccp_current_plan_id:', e); }
     if (planId) {
       var token = null;
-      try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+      try { token = localStorage.getItem('haccp_token'); } catch(e) { console.warn('Failed to read localStorage haccp_token:', e); }
       if (token) {
         fetch('/api/plans/' + planId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ content: data })
-        }).catch(function() {});
+        }).catch(function(err) { console.warn('Failed to sync plan data to backend:', err); });
       }
     }
   }

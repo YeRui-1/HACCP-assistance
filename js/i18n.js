@@ -117,6 +117,16 @@ const I18n = (() => {
     'admin.genLoading':     ['生成中...', 'Generating...'],
     'admin.genError':       ['生成失败，请检查后端是否启动', 'Generation failed. Please check if the backend is running'],
     'admin.reportTitle':    ['AI 分析报告', 'AI Analysis Report'],
+    'admin.demoData':       ['📋 演示数据', '📋 Demo Data'],
+    'admin.demoDataDesc':   ['编辑流程图的示例演示数据，修改后点击保存生效', 'Edit the flowchart demo data. Click Save to apply changes.'],
+    'admin.demoLoad':       ['📥 加载', '📥 Load'],
+    'admin.demoSave':       ['💾 保存', '💾 Save'],
+    'admin.demoLoaded':     ['✅ 已加载', '✅ Loaded'],
+    'admin.demoSaved':      ['✅ 已保存', '✅ Saved'],
+    'admin.demoEmpty':      ['JSON 内容为空，请先点击加载', 'JSON is empty. Click Load first.'],
+    'admin.demoInvalid':    ['JSON 格式错误', 'Invalid JSON format'],
+    'admin.demoError':      ['操作失败', 'Operation failed'],
+    'admin.demoHelp':       ['提示：steps=步骤名, ccp=0/1(是否CCP), leftNotes=[步骤序号,上方文字,下方文字], rightNotes 同理, rework=[源步骤,目标步骤,标签]', 'Tip: steps=step names, ccp=0/1(CCP flag), leftNotes=[step#, above, below], rightNotes likewise, rework=[src, tgt, label]'],
 
     // ===== 生产流程图 =====
     'fc.title':             ['生产流程图', 'Process Flow Chart'],
@@ -177,6 +187,7 @@ const I18n = (() => {
     'auth.companyNameError':  ['企业名称不能为空', 'Company name cannot be empty'],
     'auth.cancel':            ['取消', 'Cancel'],
     'auth.loading':           ['处理中...', 'Loading...'],
+    'login.failFallback':     ['登录失败', 'Login failed'],
 
     // ===== 流程图查看器 =====
     'fc.title':               ['菊粉生产工艺流程图', 'Inulin Production Process Flowchart'],
@@ -958,6 +969,12 @@ const I18n = (() => {
     'ver.alertSubmitDetail1': ['组长签名：', 'Team Leader: '],
     'ver.alertSubmitDetail2': ['签名日期：', 'Signature Date: '],
 
+    // ===== 验证程序提醒弹窗 =====
+    'reminder.title':             ['HACCP验证程序提醒', 'HACCP Verification Reminder'],
+    'reminder.body':              ['您的HACCP计划书已创建完成，但验证程序尚未填写并提交。<br>请尽快完成HACCP验证程序，以确保体系的有效运行。', 'Your HACCP plan has been created, but the verification procedure has not been completed and submitted.<br>Please complete the HACCP verification procedure as soon as possible to ensure the effective operation of the system.'],
+    'reminder.goBtn':             ['📝 去填写验证程序', '📝 Go to Verification'],
+    'reminder.laterBtn':          ['稍后提醒', 'Remind Later'],
+
     // ===== 结果页15min模式补充 =====
     'r15.boolYes':            ['✓ 是', '✓ Yes'],
     'r15.boolNo':             ['✗ 否', '✗ No'],
@@ -1211,6 +1228,90 @@ const I18n = (() => {
     'q.hwNextBtn': ["下一步 →", "Next →"],
     'q.hwNoData': ["无危害数据", "No Hazard Data"],
     'q.hwPrevBtn': ["← 上一步", "← Previous"],
+    // Flowchart editor
+    'q.fcStart': ["开始", "Start"],
+    'q.fcEnd': ["结束", "End"],
+    'q.fcMethodLabel': ["方法：", "Method: "],
+    'q.fcParamsLabel': ["参数：", "Params: "],
+    'q.fcEquipmentLabel': ["设备：", "Equipment: "],
+    'q.fcNoSteps': ["暂无步骤数据", "No step data"],
+    'q.fcCreated': ["流程图已创建", "Flowchart Created"],
+    'q.fcInulinBtn': ["📊 菊粉工艺流程图", "📊 Inulin Process Flowchart"],
+    'q.fcDrawioEdit': ["✏️ draw.io编辑", "✏️ draw.io Edit"],
+    'q.fcClear': ["🗑️ 清除", "🗑️ Clear"],
+    'q.fcDrawioAdvanced': ["📝 draw.io高级编辑", "📝 draw.io Advanced Edit"],
+    'q.fcTemplatePreview': ["📊 流程图模板预览", "📊 Flowchart Preview"],
+    'q.fcEmptyHint': ["请先在上方填写操作步骤，AI将自动生成生产流程图", "Fill in process steps above. AI will auto-generate the flowchart."],
+    'q.fcEmptySubHint': ["支持在线编辑和导出", "Supports online editing and export"],
+    'q.fcMermaidNotLoaded': ["Mermaid 渲染库未加载", "Mermaid rendering library not loaded"],
+    'q.fcInulinModalTitle': ["菊粉完整生产工艺流程图 — 编辑", "Inulin Complete Production Flowchart — Edit"],
+    'q.fcPreviewChart': ["📖 预览流程图", "📖 Preview Flowchart"],
+    'q.fcEditChart': ["✏️ 编辑流程图", "✏️ Edit Flowchart"],
+    'q.fcEditModeHint': ["修改节点表格后点击\"应用修改\"保存", "Edit node table, then click \"Apply\" to save"],
+    'q.fcPreviewModeHint': ["点击编辑按钮编辑节点名称和箭头标签", "Click edit button to modify node names and edge labels"],
+    'q.fcNodeId': ["ID", "ID"],
+    'q.fcNodeText': ["节点文字", "Node Text"],
+    'q.fcNodeType': ["类型", "Type"],
+    'q.fcAddNode': ["+ 添加节点行", "+ Add Node Row"],
+    'q.fcNewStep': ["新步骤", "New Step"],
+    'q.fcEdgeLabels': ["箭头标签：", "Edge Labels: "],
+    'q.fcEdgeFrom': ["连接", "From"],
+    'q.fcEdgeText': ["线上文字", "Edge Text"],
+    'q.fcAddEdge': ["+ 添加箭头标签", "+ Add Edge Label"],
+    'q.fcApply': ["✅ 应用修改", "✅ Apply Changes"],
+    'q.fcResetDefault': ["↩️ 恢复默认", "↩️ Reset Default"],
+    'q.fcApplied': ["✅ 已应用 {0} 处修改", "✅ Applied {0} change(s)"],
+    'q.fcNoChanges': ["ℹ️ 未检测到修改", "ℹ️ No changes detected"],
+    'q.fcRestored': ["✅ 已恢复默认", "✅ Restored default"],
+    'q.fcEditorHelp': ["修改节点名称和箭头标签后点击「应用修改」保存，然后点击「预览流程图」查看效果。", "Edit node/edge labels, click \"Apply\" to save, then \"Preview\" to view."],
+    'q.fcRenderError': ["渲染失败: ", "Render failed: "],
+    'q.fcDrawioTitle': ["✏️ Draw.io 流程图编辑器", "✏️ Draw.io Flowchart Editor"],
+    'q.fcDrawioSave': ["💾 保存", "💾 Save"],
+    'q.fcDrawioClose': ["✕ 关闭", "✕ Close"],
+    'q.fcDrawioLoading': ["正在加载 Draw.io 编辑器...", "Loading Draw.io editor..."],
+    'q.fcDrawioLoadingHint': ["如长时间未响应，请检查网络连接", "If no response for a while, check your network connection"],
+    'q.fcDrawioEditing': ["编辑中", "Editing"],
+    'q.fcDrawioAutoSaving': ["自动保存中...", "Auto-saving..."],
+    'q.fcDrawioEditingHint': ["编辑中（修改后点击保存）", "Editing (click Save after changes)"],
+    'q.fcDrawioSaved': ["✅ 已保存", "✅ Saved"],
+    'q.fcDrawioLang': ["zh", "en"],
+    'q.fcConfirmReset': ["确认恢复默认流程图？将丢失您的自定义修改。", "Reset to default flowchart? Your custom changes will be lost."],
+    // Flowchart preview standalone page (flowchart-preview.html)
+    'fp.title': ["HACCP 工艺流程图", "HACCP Process Flowchart"],
+    'fp.headerTitle': ["HACCP 工艺流程图 — 在线编辑", "HACCP Process Flowchart — Online Editor"],
+    'fp.headerHint': ["点击CCP按钮切换标识，点击▲▼移动步骤", "Click CCP button to toggle, ▲▼ to move steps"],
+    'fp.loadDemo': ["📋 加载菊粉示例", "📋 Load Inulin Demo"],
+    'fp.clearData': ["清空", "Clear"],
+    'fp.restoreDefault': ["恢复默认", "Restore Default"],
+    'fp.editArea': ["编辑区", "Edit Area"],
+    'fp.stepList': ["步骤列表", "Step List"],
+    'fp.stepListHint': ["点击CCP切换", "Click CCP to toggle"],
+    'fp.newStepPlaceholder': ["新步骤名称", "New Step Name"],
+    'fp.addBtn': ["+ 添加", "+ Add"],
+    'fp.leftInputArrow': ["左侧输入箭头", "Left Input Arrows"],
+    'fp.stepNo': ["步号", "Step#"],
+    'fp.aboveText': ["上方文字", "Above Text"],
+    'fp.belowText': ["下方", "Below"],
+    'fp.rightOutputArrow': ["右侧输出箭头", "Right Output Arrows"],
+    'fp.reworkArrow': ["返工箭头", "Rework Arrows"],
+    'fp.source': ["源", "Src"],
+    'fp.target': ["目标", "Tgt"],
+    'fp.labelPlaceholder': ["标签", "Label"],
+    'fp.flowchartView': ["工艺流程图", "Process Flowchart"],
+    'fp.legend': ["图例", "Legend"],
+    'fp.normalStep': ["普通工序", "Normal Step"],
+    'fp.ccpStep': ["CCP", "CCP"],
+    'fp.flow': ["流程", "Flow"],
+    'fp.io': ["输入/输出", "Input/Output"],
+    'fp.rework': ["返工", "Rework"],
+    'fp.openInDrawio': ["用 draw.io 打开", "Open in draw.io"],
+    'fp.saveToReport': ["💾 保存到报告", "💾 Save to Report"],
+    'fp.noData': ["(无)", "(None)"],
+    'fp.feedMaterial': ["入料", "Feed"],
+    'fp.saveFailed': ["保存失败:", "Save failed:"],
+    'fp.saved': ["✅ 已保存！", "✅ Saved!"],
+    'fp.fallbackStep': ["步骤", "Step"],
+    'fp.diagramName': ["菊粉生产工艺流程图", "Inulin Production Process Flowchart"],
     'q.hwRefresh': ["🔄 重新匹配", "🔄 Refresh Match"],
     'q.hwAiIdentify': ["🤖 AI辅助识别", "🤖 AI-Assisted Identification"],
     'q.hwBackToQuestionnaire': ["← 返回问卷", "← Back to Questionnaire"],
@@ -1393,7 +1494,20 @@ const I18n = (() => {
     return currentLang === 'en' ? (parts[1] || parts[0]) : parts[0];
   }
 
+  // 全局处理：替换字符串中所有 "中文|||English" 模式为当前语言版本
+  function processBilingual(str) {
+    if (!str) return '';
+    if (str.indexOf('|||') === -1) return str;
+    var langIndex = currentLang === 'en' ? 1 : 0;
+    // Split by ||| and rebuild: segments alternate [zh, en, zh, en, ...]
+    // For normal "中文|||English" → take index 0 or 1.
+    // For leftover triple-||| "a|||b|||c" → segments [a,b,c] → take [0] or [1] (c is orphan, dropped).
+    return str.replace(/([^"|\n\r\\]+)\|\|\|([^"|\n\r\\]+)(?:\|\|\|([^"|\n\r\\]+))*/g, function(match, zh, en, extra) {
+      return langIndex === 1 ? en : zh;
+    });
+  }
+
   loadLang();
 
-  return { t, setLang, getLang, b };
+  return { t, setLang, getLang, b, processBilingual };
 })();

@@ -62,14 +62,14 @@ const Results = (() => {
 
   function load15minData() {
     try {
-      const raw = localStorage.getItem('haccp_15min_submitted');
+      const raw = localStorage.getItem('haccp_15min_data');
       if (raw) return JSON.parse(raw);
     } catch (e) { /* ignore */ }
     return null;
   }
 
   function is15minMode() {
-    return !!localStorage.getItem('haccp_15min_submitted');
+    return !!localStorage.getItem('haccp_submitted');
   }
 
   // ===== Plans backend loading =====
@@ -78,13 +78,13 @@ const Results = (() => {
 
   function getCurrentPlanId() {
     if (_currentPlanId) return _currentPlanId;
-    try { _currentPlanId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+    try { _currentPlanId = localStorage.getItem('haccp_current_plan_id'); } catch(e) { console.warn('Failed to read localStorage haccp_current_plan_id:', e); }
     return _currentPlanId;
   }
 
   function setCurrentPlanId(id) {
     _currentPlanId = id;
-    try { localStorage.setItem('haccp_current_plan_id', String(id || '')); } catch(e) {}
+    try { localStorage.setItem('haccp_current_plan_id', String(id || '')); } catch(e) { console.warn('Failed to write localStorage haccp_current_plan_id:', e); }
   }
 
   async function loadPlansList() {
@@ -97,7 +97,7 @@ const Results = (() => {
         _plansCache = data.plans || [];
         return _plansCache;
       }
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to load plans list from backend:', e); }
     return [];
   }
 
@@ -110,7 +110,7 @@ const Results = (() => {
         var data = await resp.json();
         return data.plan.content;
       }
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to load plan from backend:', e); }
     return null;
   }
 
@@ -359,7 +359,7 @@ const Results = (() => {
           var pfD = JSON.parse(pfRaw2);
           pfFlowSvg = pfD.flowchartSvg || '';
         }
-      } catch(e) {}
+      } catch(e) { console.warn('Failed to read flow chart SVG from localStorage profile data:', e); }
     }
     if (pfFlowSvg) {
       html += '<div class="results-section" id="section-q15-flowchart-image"><h2>' + I18n.t('r15.flowchart') + '</h2>';
@@ -837,7 +837,7 @@ const Results = (() => {
     var T = function(zh, en) { return isZh ? zh : en; };
 
     var pfData = {};
-    try { var pfRaw = localStorage.getItem('haccp_profile_data'); if (pfRaw) pfData = JSON.parse(pfRaw); } catch(e) {}
+    try { var pfRaw = localStorage.getItem('haccp_profile_data'); if (pfRaw) pfData = JSON.parse(pfRaw); } catch(e) { console.warn('Failed to read or parse localStorage haccp_profile_data:', e); }
     var q15Data = load15minData() || {};
 
     var data = {};
@@ -1147,7 +1147,7 @@ const Results = (() => {
       try {
         var pfR = localStorage.getItem('haccp_profile_data');
         if (pfR) { var pfD2 = JSON.parse(pfR); flowSvg = pfD2.flowchartSvg || ''; }
-      } catch(e) {}
+      } catch(e) { console.warn('Failed to read flow chart SVG for Word export:', e); }
     }
 
     function doDownload(finalHtml) {

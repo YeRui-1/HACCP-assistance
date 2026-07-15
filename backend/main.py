@@ -1664,6 +1664,33 @@ async def generate_report(req: GenerateReportRequest):
     return {"report": report}
 
 
+# ===== 演示数据编辑器 =====
+DEMO_DATA_FILE = pathlib.Path(__file__).resolve().parent.parent / "data" / "demo_inulin.json"
+
+@app.get("/api/demo/data")
+async def api_get_demo_data():
+    """读取演示数据 JSON"""
+    try:
+        if DEMO_DATA_FILE.exists():
+            with open(DEMO_DATA_FILE, "r", encoding="utf-8") as f:
+                return {"ok": True, "data": json.load(f)}
+        return {"ok": True, "data": {"steps": [], "ccp": [], "leftNotes": [], "rightNotes": [], "rework": []}}
+    except Exception as e:
+        raise HTTPException(500, f"读取失败: {str(e)}")
+
+@app.put("/api/demo/data")
+async def api_save_demo_data(body: dict):
+    """保存演示数据 JSON"""
+    try:
+        data = body.get("data", body)
+        DEMO_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEMO_DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return {"ok": True, "message": "保存成功"}
+    except Exception as e:
+        raise HTTPException(500, f"保存失败: {str(e)}")
+
+
 # ===== 静态文件托管（前端页面）=====
 
 # 获取项目根目录（backend 的上一级）

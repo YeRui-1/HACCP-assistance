@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" id="htmlRoot">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>HACCP 工艺流程图</title>
+<script>document.addEventListener('DOMContentLoaded',function(){var lang=I18n.getLang();document.getElementById('htmlRoot').setAttribute('lang',lang==='en'?'en':'zh-CN');document.title=I18n.t('fp.title');})</script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f0f2f5;font-family:'PingFang SC','Microsoft YaHei',sans-serif}
@@ -55,46 +56,47 @@ h2{font-size:14px;color:#1e3a8a;margin:0 0 14px;border-bottom:2px solid #e5e7eb;
 </style>
 </head>
 <body>
-<div class="header"><span>HACCP 工艺流程图 — 菊粉生产工艺</span>
-<div class="header-actions"><span style="font-size:12px;opacity:.7;">点击CCP按钮切换标识，点击▲▼移动步骤</span>
-<button class="sync-btn" onclick="rt()">恢复默认</button></div></div>
+<div class="header"><span id="fpHeaderTitle">HACCP 工艺流程图 — 在线编辑</span>
+<div class="header-actions"><span style="font-size:12px;opacity:.7;" id="fpHeaderHint">点击CCP按钮切换标识，点击▲▼移动步骤</span>
+<button class="sync-btn" id="fpLoadDemo" onclick="loadDemo()">📋 加载菊粉示例</button></div></div>
 <div class="container">
 <div class="panel side-panel" style="order:1;">
-<h2>编辑区</h2>
-<div class="sl">步骤列表 <span style="font-weight:normal;color:#9ca3af;">点击CCP切换</span></div>
+<h2 id="fpEditArea">编辑区</h2>
+<div class="sl"><span id="fpStepList">步骤列表</span> <span style="font-weight:normal;color:#9ca3af;" id="fpStepListHint">点击CCP切换</span></div>
 <ul class="step-list" id="sl"></ul>
-<div class="ar"><input id="ns" placeholder="新步骤名称"><button class="btn bp bs" onclick="as()">+ 添加</button></div>
-<div class="sl">左侧输入箭头</div>
+<div class="ar"><input id="ns" id="fpNewStepPlaceholder" placeholder="新步骤名称"><button class="btn bp bs" onclick="as()" id="fpAddBtn">+ 添加</button></div>
+<div class="sl" id="fpLeftInputArrow">左侧输入箭头</div>
 <div class="sbox" id="ll"></div>
-<div class="ar"><input id="nls" placeholder="步号" style="width:34px;flex:none"><input id="nla" placeholder="上方文字"><input id="nlb" placeholder="下方" style="width:70px;flex:none"><button class="btn bp bs" onclick="aln()">+</button></div>
-<div class="sl">右侧输出箭头</div>
+<div class="ar"><input id="nls" placeholder="步号" data-fp-ph="fp.stepNo" style="width:34px;flex:none"><input id="nla" placeholder="上方文字" data-fp-ph="fp.aboveText"><input id="nlb" placeholder="下方" data-fp-ph="fp.belowText" style="width:70px;flex:none"><button class="btn bp bs" onclick="aln()">+</button></div>
+<div class="sl" id="fpRightOutputArrow">右侧输出箭头</div>
 <div class="sbox" id="rl"></div>
-<div class="ar"><input id="nrs" placeholder="步号" style="width:34px;flex:none"><input id="nra" placeholder="上方文字"><input id="nrb" placeholder="下方" style="width:70px;flex:none"><button class="btn bp bs" onclick="arn()">+</button></div>
-<div class="sl">返工箭头</div>
+<div class="ar"><input id="nrs" placeholder="步号" data-fp-ph="fp.stepNo" style="width:34px;flex:none"><input id="nra" placeholder="上方文字" data-fp-ph="fp.aboveText"><input id="nrb" placeholder="下方" data-fp-ph="fp.belowText" style="width:70px;flex:none"><button class="btn bp bs" onclick="arn()">+</button></div>
+<div class="sl" id="fpReworkArrow">返工箭头</div>
 <div class="sbox" id="rwl"></div>
-<div class="ar"><input id="nrsrc" placeholder="源" style="width:34px;flex:none"><input id="nrtgt" placeholder="目标" style="width:34px;flex:none"><input id="nrlb" placeholder="标签"><button class="btn bp bs" onclick="arnw()">+</button></div>
+<div class="ar"><input id="nrsrc" placeholder="源" data-fp-ph="fp.source" style="width:34px;flex:none"><input id="nrtgt" placeholder="目标" data-fp-ph="fp.target" style="width:34px;flex:none"><input id="nrlb" placeholder="'+I18n.t('fp.labelPlaceholder')+'" data-fp-ph="fp.labelPlaceholder"><button class="btn bp bs" onclick="arnw()">+</button></div>
 </div>
 <div class="panel viewer-panel" style="order:2;">
-<h2>工艺流程图</h2>
+<h2 id="fpFlowchartView">工艺流程图</h2>
 <div id="svgWrap"><svg id="mSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
 </div>
 <div class="panel side-panel" style="order:3;">
-<h2>图例</h2>
-<div class="legend-item"><div class="lbox" style="background:#f5f5f5;border:1.5px solid #666"></div>普通工序</div>
-<div class="legend-item"><div class="lbox" style="background:#dc2626;border:1.5px solid #991b1b"></div>CCP</div>
-<div class="legend-item"><div class="lline" style="background:#222"></div>流程</div>
-<div class="legend-item"><div class="lline" style="background:#059669"></div>输入/输出</div>
-<div class="legend-item"><div class="lline-dash"></div>返工</div>
-<button id="ob" class="ob">用 draw.io 打开</button>
-<button id="saveBtn" class="ob" style="background:#059669;margin-top:6px;">💾 保存到报告</button>
+<h2 id="fpLegend">图例</h2>
+<div class="legend-item"><div class="lbox" style="background:#f5f5f5;border:1.5px solid #666"></div><span id="fpNormalStep">普通工序</span></div>
+<div class="legend-item"><div class="lbox" style="background:#dc2626;border:1.5px solid #991b1b"></div><span id="fpCcpStep">CCP</span></div>
+<div class="legend-item"><div class="lline" style="background:#222"></div><span id="fpFlow">流程</span></div>
+<div class="legend-item"><div class="lline" style="background:#059669"></div><span id="fpIo">输入/输出</span></div>
+<div class="legend-item"><div class="lline-dash"></div><span id="fpRework">返工</span></div>
+<button id="ob" class="ob" data-fp-id="fp.openInDrawio">用 draw.io 打开</button>
+<button id="saveBtn" class="ob" style="background:#059669;margin-top:6px;" data-fp-id="fp.saveToReport">💾 保存到报告</button>
 </div></div>
+<script src="js/i18n.js"></script>
 <script>
-// ===== 核心数据 =====
-var DS=['新鲜菊芋','超声波清洗去皮','粉碎预处理','精细破碎','清水匀浆','超声波破壁','沉淀提液','制菊芋粗提取液','减压浓缩','膜滤除杂','絮凝反应','离心除杂','活性炭脱色','离心除炭','树脂脱离子','二次膜过滤','醇降处理','烘干干燥','菊粉成品','金属检测','灌装打包','入库储存'];
-var DC=[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,1,0,0]; // CCP标志 1=是 0=否
-var LN=[[1,'地下水','40℃水温、清洗30分钟'],[2,'三级粉碎机粉碎至15mm',null],[4,'1.5~3倍纯净水','搅拌'],[5,'功率50~100W、频率40kHz','12min'],[10,'温度35℃','搅拌转速80r/min'],[12,'活性炭',null],[14,'交换树脂',null],[16,'乙醇',null],[17,'温度120~180℃',null]];
-var RN=[[1,'废水',null],[6,'加热加压、静置沉淀5min','废渣'],[8,'废渣',null],[9,null,'去除蛋白质、纤维素杂质'],[13,'废活性炭',null],[14,'饱和树脂',null],[16,'沉淀',null]];
-var RW=[[9,8,'不合格，返工'],[15,14,'粗菊粉溶液'],[17,16,'不合格，返工'],[19,18,'不合格，返工']];
+// ===== 核心数据（空白模板，点击"加载示例"可填充菊粉演示数据）=====
+var DS=[];
+var DC=[];
+var LN=[];
+var RN=[];
+var RW=[];
 var NW=240,NH=60,NX=12,SY=50,YG=100,CX=650,TH=2350,AL=90;
 
 // ===== HTML实体转义（避免被格式化破坏）=====
@@ -109,13 +111,29 @@ function esx(s){return esc(s)}
 
 var cur=[];
 
+function translateFpPage(){
+  var els=document.querySelectorAll('[id^="fp"]');
+  els.forEach(function(el){
+    var rest=el.id.substring(2);
+    var key='fp.'+rest.charAt(0).toLowerCase()+rest.substring(1);
+    var val=I18n.t(key);
+    if(val&&val!==key)el.textContent=val;
+  });
+  document.querySelectorAll('[data-fp-ph]').forEach(function(el){
+    el.placeholder=I18n.t(el.dataset.fpPh);
+  });
+  document.querySelectorAll('[data-fp-id]').forEach(function(el){
+    el.textContent=I18n.t(el.dataset.fpId);
+  });
+  document.title=I18n.t('fp.title');
+}
 function init(){
   try{
-    var savedSteps=localStorage.getItem('steps');
-    var savedCcp=localStorage.getItem('ccp');
-    var savedLN=localStorage.getItem('leftNotes');
-    var savedRN=localStorage.getItem('rightNotes');
-    var savedRW=localStorage.getItem('rework');
+    var savedSteps=localStorage.getItem('haccp_fc_steps');
+    var savedCcp=localStorage.getItem('haccp_fc_ccp');
+    var savedLN=localStorage.getItem('haccp_fc_leftNotes');
+    var savedRN=localStorage.getItem('haccp_fc_rightNotes');
+    var savedRW=localStorage.getItem('haccp_fc_rework');
     if(savedSteps&&savedCcp){
       cur=JSON.parse(savedSteps);
       DC=JSON.parse(savedCcp);
@@ -123,10 +141,11 @@ function init(){
       if(savedRN)RN=JSON.parse(savedRN);
       if(savedRW)RW=JSON.parse(savedRW);
     }else{
-      cur=DS.slice();
+      cur=[];
     }
-  }catch(e){cur=DS.slice();}
+  }catch(e){cur=[];}
   renderAll();
+translateFpPage();
 }
 
 function isCCP(i){return DC[i]===1}
@@ -156,6 +175,7 @@ function renderSteps(){
 function toggleCCP(i){
   DC[i]=DC[i]?0:1;
   renderAll();
+translateFpPage();
 }
 
 function moveUp(i){
@@ -163,6 +183,7 @@ function moveUp(i){
   var tmp=cur[i];cur[i]=cur[i-1];cur[i-1]=tmp;
   var td=DC[i];DC[i]=DC[i-1];DC[i-1]=td;
   renderAll();
+translateFpPage();
 }
 
 function moveDn(i){
@@ -170,6 +191,7 @@ function moveDn(i){
   var tmp=cur[i];cur[i]=cur[i+1];cur[i+1]=tmp;
   var td=DC[i];DC[i]=DC[i+1];DC[i+1]=td;
   renderAll();
+translateFpPage();
 }
 
 // ===== 标注列表 =====
@@ -177,20 +199,20 @@ function renderNotes(eid,data,efn,dfn){
   var e=document.getElementById(eid);
   e.innerHTML=data.map(function(a,i){
     var ab=a[1]||'',be=a[2]||'';
-    return '<div class="anno-item"><span class="tag tg">S'+(a[0]+1)+'</span><input value="'+esc(ab)+'" data-i="'+i+'" data-f="1" oninput="'+efn+'(this)" placeholder="上"><input value="'+esc(be)+'" data-i="'+i+'" data-f="2" oninput="'+efn+'(this)" placeholder="下"><span class="del" onclick="'+dfn+'('+i+')">x</span></div>';
+    return '<div class="anno-item"><span class="tag tg">S'+(a[0]+1)+'</span><input value="'+esc(ab)+'" data-i="'+i+'" data-f="1" oninput="'+efn+'(this)" placeholder="'+I18n.t('fp.aboveText')+'"><input value="'+esc(be)+'" data-i="'+i+'" data-f="2" oninput="'+efn+'(this)" placeholder="'+I18n.t('fp.belowText')+'"><span class="del" onclick="'+dfn+'('+i+')">x</span></div>';
   }).join('');
-  if(!data.length)e.innerHTML='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px;">(无)</div>';
+  if(!data.length)e.innerHTML='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px;">'+I18n.t('fp.noData')+'</div>';
 }
 function renderRework(){
   var e=document.getElementById('rwl');
   e.innerHTML=RW.map(function(r,i){
-    return '<div class="anno-item"><span class="tag tr">S'+(r[0]+1)+'->S'+(r[1]+1)+'</span><input value="'+esc(r[2])+'" data-i="'+i+'" oninput="ew(this)" placeholder="标签"><span class="del" onclick="dw('+i+')">x</span></div>';
+    return '<div class="anno-item"><span class="tag tr">S'+(r[0]+1)+'->S'+(r[1]+1)+'</span><input value="'+esc(r[2])+'" data-i="'+i+'" oninput="ew(this)" placeholder="'+I18n.t('fp.labelPlaceholder')+'"><span class="del" onclick="dw('+i+')">x</span></div>';
   }).join('');
-  if(!RW.length)e.innerHTML='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px;">(无)</div>';
+  if(!RW.length)e.innerHTML='<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px;">'+I18n.t('fp.noData')+'</div>';
 }
 
 // ===== 操作函数 =====
-function se(inp){cur[parseInt(inp.dataset.i)]=inp.value.trim()||'步骤'+(parseInt(inp.dataset.i)+1);renderAll()}
+function se(inp){cur[parseInt(inp.dataset.i)]=inp.value.trim()||I18n.t('fp.fallbackStep')+(parseInt(inp.dataset.i)+1);renderAll()}
 function as(){var v=document.getElementById('ns').value.trim();if(!v)return;cur.push(v);DC.push(0);document.getElementById('ns').value='';renderAll()}
 function ds(i){if(cur.length<=1)return;cur.splice(i,1);DC.splice(i,1);renderAll()}
 
@@ -221,7 +243,7 @@ function renderSvg(){
   svg.setAttribute('viewBox','0 0 1600 '+TH);
   var ix=CX-NW/2-AL;
   GL(svg,ix,ncy(0),CX-NW/2,ncy(0),'#222',2,'url(#m1)');
-  GT(svg,ix-15,ncy(0)+8,'#333',24,'bold','end','入料');
+  GT(svg,ix-15,ncy(0)+8,'#333',24,'bold','end',I18n.t('fp.feedMaterial'));
   for(var i=0;i<cnt;i++){var y=ny(i),co=isCCP(i);GR(svg,CX-NW/2,y,NW,NH,NX,co?'#dc2626':'#f5f5f5',co?'#991b1b':'#666',co?3:1.5);GT(svg,CX,y+NH/2+10,co?'#fff':'#333',24,'bold','middle',(i+1)+'. '+cur[i])}
   for(var i=0;i<cnt-1;i++)GL(svg,CX,ny(i)+NH,CX,ny(i+1),'#222',2,'url(#m1)');
   var LX1=CX-NW/2-5-AL,LX2=CX-NW/2-5;
@@ -238,9 +260,9 @@ function GP(s,p,f,st,sw,d,m){var e=document.createElementNS('http://www.w3.org/2
 
 // ===== draw.io XML =====
 function gx(){
-  var l=['<mxfile host="app.diagrams.net" version="21.0.0">','  <diagram id="haccp-process-flow" name="\u83ca\u7c89\u751f\u4ea7\u5de5\u827a\u6d41\u7a0b\u56fe">'];
+  var l=['<mxfile host="app.diagrams.net" version="21.0.0">','  <diagram id="haccp-process-flow" name="'+I18n.t('fp.diagramName')+'">'];
   var th=SY+cur.length*YG+30;
-  l.push('    <mxGraphModel pageWidth="1600" pageHeight="'+th+'"><root><mxCell id="0"/><mxCell id="1" parent="0"/>');
+  l.push('    <mxGraphModel pageWidth="1600" pageHeight="'+th+'"><root><mxCell id="0"/><mxCell id="1" parent="0"/>'.replace('"菊粉生产工艺流程图"', '"'+I18n.t('fp.diagramName')+'"'));
   var yp=SY;
   for(var i=0;i<cur.length;i++){var co=isCCP(i),fc=co?'#dc2626':'#f5f5f5',sc=co?'#991b1b':'#666666',fn=co?'#ffffff':'#333333';l.push('        <mxCell id="n'+(i+1)+'" value="'+esx(cur[i])+'" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor='+fc+';strokeColor='+sc+';fontColor='+fn+';fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="'+(CX-NW/2)+'" y="'+yp+'" width="'+NW+'" height="'+NH+'" as="geometry"/></mxCell>');yp+=YG}
   for(var i=0;i<cur.length-1;i++)l.push('        <mxCell id="e'+(i+1)+'" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#000000;strokeWidth=2;" edge="1" source="n'+(i+1)+'" target="n'+(i+2)+'" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>');
@@ -248,7 +270,7 @@ function gx(){
   l.push('      </root></mxGraphModel></diagram></mxfile>');return l.join('\n');
 }
 
-function updateXml(){var x=gx();try{localStorage.setItem('steps',JSON.stringify(cur));localStorage.setItem('ccp',JSON.stringify(DC));localStorage.setItem('leftNotes',JSON.stringify(LN));localStorage.setItem('rightNotes',JSON.stringify(RN));localStorage.setItem('rework',JSON.stringify(RW));localStorage.setItem('xml',x)}catch(e){}}
+function updateXml(){var x=gx();try{localStorage.setItem('haccp_fc_steps',JSON.stringify(cur));localStorage.setItem('haccp_fc_ccp',JSON.stringify(DC));localStorage.setItem('haccp_fc_leftNotes',JSON.stringify(LN));localStorage.setItem('haccp_fc_rightNotes',JSON.stringify(RN));localStorage.setItem('haccp_fc_rework',JSON.stringify(RW));localStorage.setItem('haccp_fc_xml',x)}catch(e){}}
 document.getElementById('ob').addEventListener('click',function(){window.open('https://app.diagrams.net/#xml='+encodeURIComponent(gx()))});
 
 // 保存流程图到 localStorage（供HACCP报告读取）
@@ -259,18 +281,42 @@ document.getElementById('saveBtn').addEventListener('click',function(){
   try{
     localStorage.setItem('haccp_drawio_svg',svgBase64);
     var btn=document.getElementById('saveBtn');
-    btn.textContent='✅ 已保存！';
-    setTimeout(function(){btn.textContent='💾 保存到报告';},2000);
-  }catch(e){alert('保存失败:'+e.message);}
+    btn.textContent=I18n.t('fp.saved');
+    setTimeout(function(){btn.textContent=I18n.t('fp.saveToReport');},2000);
+  }catch(e){alert(I18n.t('fp.saveFailed')+e.message);}
 });
 
+function loadDemo(){
+  fetch('data/demo_inulin.json')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      cur=data.steps.slice();
+      DC=data.ccp.slice();
+      LN.splice(0,LN.length); data.leftNotes.forEach(function(n){LN.push(n.slice());});
+      RN.splice(0,RN.length); data.rightNotes.forEach(function(n){RN.push(n.slice());});
+      RW.splice(0,RW.length); data.rework.forEach(function(n){RW.push(n.slice());});
+      renderAll();
+    })
+    .catch(function(e){alert('Failed to load demo data: '+e.message);});
+}
+
 function rt(){
-  cur=DS.slice();
-  DC=[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1,0,1,0,0];
-  LN.splice(0,LN.length,[1,'地下水','40℃水温、清洗30分钟'],[2,'三级粉碎机粉碎至15mm',null],[4,'1.5~3倍纯净水','搅拌'],[5,'功率50~100W、频率40kHz','12min'],[10,'温度35℃','搅拌转速80r/min'],[12,'活性炭',null],[14,'交换树脂',null],[16,'乙醇',null],[17,'温度120~180℃',null]);
-  RN.splice(0,RN.length,[1,'废水',null],[6,'加热加压、静置沉淀5min','废渣'],[8,'废渣',null],[9,null,'去除蛋白质、纤维素杂质'],[13,'废活性炭',null],[14,'饱和树脂',null],[16,'沉淀',null]);
-  RW.splice(0,RW.length,[9,8,'不合格，返工'],[15,14,'粗菊粉溶液'],[17,16,'不合格，返工'],[19,18,'不合格，返工']);
+  // 清空所有数据
+  cur=[];
+  DC=[];
+  LN.splice(0,LN.length);
+  RN.splice(0,RN.length);
+  RW.splice(0,RW.length);
+  try{
+    localStorage.removeItem('haccp_fc_steps');
+    localStorage.removeItem('haccp_fc_ccp');
+    localStorage.removeItem('haccp_fc_leftNotes');
+    localStorage.removeItem('haccp_fc_rightNotes');
+    localStorage.removeItem('haccp_fc_rework');
+    localStorage.removeItem('haccp_fc_xml');
+  }catch(e){}
   renderAll();
+translateFpPage();
 }
 
 init();

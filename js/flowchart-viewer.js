@@ -15,7 +15,7 @@ const FlowchartViewer = (() => {
       var saved = localStorage.getItem('haccp_drawio_xml');
       if (saved) return saved;
     } catch(e) {}
-    if (window.INULIN_DRAWIO_XML) return window.INULIN_DRAWIO_XML;
+    if (window.INULIN_DRAWIO_XML) return I18n.processBilingual(window.INULIN_DRAWIO_XML);
     return '<mxfile><diagram><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>';
   }
 
@@ -128,12 +128,12 @@ const FlowchartViewer = (() => {
     });
 
     document.getElementById('fcResetBtn').addEventListener('click', function() {
-      if (!confirm('确认恢复默认流程图？将丢失您的自定义修改。')) return;
+      if (!confirm(I18n.t('q.fcConfirmReset'))) return;
       try {
         localStorage.removeItem('haccp_drawio_xml');
         localStorage.removeItem('haccp_drawio_svg');
       } catch(e2) {}
-      sendToDrawio({ action: 'load', xml: window.INULIN_DRAWIO_XML || getInitialXml() });
+      sendToDrawio({ action: 'load', xml: I18n.processBilingual(window.INULIN_DRAWIO_XML || '') || getInitialXml() });
       setStatus('✅ 已恢复默认流程图');
     });
   }

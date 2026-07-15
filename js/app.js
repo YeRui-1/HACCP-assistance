@@ -26,7 +26,7 @@ const App = (() => {
     });
     getEl('htmlRoot').setAttribute('lang', I18n.getLang() === 'en' ? 'en' : 'zh-CN');
     const btnLang = getEl('btnLang');
-    if (btnLang) btnLang.textContent = I18n.getLang() === 'zh' ? 'EN' : I18n.getLang() === 'en' ? '中' : 'EN';
+    if (btnLang) btnLang.textContent = I18n.getLang() === 'zh' ? 'EN' : '中文';
   }
 
   function toggleLang() {
@@ -302,7 +302,7 @@ const App = (() => {
       const data = await res.json();
 
       if (!res.ok) {
-        errorEl.textContent = data.detail || '登录失败';
+        errorEl.textContent = data.detail || I18n.t('login.failFallback');
         errorEl.style.display = 'block';
         setLoading('btnLoginConfirm', false);
         return;
@@ -367,7 +367,7 @@ const App = (() => {
           planCount = data.plans ? data.plans.length : 0;
         }
       }
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to load plans from backend:', e); }
 
     if (planCount > 0) {
       statusEl.innerHTML = `<span class="has-data">&#10003; ${I18n.t('lobby.status.plans').replace('{n}', planCount)}</span>`;
@@ -439,13 +439,13 @@ const App = (() => {
 
     // 检查上次提醒时间
     var lastReminder = 0;
-    try { lastReminder = parseInt(localStorage.getItem(VERIFICATION_REMINDER_KEY)) || 0; } catch(e) {}
+    try { lastReminder = parseInt(localStorage.getItem(VERIFICATION_REMINDER_KEY)) || 0; } catch(e) { console.warn('Failed to read localStorage ' + VERIFICATION_REMINDER_KEY + ':', e); }
     var now = Date.now();
     
     if (now - lastReminder >= VERIFICATION_REMINDER_INTERVAL) {
       // 需要提醒
       showVerificationReminder();
-      try { localStorage.setItem(VERIFICATION_REMINDER_KEY, String(now)); } catch(e) {}
+      try { localStorage.setItem(VERIFICATION_REMINDER_KEY, String(now)); } catch(e) { console.warn('Failed to write localStorage ' + VERIFICATION_REMINDER_KEY + ':', e); }
     }
   }
 
@@ -455,11 +455,11 @@ const App = (() => {
     overlay.style.display = 'flex';
     overlay.innerHTML = '<div class="modal-box" style="text-align:center;">' +
       '<div style="font-size:48px;margin-bottom:12px;">⏰</div>' +
-      '<h3 style="margin-bottom:8px;">HACCP验证程序提醒</h3>' +
-      '<p style="font-size:14px;color:var(--gray-500);margin-bottom:20px;">您的HACCP计划书已创建完成，但验证程序尚未填写并提交。<br>请尽快完成HACCP验证程序，以确保体系的有效运行。</p>' +
+      '<h3 style="margin-bottom:8px;">' + I18n.t('reminder.title') + '</h3>' +
+      '<p style="font-size:14px;color:var(--gray-500);margin-bottom:20px;">' + I18n.t('reminder.body') + '</p>' +
       '<div style="display:flex;gap:10px;justify-content:center;">' +
-        '<button class="btn btn-primary" id="reminderGoBtn" style="padding:10px 24px;">📝 去填写验证程序</button>' +
-        '<button class="btn btn-secondary" id="reminderLaterBtn" style="padding:10px 24px;">稍后提醒</button>' +
+        '<button class="btn btn-primary" id="reminderGoBtn" style="padding:10px 24px;">' + I18n.t('reminder.goBtn') + '</button>' +
+        '<button class="btn btn-secondary" id="reminderLaterBtn" style="padding:10px 24px;">' + I18n.t('reminder.laterBtn') + '</button>' +
       '</div>' +
     '</div>';
     document.body.appendChild(overlay);
@@ -479,7 +479,7 @@ const App = (() => {
   }
 
   function clearVerificationReminder() {
-    try { localStorage.removeItem(VERIFICATION_REMINDER_KEY); } catch(e) {}
+    try { localStorage.removeItem(VERIFICATION_REMINDER_KEY); } catch(e) { console.warn('Failed to remove localStorage ' + VERIFICATION_REMINDER_KEY + ':', e); }
   }
 
   // 初始化24小时定时器（页面加载后启动）
@@ -491,6 +491,23 @@ const App = (() => {
   }
 
   function init() {
+    // v1 key migration — rename unprefixed flowchart keys to haccp_ prefixed
+    // Only copy if user had saved custom data (not the default inulin demo)
+    (function migrateKeys() {
+      // If we already ran migration v1, skip — user data already handled
+      if (localStorage.getItem('haccp_fc_v1_migrated')) return;
+
+      // Clear old unprefixed demo-origin keys (no user data to preserve here)
+      ['steps','ccp','leftNotes','rightNotes','rework','xml'].forEach(function(k) {
+        try { localStorage.removeItem(k); } catch(e) {}
+      });
+      // Clear new keys too — fresh start for the blank template editor
+      ['haccp_fc_steps','haccp_fc_ccp','haccp_fc_leftNotes','haccp_fc_rightNotes','haccp_fc_rework','haccp_fc_xml'].forEach(function(k) {
+        try { localStorage.removeItem(k); } catch(e) {}
+      });
+      try { localStorage.setItem('haccp_fc_v1_migrated', '1'); } catch(e) {}
+    })();
+
     translatePage();
 
     // 管理员

@@ -14,28 +14,28 @@ const Verification = (() => {
     try {
       const raw = localStorage.getItem('haccp_15min_data');
       if (raw) return JSON.parse(raw);
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to read or parse localStorage haccp_15min_data:', e); }
     return null;
   }
 
   function savePlanData(data) {
-    try { localStorage.setItem('haccp_15min_data', JSON.stringify(data)); } catch(e) {}
+    try { localStorage.setItem('haccp_15min_data', JSON.stringify(data)); } catch(e) { console.warn('Failed to write localStorage haccp_15min_data:', e); }
     // 同步到后端（静默，不阻塞）
     syncPlanToBackend(data);
   }
 
   function syncPlanToBackend(data) {
     var planId = null;
-    try { planId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+    try { planId = localStorage.getItem('haccp_current_plan_id'); } catch(e) { console.warn('Failed to read localStorage haccp_current_plan_id:', e); }
     if (planId) {
       var token = null;
-      try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+      try { token = localStorage.getItem('haccp_token'); } catch(e) { console.warn('Failed to read localStorage haccp_token:', e); }
       if (token) {
         fetch('/api/plans/' + planId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ content: data })
-        }).catch(function() {});
+        }).catch(function(err) { console.warn('Failed to sync plan data to backend:', err); });
       }
     }
   }
@@ -250,23 +250,23 @@ const Verification = (() => {
 
       (async function() {
         var token = null;
-        try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+        try { token = localStorage.getItem('haccp_token'); } catch(e) { console.warn('Failed to read localStorage haccp_token for verification:', e); }
         if (token) {
           try {
             var resp = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
             if (resp.ok) { doSubmit(data, signerName, signDate); return; }
-          } catch(e) {}
+          } catch(e) { console.warn('Failed to verify auth token with backend:', e); }
         }
         try {
           var username = '';
           if (token) {
-            try { var parts = token.split('.'); if (parts.length === 3) { var payload = JSON.parse(atob(parts[1])); username = payload.username || ''; } } catch(e) {}
+            try { var parts = token.split('.'); if (parts.length === 3) { var payload = JSON.parse(atob(parts[1])); username = payload.username || ''; } } catch(e) { console.warn('Failed to decode JWT token for username:', e); }
           }
           if (username) {
             var loginResp = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username, password: password }) });
             if (loginResp.ok) { doSubmit(data, signerName, signDate); return; }
           }
-        } catch(e) {}
+        } catch(e) { console.warn('Failed to re-login for verification:', e); }
         alert(I18n.t('ver.alertPwdFail'));
       })();
     });

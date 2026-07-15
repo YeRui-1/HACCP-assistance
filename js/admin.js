@@ -86,6 +86,14 @@ const Admin = (() => {
             </span>
             <span>${I18n.t('admin.templates')}</span>
           </button>
+          <button class="admin-menu-item" data-menu="demodata">
+            <span class="menu-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/><path d="M8 6l-6 6 6 6"/>
+              </svg>
+            </span>
+            <span>${I18n.t('admin.demoData')}</span>
+          </button>
         </div>
         <div class="admin-content" id="adminContent"></div>
       </div>
@@ -116,6 +124,7 @@ const Admin = (() => {
       if (activeMenu === 'editor') renderEditor(content);
       else if (activeMenu === 'results') renderResults(content);
       else if (activeMenu === 'templates') renderTemplates(content);
+      else if (activeMenu === 'demodata') renderDemoDataEditor(content);
       content.style.opacity = '1';
     }, 120);
   }
@@ -595,6 +604,63 @@ const Admin = (() => {
       btn.disabled = false;
       btn.textContent = I18n.t('admin.genReport');
     }
+  }
+
+  // ===== 演示数据编辑器 =====
+  function renderDemoDataEditor(content) {
+    content.innerHTML = '<div class="admin-page-title">' + I18n.t('admin.demoData') + '</div>'
+      + '<div class="admin-page-desc">' + I18n.t('admin.demoDataDesc') + '</div>'
+      + '<div class="demo-editor-toolbar">'
+        + '<button class="btn btn-primary btn-sm" id="demoLoadBtn">' + I18n.t('admin.demoLoad') + '</button>'
+        + '<button class="btn btn-secondary btn-sm" id="demoSaveBtn">' + I18n.t('admin.demoSave') + '</button>'
+        + '<span class="demo-status" id="demoStatus"></span>'
+      + '</div>'
+      + '<textarea id="demoEditor" class="demo-json-editor" placeholder="' + I18n.t('admin.demoEmpty') + '"></textarea>'
+      + '<div class="admin-page-desc" style="margin-top:8px;font-size:11px;color:var(--gray-400);">' + I18n.t('admin.demoHelp') + '</div>';
+
+    var ta = document.getElementById('demoEditor');
+    var statusEl = document.getElementById('demoStatus');
+
+    function setStatus(msg, ok) {
+      statusEl.textContent = msg;
+      statusEl.style.color = ok ? '#16a34a' : '#dc2626';
+    }
+
+    // Load from backend
+    document.getElementById('demoLoadBtn').addEventListener('click', function() {
+      var btn = this;
+      btn.disabled = true;
+      fetch(API_BASE + '/api/demo/data')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          ta.value = JSON.stringify(d.data, null, 2);
+          setStatus(I18n.t('admin.demoLoaded'), true);
+        })
+        .catch(function(e) { setStatus(I18n.t('admin.demoError') + ': ' + e.message, false); })
+        .finally(function() { btn.disabled = false; });
+    });
+
+    // Save to backend
+    document.getElementById('demoSaveBtn').addEventListener('click', function() {
+      var btn = this;
+      var raw = ta.value.trim();
+      if (!raw) { setStatus(I18n.t('admin.demoEmpty'), false); return; }
+      try { var parsed = JSON.parse(raw); }
+      catch(e) { setStatus(I18n.t('admin.demoInvalid') + ': ' + e.message, false); return; }
+      btn.disabled = true;
+      fetch(API_BASE + '/api/demo/data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: parsed }),
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { setStatus(I18n.t('admin.demoSaved'), true); })
+        .catch(function(e) { setStatus(I18n.t('admin.demoError') + ': ' + e.message, false); })
+        .finally(function() { btn.disabled = false; });
+    });
+
+    // Auto-load on open
+    document.getElementById('demoLoadBtn').click();
   }
 
   return { init };

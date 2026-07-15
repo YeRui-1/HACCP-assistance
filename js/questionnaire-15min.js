@@ -111,7 +111,7 @@ const Questionnaire15min = (() => {
     renderActiveSection();
     
     // 清除旧版本的导航标记（验证程序已独立）
-    try { localStorage.removeItem('haccp_navigate_to_verification'); } catch(e) {}
+    try { localStorage.removeItem('haccp_navigate_to_verification'); } catch(e) { console.warn('Failed to remove localStorage haccp_navigate_to_verification:', e); }
   }
 
   // ==================== 文件上传区域 ====================
@@ -214,7 +214,7 @@ const Questionnaire15min = (() => {
         try {
           const arrayBuffer = e.target.result;
           let htmlResult = null;
-          try { htmlResult = await mammoth.convertToHtml({ arrayBuffer }); } catch (htmlErr) {}
+          try { htmlResult = await mammoth.convertToHtml({ arrayBuffer }); } catch (htmlErr) { console.warn('Failed to convert DOCX to HTML with mammoth:', htmlErr); }
           if (htmlResult && htmlResult.value) {
             resolve(extractStructuredFromHtml(htmlResult.value));
           } else {
@@ -487,7 +487,6 @@ const Questionnaire15min = (() => {
     } catch (e) {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(SECTION_COMPLETED_KEY);
-      localStorage.removeItem('haccp_15min_submitted');
       localStorage.removeItem('haccp_submitted');
       data = getDefaultData();
     }
@@ -508,7 +507,6 @@ const Questionnaire15min = (() => {
           if (confirm('确定要重置所有问卷数据吗？此操作不可恢复！')) {
             localStorage.removeItem(STORAGE_KEY);
             localStorage.removeItem(SECTION_COMPLETED_KEY);
-            localStorage.removeItem('haccp_15min_submitted');
             localStorage.removeItem('haccp_submitted');
             currentStep = 0;
             renderActiveSection();
@@ -2153,7 +2151,7 @@ const Questionnaire15min = (() => {
         // 验证密码 - 通过后端API验证
         (async function() {
           var token = null;
-          try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+          try { token = localStorage.getItem('haccp_token'); } catch(e) { console.warn('Failed to read localStorage haccp_token for verification:', e); }
           
           if (token) {
             try {
@@ -2166,16 +2164,16 @@ const Questionnaire15min = (() => {
                 doVerificationSubmit(data, signerName, signDate);
                 return;
               }
-            } catch(e) {}
+            } catch(e) { console.warn('Failed to verify auth token with backend:', e); }
           }
-          
+
           // 尝试用输入的密码重新登录来验证
           try {
             var username = '';
             try {
               var storedUser = JSON.parse(localStorage.getItem('haccp_user') || '{}');
               username = storedUser.username || '';
-            } catch(e) {}
+            } catch(e) { console.warn('Failed to parse localStorage haccp_user:', e); }
             
             if (!username) {
               // 尝试从token中解码
@@ -2186,7 +2184,7 @@ const Questionnaire15min = (() => {
                     var payload = JSON.parse(atob(parts[1]));
                     username = payload.username || '';
                   }
-                } catch(e) {}
+                } catch(e) { console.warn('Failed to decode JWT token for username:', e); }
               }
             }
             
@@ -2199,14 +2197,14 @@ const Questionnaire15min = (() => {
               if (loginResp.ok) {
                 var loginData = await loginResp.json();
                 if (loginData.token) {
-                  try { localStorage.setItem('haccp_token', loginData.token); } catch(e) {}
+                  try { localStorage.setItem('haccp_token', loginData.token); } catch(e) { console.warn('Failed to write localStorage haccp_token after login:', e); }
                 }
                 doVerificationSubmit(data, signerName, signDate);
                 return;
               }
             }
-          } catch(e) {}
-          
+          } catch(e) { console.warn('Failed to re-login for verification:', e); }
+
           alert('密码验证失败。请确认您是已登录的HACCP小组组长，并输入正确的登录密码。');
         })();
       });
@@ -3178,19 +3176,19 @@ const Questionnaire15min = (() => {
 
   // ==================== 可视化流程图 ====================
   function renderVisualFlowchart(steps) {
-    if (!steps || steps.length === 0 || !steps.some(function(s) { return s.stepName && s.stepName.trim(); })) return '<p style="color:var(--gray-400);font-style:italic;text-align:center;padding:20px;">暂无步骤数据</p>';
+    if (!steps || steps.length === 0 || !steps.some(function(s) { return s.stepName && s.stepName.trim(); })) return '<p style="color:var(--gray-400);font-style:italic;text-align:center;padding:20px;">' + I18n.t('q.fcNoSteps') + '</p>';
     var validSteps = steps.filter(function(s) { return s.stepName && s.stepName.trim(); });
-    var html = '<div class="q15-visual-flowchart"><div class="q15-vf-node start-end"><div class="q15-vf-node-shape start">开始</div><div class="q15-vf-arrow-down"></div></div>';
-    validSteps.forEach(function(step, i) { var isCCP = step.controlPoint && step.controlPoint.toLowerCase().indexOf('ccp') !== -1; var ccpLabel = isCCP ? '<span class="q15-vf-ccp-badge">' + esc(step.controlPoint) + '</span>' : ''; html += '<div class="q15-vf-node"><div class="q15-vf-node-shape ' + (isCCP ? 'ccp' : 'step') + '"><span class="q15-vf-step-num">' + (i + 1) + '</span><div class="q15-vf-step-content"><strong>' + esc(step.stepName) + '</strong>' + (step.operationMethod ? '<p class="q15-vf-detail">方法：' + esc(step.operationMethod) + '</p>' : '') + (step.parameters ? '<p class="q15-vf-detail">参数：' + esc(step.parameters) + '</p>' : '') + (step.equipmentName ? '<p class="q15-vf-detail">设备：' + esc(step.equipmentName) + '</p>' : '') + '</div>' + ccpLabel + '</div>' + (i < validSteps.length - 1 ? '<div class="q15-vf-arrow-down"></div>' : '') + '</div>'; });
-    html += '<div class="q15-vf-node start-end"><div class="q15-vf-arrow-down"></div><div class="q15-vf-node-shape end">结束</div></div></div>';
+    var html = '<div class="q15-visual-flowchart"><div class="q15-vf-node start-end"><div class="q15-vf-node-shape start">' + I18n.t('q.fcStart') + '</div><div class="q15-vf-arrow-down"></div></div>';
+    validSteps.forEach(function(step, i) { var isCCP = step.controlPoint && step.controlPoint.toLowerCase().indexOf('ccp') !== -1; var ccpLabel = isCCP ? '<span class="q15-vf-ccp-badge">' + esc(step.controlPoint) + '</span>' : ''; html += '<div class="q15-vf-node"><div class="q15-vf-node-shape ' + (isCCP ? 'ccp' : 'step') + '"><span class="q15-vf-step-num">' + (i + 1) + '</span><div class="q15-vf-step-content"><strong>' + esc(step.stepName) + '</strong>' + (step.operationMethod ? '<p class="q15-vf-detail">' + I18n.t('q.fcMethodLabel') + '' + esc(step.operationMethod) + '</p>' : '') + (step.parameters ? '<p class="q15-vf-detail">' + I18n.t('q.fcParamsLabel') + '' + esc(step.parameters) + '</p>' : '') + (step.equipmentName ? '<p class="q15-vf-detail">' + I18n.t('q.fcEquipmentLabel') + '' + esc(step.equipmentName) + '</p>' : '') + '</div>' + ccpLabel + '</div>' + (i < validSteps.length - 1 ? '<div class="q15-vf-arrow-down"></div>' : '') + '</div>'; });
+    html += '<div class="q15-vf-node start-end"><div class="q15-vf-arrow-down"></div><div class="q15-vf-node-shape end">' + I18n.t('q.fcEnd') + '</div></div></div>';
     return html;
   }
 
   function renderFlowchartPreview(data) {
     var hasSteps = data.processSteps && data.processSteps.some(function(s) { return s.stepName && s.stepName.trim(); });
-    if (data.flowchartXml) return '<div class="q15-flowchart-preview"><div class="q15-flowchart-info"><span class="q15-flowchart-icon">\u{1F4CA}</span><span>流程图已创建</span><span class="q15-flowchart-size">' + (data.flowchartXml.length / 1024).toFixed(1) + ' KB</span></div><div class="q15-flowchart-actions"><button class="btn btn-primary btn-sm" id="editDrawioBtn">\u270F\uFE0F draw.io编辑</button><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> 菊粉工艺流程图</button><button class="btn btn-secondary btn-sm" id="clearFlowchartBtn">\u{1F5D1}\uFE0F 清除</button></div></div>';
-    if (hasSteps) return '<div class="q15-vf-wrapper"><div class="q15-vf-actions"><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> 菊粉工艺流程图</button><button class="btn btn-secondary btn-sm" id="openDrawioBtn">\u{1F4DD} draw.io高级编辑</button><a class="btn btn-secondary btn-sm" href="flowchart-preview.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">\u{1F4CA} 流程图模板预览</a></div><div id="q15VfContainer">' + renderVisualFlowchart(data.processSteps) + '</div></div>';
-    return '<div class="q15-flowchart-empty"><div class="q15-flowchart-empty-icon">\u{1F4CA}</div><p>请先在上方填写操作步骤，AI将自动生成生产流程图</p><p style="font-size:12px;color:var(--gray-400);margin-top:8px;">支持在线编辑和导出</p></div>';
+    if (data.flowchartXml) return '<div class="q15-flowchart-preview"><div class="q15-flowchart-info"><span class="q15-flowchart-icon">\u{1F4CA}</span><span>' + I18n.t('q.fcCreated') + '</span><span class="q15-flowchart-size">' + (data.flowchartXml.length / 1024).toFixed(1) + ' KB</span></div><div class="q15-flowchart-actions"><button class="btn btn-primary btn-sm" id="editDrawioBtn">\u270F\uFE0F draw.io' + I18n.t('q.fcDrawioEdit') + '</button><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> ' + I18n.t('q.fcInulinBtn') + '</button><button class="btn btn-secondary btn-sm" id="clearFlowchartBtn">\u{1F5D1}\uFE0F ' + I18n.t('q.fcClear') + '</button></div></div>';
+    if (hasSteps) return '<div class="q15-vf-wrapper"><div class="q15-vf-actions"><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> ' + I18n.t('q.fcInulinBtn') + '</button><button class="btn btn-secondary btn-sm" id="openDrawioBtn">\u{1F4DD} ' + I18n.t('q.fcDrawioAdvanced') + '</button><a class="btn btn-secondary btn-sm" href="flowchart-preview.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">\u{1F4CA} ' + I18n.t('q.fcTemplatePreview') + '</a></div><div id="q15VfContainer">' + renderVisualFlowchart(data.processSteps) + '</div></div>';
+    return '<div class="q15-flowchart-empty"><div class="q15-flowchart-empty-icon">\u{1F4CA}</div><p>' + I18n.t('q.fcEmptyHint') + '</p><p style="font-size:12px;color:var(--gray-400);margin-top:8px;">' + I18n.t('q.fcEmptySubHint') + '</p></div>';
   }
 
   function bindFlowchartButtons(data) {
@@ -3201,17 +3199,17 @@ const Questionnaire15min = (() => {
     var inulinBtn = document.getElementById('q15InulinBtn');
     if (inulinBtn) {
       inulinBtn.addEventListener('click', function() {
-        if (typeof mermaid === 'undefined') { alert('Mermaid 渲染库未加载'); return; }
+        if (typeof mermaid === 'undefined') { alert(I18n.t('q.fcMermaidNotLoaded')); return; }
         var modal = document.createElement('div'); modal.className = 'q15-drawio-modal-overlay'; modal.style.zIndex = '1000';
-        modal.innerHTML = '<div class="q15-drawio-modal" style="height:90vh;width:92vw"><div class="q15-drawio-toolbar"><span class="q15-drawio-title">菊粉完整生产工艺流程图 — 编辑</span><div class="q15-drawio-toolbar-actions"><span id="inulinStatus" style="font-size:12px;color:var(--gray-400)"></span><button class="q15-drawio-close" id="inulinModalClose">&times;</button></div></div><div style="flex:1;padding:16px;overflow:auto" id="inulinModalBody"></div></div>';
+        modal.innerHTML = '<div class="q15-drawio-modal" style="height:90vh;width:92vw"><div class="q15-drawio-toolbar"><span class="q15-drawio-title">' + I18n.t('q.fcInulinModalTitle') + '</span><div class="q15-drawio-toolbar-actions"><span id="inulinStatus" style="font-size:12px;color:var(--gray-400)"></span><button class="q15-drawio-close" id="inulinModalClose">&times;</button></div></div><div style="flex:1;padding:16px;overflow:auto" id="inulinModalBody"></div></div>';
         document.body.appendChild(modal);
         var body = document.getElementById('inulinModalBody');
-        var src = (window.INULIN_FLOWCHART && window.INULIN_FLOWCHART.mermaid) ? window.INULIN_FLOWCHART.mermaid : 'graph TD\n  L1["流程图数据未定义"]';
-        try { localStorage.setItem('haccp_flowchart_mermaid', src); } catch(e) {}
+        var src = I18n.processBilingual((window.INULIN_FLOWCHART && window.INULIN_FLOWCHART.mermaid) ? window.INULIN_FLOWCHART.mermaid : 'graph TD\n  L1["流程图数据未定义|||Flowchart data not defined"]');
+        try { localStorage.setItem('haccp_flowchart_mermaid', src); } catch(e) { console.warn('Failed to write localStorage haccp_flowchart_mermaid:', e); }
         var editMode = false;
-        function renderInulinBody() { body.innerHTML = ''; var tb = document.createElement('div'); tb.className = 'fc-toolbar'; tb.innerHTML = '<button class="btn btn-sm btn-secondary" id="inulinToggleEdit">' + (editMode ? '📖 预览流程图' : '✏️ 编辑流程图') + '</button><span class="fc-toolbar-info" id="inulinInfo">' + (editMode ? '修改节点表格后点击"应用修改"保存' : '点击编辑按钮编辑节点名称和箭头标签') + '</span>'; body.appendChild(tb); if (editMode) renderInulinEditor(body); else renderInulinChart(body); document.getElementById('inulinToggleEdit')?.addEventListener('click', function() { if (editMode) { var ta = document.getElementById('fcFullSourceEditor'); if (ta) { try { localStorage.setItem('haccp_flowchart_mermaid', ta.value); } catch(e) {} } } editMode = !editMode; renderInulinBody(); }); }
-        function renderInulinChart(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var chartDiv = document.createElement('div'); chartDiv.className = 'mermaid'; chartDiv.textContent = currentSrc; container.appendChild(chartDiv); var legend = document.createElement('div'); legend.className = 'fc-legend'; legend.innerHTML = '<div class="fc-legend-title">' + I18n.t('q.flowchartLegend') + '</div><div class="fc-legend-items"><div class="fc-legend-item"><span class="fc-legend-dot ccp"></span>' + I18n.t('q.ccpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot oprp"></span>' + I18n.t('q.oprpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot cqp"></span>' + I18n.t('q.cqpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot io"></span>' + I18n.t('q.ioLegend') + '</div></div>'; container.appendChild(legend); mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true } }); setTimeout(function() { mermaid.run({ nodes: [chartDiv] }).catch(function(err) { chartDiv.innerHTML = '<p style="color:red">渲染失败: ' + (err.message || err) + '</p>'; }); }, 100); }
-        function renderInulinEditor(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var parsed = parseInulinNodes(currentSrc); var help = document.createElement('div'); help.className = 'fc-editor-help'; help.innerHTML = '修改节点名称和箭头标签后点击「应用修改」保存，然后点击「预览流程图」查看效果。'; container.appendChild(help); var table = document.createElement('table'); table.className = 'fc-node-table'; table.innerHTML = '<thead><tr><th>ID</th><th>节点文字</th><th>类型</th><th style="width:40px"></th></tr></thead><tbody id="inulinNodeBody"></tbody></table>'; container.appendChild(table); var tbody = document.getElementById('inulinNodeBody'); for (var i = 0; i < parsed.nodes.length; i++) { var n = parsed.nodes[i]; var tr = document.createElement('tr'); tr.dataset.nodeid = n.id; tr.innerHTML = '<td><code>' + n.id + '</code></td><td><input class="fc-node-input" data-nodeid="' + n.id + '" value="' + n.label.replace(/"/g,'"') + '" /></td><td><span class="fc-node-badge ' + n.type + '">' + n.type.toUpperCase() + '</span></td><td><button class="fc-btn-del inulin-del-node" data-nodeid="' + n.id + '">✕</button></td>'; tbody.appendChild(tr); } var addBtn = document.createElement('button'); addBtn.className = 'btn btn-sm btn-secondary'; addBtn.style.margin = '8px 0'; addBtn.textContent = '+ 添加节点行'; addBtn.addEventListener('click', function() { var tb = document.getElementById('inulinNodeBody'); var newId = 'N' + Date.now(); var tr = document.createElement('tr'); tr.dataset.nodeid = newId; tr.innerHTML = '<td><code>' + newId + '</code></td><td><input class="fc-node-input" data-nodeid="' + newId + '" value="新步骤' + (tb.children.length + 1) + '" /></td><td><select class="fc-input-type"><option value="step">STEP</option><option value="ccp">CCP</option><option value="oprp">OPRP</option><option value="cqp">CQP</option><option value="io">IO</option></select></td><td><button class="fc-btn-del inulin-del-node" data-nodeid="' + newId + '">✕</button></td>'; tr.querySelector('.inulin-del-node').addEventListener('click', function() { tr.remove(); }); tb.appendChild(tr); }); container.appendChild(addBtn); container.querySelectorAll('.inulin-del-node').forEach(function(btn) { btn.addEventListener('click', function() { var row = this.closest('tr'); if (row) row.remove(); }); }); if (parsed.edges.length > 0) { var eHelp = document.createElement('div'); eHelp.className = 'fc-editor-help'; eHelp.style.marginTop = '16px'; eHelp.textContent = '箭头标签：'; container.appendChild(eHelp); var eTable = document.createElement('table'); eTable.className = 'fc-node-table'; eTable.innerHTML = '<thead><tr><th>连接</th><th>线上文字</th><th style="width:40px"></th></tr></thead><tbody id="inulinEdgeBody"></tbody></table>'; container.appendChild(eTable); var etbody = document.getElementById('inulinEdgeBody'); for (var i = 0; i < parsed.edges.length; i++) { var e = parsed.edges[i]; if (!e.label) continue; var tr = document.createElement('tr'); tr.innerHTML = '<td><code>' + e.from + ' → ' + e.to + '</code></td><td><input class="fc-edge-label" data-edge="' + e.from + '|' + e.to + '" value="' + (e.label || '') + '" style="width:100%" /></td><td><button class="fc-btn-del inulin-del-edge">✕</button></td>'; tr.querySelector('.inulin-del-edge').addEventListener('click', function() { this.closest('tr').remove(); }); etbody.appendChild(tr); } var addEdgeBtn = document.createElement('button'); addEdgeBtn.className = 'btn btn-sm btn-secondary'; addEdgeBtn.style.margin = '8px 0'; addEdgeBtn.textContent = '+ 添加箭头标签'; addEdgeBtn.addEventListener('click', function() { var tb = document.getElementById('inulinEdgeBody'); var newId1 = 'N' + Date.now(); var newId2 = 'N' + (Date.now() + 1); var tr = document.createElement('tr'); tr.innerHTML = '<td><input class="fc-edge-input" value="' + newId1 + '-->' + newId2 + '" style="width:120px;font-size:12px" /></td><td><input class="fc-edge-label" value="" style="width:100%" /></td><td><button class="fc-btn-del inulin-del-edge">✕</button></td>'; tr.querySelector('.inulin-del-edge').addEventListener('click', function() { tr.remove(); }); tb.appendChild(tr); }); container.appendChild(addEdgeBtn); } var actions = document.createElement('div'); actions.className = 'fc-editor-actions'; actions.style.marginTop = '12px'; actions.innerHTML = '<button class="btn btn-primary btn-sm" id="inulinApply">✅ 应用修改</button><button class="btn btn-secondary btn-sm" id="inulinReset">↩️ 恢复默认</button><span class="fc-editor-status" id="inulinEditStatus"></span>'; container.appendChild(actions); document.getElementById('inulinApply').addEventListener('click', function() { var ns = currentSrc; var changes = 0; container.querySelectorAll('.fc-node-input').forEach(function(inp) { var nid = inp.dataset.nodeid; var nl = inp.value.trim(); if (!nid || !nl) return; var lens = ns.split('\n'); for (var j = 0; j < lens.length; j++) { var l = lens[j].trim(); var m = l.match(new RegExp('^' + nid + '\\["(.+?)"\\]')); if (m) { var ol = m[1]; if (ol !== nl) { ns = ns.split(nid + '["' + ol + '"]').join(nid + '["' + nl + '"]'); changes++; } break; } } }); container.querySelectorAll('.fc-edge-label').forEach(function(inp) { var edge = inp.dataset.edge; var nl = inp.value.trim(); if (!edge) return; var parts = edge.split('|'); if (parts.length !== 2) return; var from = parts[0], to = parts[1]; var lens = ns.split('\n'); for (var j = 0; j < lens.length; j++) { var l = lens[j].trim(); var m = l.match(new RegExp('^' + from + '\\s*[-=.]+>\\|(.+?)\\|\\s*' + to + '$')); if (m) { var ol = m[1]; if (nl === '') { ns = ns.split(l).join(from + ' --> ' + to); } else if (ol !== nl) { ns = ns.split('|' + ol + '|').join('|' + nl + '|'); } changes++; break; } } }); if (changes > 0) { try { localStorage.setItem('haccp_flowchart_mermaid', ns); } catch(e) {} document.getElementById('inulinEditStatus').textContent = '✅ 已应用 ' + changes + ' 处修改'; currentSrc = ns; } else { document.getElementById('inulinEditStatus').textContent = 'ℹ️ 未检测到修改'; } }); document.getElementById('inulinReset').addEventListener('click', function() { if (window.INULIN_FLOWCHART && window.INULIN_FLOWCHART.mermaid) { try { localStorage.setItem('haccp_flowchart_mermaid', window.INULIN_FLOWCHART.mermaid); } catch(e) {} document.getElementById('inulinEditStatus').textContent = '✅ 已恢复默认'; renderInulinBody(); } }); }
+        function renderInulinBody() { body.innerHTML = ''; var tb = document.createElement('div'); tb.className = 'fc-toolbar'; tb.innerHTML = '<button class="btn btn-sm btn-secondary" id="inulinToggleEdit">' + (editMode ? I18n.t('q.fcPreviewChart') : I18n.t('q.fcEditChart')) + '</button><span class="fc-toolbar-info" id="inulinInfo">' + (editMode ? I18n.t('q.fcEditModeHint') : I18n.t('q.fcPreviewModeHint')) + '</span>'; body.appendChild(tb); if (editMode) renderInulinEditor(body); else renderInulinChart(body); document.getElementById('inulinToggleEdit')?.addEventListener('click', function() { if (editMode) { var ta = document.getElementById('fcFullSourceEditor'); if (ta) { try { localStorage.setItem('haccp_flowchart_mermaid', ta.value); } catch(e) { console.warn('Failed to write localStorage haccp_flowchart_mermaid from editor:', e); } } } editMode = !editMode; renderInulinBody(); }); }
+        function renderInulinChart(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var chartDiv = document.createElement('div'); chartDiv.className = 'mermaid'; chartDiv.textContent = I18n.processBilingual(currentSrc); container.appendChild(chartDiv); var legend = document.createElement('div'); legend.className = 'fc-legend'; legend.innerHTML = '<div class="fc-legend-title">' + I18n.t('q.flowchartLegend') + '</div><div class="fc-legend-items"><div class="fc-legend-item"><span class="fc-legend-dot ccp"></span>' + I18n.t('q.ccpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot oprp"></span>' + I18n.t('q.oprpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot cqp"></span>' + I18n.t('q.cqpLegend') + '</div><div class="fc-legend-item"><span class="fc-legend-dot io"></span>' + I18n.t('q.ioLegend') + '</div></div>'; container.appendChild(legend); mermaid.initialize({ startOnLoad: false, theme: 'default', flowchart: { useMaxWidth: true, htmlLabels: true } }); setTimeout(function() { mermaid.run({ nodes: [chartDiv] }).catch(function(err) { chartDiv.innerHTML = '<p style="color:red">' + I18n.t('q.fcRenderError') + (err.message || err) + '</p>'; }); }, 100); }
+        function renderInulinEditor(container) { var currentSrc = ''; try { currentSrc = localStorage.getItem('haccp_flowchart_mermaid') || src; } catch(e) { currentSrc = src; } var parsed = parseInulinNodes(currentSrc); var help = document.createElement('div'); help.className = 'fc-editor-help'; help.innerHTML = I18n.t('q.fcEditorHelp'); container.appendChild(help); var table = document.createElement('table'); table.className = 'fc-node-table'; table.innerHTML = '<thead><tr><th>ID</th><th>' + I18n.t('q.fcNodeText') + '</th><th>' + I18n.t('q.fcNodeType') + '</th><th style="width:40px"></th></tr></thead><tbody id="inulinNodeBody"></tbody></table>'; container.appendChild(table); var tbody = document.getElementById('inulinNodeBody'); for (var i = 0; i < parsed.nodes.length; i++) { var n = parsed.nodes[i]; var tr = document.createElement('tr'); tr.dataset.nodeid = n.id; tr.innerHTML = '<td><code>' + n.id + '</code></td><td><input class="fc-node-input" data-nodeid="' + n.id + '" value="' + n.label.replace(/"/g,'"') + '" /></td><td><span class="fc-node-badge ' + n.type + '">' + n.type.toUpperCase() + '</span></td><td><button class="fc-btn-del inulin-del-node" data-nodeid="' + n.id + '">✕</button></td>'; tbody.appendChild(tr); } var addBtn = document.createElement('button'); addBtn.className = 'btn btn-sm btn-secondary'; addBtn.style.margin = '8px 0'; addBtn.textContent = I18n.t('q.fcAddNode'); addBtn.addEventListener('click', function() { var tb = document.getElementById('inulinNodeBody'); var newId = 'N' + Date.now(); var tr = document.createElement('tr'); tr.dataset.nodeid = newId; tr.innerHTML = '<td><code>' + newId + '</code></td><td><input class="fc-node-input" data-nodeid="' + newId + '" value="' + I18n.t('q.fcNewStep') + (tb.children.length + 1) + '" /></td><td><select class="fc-input-type"><option value="step">STEP</option><option value="ccp">CCP</option><option value="oprp">OPRP</option><option value="cqp">CQP</option><option value="io">IO</option></select></td><td><button class="fc-btn-del inulin-del-node" data-nodeid="' + newId + '">✕</button></td>'; tr.querySelector('.inulin-del-node').addEventListener('click', function() { tr.remove(); }); tb.appendChild(tr); }); container.appendChild(addBtn); container.querySelectorAll('.inulin-del-node').forEach(function(btn) { btn.addEventListener('click', function() { var row = this.closest('tr'); if (row) row.remove(); }); }); if (parsed.edges.length > 0) { var eHelp = document.createElement('div'); eHelp.className = 'fc-editor-help'; eHelp.style.marginTop = '16px'; eHelp.textContent = I18n.t('q.fcEdgeLabels'); container.appendChild(eHelp); var eTable = document.createElement('table'); eTable.className = 'fc-node-table'; eTable.innerHTML = '<thead><tr><th>' + I18n.t('q.fcEdgeFrom') + '</th><th>' + I18n.t('q.fcEdgeText') + '</th><th style="width:40px"></th></tr></thead><tbody id="inulinEdgeBody"></tbody></table>'; container.appendChild(eTable); var etbody = document.getElementById('inulinEdgeBody'); for (var i = 0; i < parsed.edges.length; i++) { var e = parsed.edges[i]; if (!e.label) continue; var tr = document.createElement('tr'); tr.innerHTML = '<td><code>' + e.from + ' → ' + e.to + '</code></td><td><input class="fc-edge-label" data-edge="' + e.from + '|' + e.to + '" value="' + (e.label || '') + '" style="width:100%" /></td><td><button class="fc-btn-del inulin-del-edge">✕</button></td>'; tr.querySelector('.inulin-del-edge').addEventListener('click', function() { this.closest('tr').remove(); }); etbody.appendChild(tr); } var addEdgeBtn = document.createElement('button'); addEdgeBtn.className = 'btn btn-sm btn-secondary'; addEdgeBtn.style.margin = '8px 0'; addEdgeBtn.textContent = I18n.t('q.fcAddEdge'); addEdgeBtn.addEventListener('click', function() { var tb = document.getElementById('inulinEdgeBody'); var newId1 = 'N' + Date.now(); var newId2 = 'N' + (Date.now() + 1); var tr = document.createElement('tr'); tr.innerHTML = '<td><input class="fc-edge-input" value="' + newId1 + '-->' + newId2 + '" style="width:120px;font-size:12px" /></td><td><input class="fc-edge-label" value="" style="width:100%" /></td><td><button class="fc-btn-del inulin-del-edge">✕</button></td>'; tr.querySelector('.inulin-del-edge').addEventListener('click', function() { tr.remove(); }); tb.appendChild(tr); }); container.appendChild(addEdgeBtn); } var actions = document.createElement('div'); actions.className = 'fc-editor-actions'; actions.style.marginTop = '12px'; actions.innerHTML = '<button class="btn btn-primary btn-sm" id="inulinApply">' + I18n.t('q.fcApply') + '</button><button class="btn btn-secondary btn-sm" id="inulinReset">' + I18n.t('q.fcResetDefault') + '</button><span class="fc-editor-status" id="inulinEditStatus"></span>'; container.appendChild(actions); document.getElementById('inulinApply').addEventListener('click', function() { var ns = currentSrc; var changes = 0; container.querySelectorAll('.fc-node-input').forEach(function(inp) { var nid = inp.dataset.nodeid; var nl = inp.value.trim(); if (!nid || !nl) return; var lens = ns.split('\n'); for (var j = 0; j < lens.length; j++) { var l = lens[j].trim(); var m = l.match(new RegExp('^' + nid + '\\["(.+?)"\\]')); if (m) { var ol = m[1]; if (ol !== nl) { ns = ns.split(nid + '["' + ol + '"]').join(nid + '["' + nl + '"]'); changes++; } break; } } }); container.querySelectorAll('.fc-edge-label').forEach(function(inp) { var edge = inp.dataset.edge; var nl = inp.value.trim(); if (!edge) return; var parts = edge.split('|'); if (parts.length !== 2) return; var from = parts[0], to = parts[1]; var lens = ns.split('\n'); for (var j = 0; j < lens.length; j++) { var l = lens[j].trim(); var m = l.match(new RegExp('^' + from + '\\s*[-=.]+>\\|(.+?)\\|\\s*' + to + '$')); if (m) { var ol = m[1]; if (nl === '') { ns = ns.split(l).join(from + ' --> ' + to); } else if (ol !== nl) { ns = ns.split('|' + ol + '|').join('|' + nl + '|'); } changes++; break; } } }); if (changes > 0) { try { localStorage.setItem('haccp_flowchart_mermaid', ns); } catch(e) { console.warn('Failed to write localStorage haccp_flowchart_mermaid after apply:', e); } document.getElementById('inulinEditStatus').textContent = I18n.t('q.fcApplied').replace('{0}', changes); currentSrc = ns; } else { document.getElementById('inulinEditStatus').textContent = I18n.t('q.fcNoChanges'); } }); document.getElementById('inulinReset').addEventListener('click', function() { if (window.INULIN_FLOWCHART && window.INULIN_FLOWCHART.mermaid) { try { localStorage.setItem('haccp_flowchart_mermaid', window.INULIN_FLOWCHART.mermaid); } catch(e) { console.warn('Failed to write localStorage haccp_flowchart_mermaid on reset:', e); } document.getElementById('inulinEditStatus').textContent = I18n.t('q.fcRestored'); renderInulinBody(); } }); }
         function parseInulinNodes(src) { var nodes = [], edges = [], lens = src.split('\n'), nodeRegex = /^(\w+)\["(.+?)"\]/, edgeRegex = /^(\w+)\s*[-=.]+>\s*(?:\|(.+?)\|)?\s*(\w+)/; for (var i = 0; i < lens.length; i++) { var l = lens[i].trim(); if (!l || l.startsWith('%%') || l.startsWith('graph') || l.startsWith('classDef')) continue; var m = l.match(nodeRegex); if (m) { var id = m[1], label = m[2]; if (id === 'loop_text' || id === 'L6_text' || id === 'L7_text' || id === 'R2_text' || id === 'R3_text') continue; var type = 'step'; if (l.indexOf(':::ccp') > -1) type = 'ccp'; else if (l.indexOf(':::oprp') > -1) type = 'oprp'; else if (l.indexOf(':::cqp') > -1) type = 'cqp'; else if (l.indexOf(':::io') > -1) type = 'io'; nodes.push({ id: id, label: label, type: type }); continue; } var e = l.match(edgeRegex); if (e) edges.push({ from: e[1], to: e[3], label: e[2] || '' }); } return { nodes: nodes, edges: edges }; }
         renderInulinBody(); document.getElementById('inulinModalClose').onclick = function() { modal.remove(); }; modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
       });
@@ -3233,7 +3231,7 @@ const Questionnaire15min = (() => {
     // 起始节点
     var startY = 40;
     cells.push('<mxCell id="0" /><mxCell id="1" parent="0" />');
-    cells.push('<mxCell id="start" value="开始" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="' + (cx - 50) + '" y="' + startY + '" width="100" height="50" as="geometry" /></mxCell>');
+    cells.push('<mxCell id="start" value="' + I18n.t('q.fcStart') + '" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="' + (cx - 50) + '" y="' + startY + '" width="100" height="50" as="geometry" /></mxCell>');
 
     var prevId = 'start';
     var curY = startY + 50 + ARROW_H;
@@ -3260,7 +3258,7 @@ const Questionnaire15min = (() => {
     }
 
     // 结束节点
-    cells.push('<mxCell id="end" value="结束" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="' + (cx - 50) + '" y="' + curY + '" width="100" height="50" as="geometry" /></mxCell>');
+    cells.push('<mxCell id="end" value="' + I18n.t('q.fcEnd') + '" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="' + (cx - 50) + '" y="' + curY + '" width="100" height="50" as="geometry" /></mxCell>');
     cells.push('<mxCell id="arrow_end" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="' + prevId + '" target="end" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>');
 
     var totalH = curY + 50 + 40;
@@ -3284,18 +3282,18 @@ const Questionnaire15min = (() => {
     overlay.innerHTML = [
       '<div style="background:#fff;border-radius:10px;width:95vw;height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">',
         '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#1e293b;color:#fff;border-radius:10px 10px 0 0;">',
-          '<span style="font-size:15px;font-weight:600;">✏️ Draw.io 流程图编辑器</span>',
+          '<span style="font-size:15px;font-weight:600;">' + I18n.t('q.fcDrawioTitle') + '</span>',
           '<div style="display:flex;align-items:center;gap:10px;">',
             '<span id="drawioStatus" style="font-size:12px;color:#94a3b8;"></span>',
-            '<button id="drawioSaveBtn" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;">💾 保存</button>',
-            '<button id="drawioCloseBtn" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;">✕ 关闭</button>',
+            '<button id="drawioSaveBtn" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;">' + I18n.t('q.fcDrawioSave') + '</button>',
+            '<button id="drawioCloseBtn" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;">' + I18n.t('q.fcDrawioClose') + '</button>',
           '</div>',
         '</div>',
         '<div style="flex:1;position:relative;background:#f1f5f9;">',
           '<div id="drawioLoadingMask" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f1f5f9;z-index:5;font-size:14px;color:#64748b;">',
-            '<div style="text-align:center;"><div class="fc-spinner" style="width:36px;height:36px;border-width:4px;margin:0 auto 12px;"></div><p>正在加载 Draw.io 编辑器...</p><p style="font-size:12px;margin-top:4px;">如长时间未响应，请检查网络连接</p></div>',
+            '<div style="text-align:center;"><div class="fc-spinner" style="width:36px;height:36px;border-width:4px;margin:0 auto 12px;"></div><p>' + I18n.t('q.fcDrawioLoading') + '</p><p style="font-size:12px;margin-top:4px;">' + I18n.t('q.fcDrawioLoadingHint') + '</p></div>',
           '</div>',
-          '<iframe id="drawioFrame" src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&stealth=1&lang=zh" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>',
+          '<iframe id="drawioFrame" src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&stealth=1&lang=' + I18n.t('q.fcDrawioLang') + '" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>',
         '</div>',
       '</div>'
     ].join('');
@@ -3313,7 +3311,7 @@ const Questionnaire15min = (() => {
 
     // 与 draw.io iframe 的 postMessage 通信
     function sendToFrame(msg) {
-      try { frame.contentWindow.postMessage(JSON.stringify(msg), '*'); } catch(e) {}
+      try { frame.contentWindow.postMessage(JSON.stringify(msg), '*'); } catch(e) { console.warn('Failed to send postMessage to draw.io iframe:', e); }
     }
 
     function handleMessage(evt) {
@@ -3326,11 +3324,11 @@ const Questionnaire15min = (() => {
         if (loadingMask) loadingMask.style.display = 'none';
         iframeReady = true;
         sendToFrame({ action: 'load', autosave: 1, xml: pendingXml || '' });
-        setStatus('编辑中（修改后点击保存）');
+        setStatus(I18n.t('q.fcDrawioEditingHint'));
       } else if (msg.event === 'autosave') {
         currentXml = msg.xml || currentXml;
-        setStatus('自动保存中...');
-        setTimeout(function() { setStatus('编辑中'); }, 1500);
+        setStatus(I18n.t('q.fcDrawioAutoSaving'));
+        setTimeout(function() { setStatus(I18n.t('q.fcDrawioEditing')); }, 1500);
       } else if (msg.event === 'save') {
         currentXml = msg.xml || currentXml;
         doSave();
@@ -3345,7 +3343,7 @@ const Questionnaire15min = (() => {
     function doSave() {
       data.flowchartXml = currentXml;
       saveData(data);
-      setStatus('✅ 已保存');
+      setStatus(I18n.t('q.fcDrawioSaved'));
       // 刷新预览区域
       var area = document.getElementById('flowchartArea');
       if (area) {
@@ -3526,7 +3524,7 @@ const Questionnaire15min = (() => {
   function debouncedSaveData(data) {
     if (_saveDataTimer) clearTimeout(_saveDataTimer);
     _saveDataTimer = setTimeout(function() {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.warn('Failed to write localStorage ' + STORAGE_KEY + ':', e); }
       _saveDataTimer = null;
     }, 50);
   }
@@ -3571,7 +3569,7 @@ const Questionnaire15min = (() => {
         });
         return steps;
       }
-    } catch (e) {}
+    } catch (e) { console.warn('Failed to parse flow steps from draw.io XML:', e); }
     return [];
   }
 
@@ -4232,7 +4230,7 @@ const Questionnaire15min = (() => {
         _haccpConfirmationData = data;
         showHaccpConfirmationModal(data);
       }
-    } catch(e) {}
+    } catch(e) { console.warn('Failed to load data for HACCP confirmation:', e); }
   }
 
   function updateReviewBanner() {
@@ -4263,7 +4261,7 @@ const Questionnaire15min = (() => {
 
         // 标记为已预览
         _haccpReviewMap[item.key] = true;
-        try { localStorage.setItem('haccp_review_status', JSON.stringify(_haccpReviewMap)); } catch(e) {}
+        try { localStorage.setItem('haccp_review_status', JSON.stringify(_haccpReviewMap)); } catch(e) { console.warn('Failed to write localStorage haccp_review_status:', e); }
 
         // 刷新检查项显示
         var body = document.getElementById('haccpChecklistBody');
@@ -4279,7 +4277,7 @@ const Questionnaire15min = (() => {
 
         // 设置为审查模式，显示返回横幅
         _haccpReviewActive = true;
-        try { sessionStorage.setItem('haccp_review_active', 'true'); } catch(e) {}
+        try { sessionStorage.setItem('haccp_review_active', 'true'); } catch(e) { console.warn('Failed to write sessionStorage haccp_review_active:', e); }
 
         // 如果是 profile 相关项，跳转到首页档案
         if (item.step === 'profile') {
@@ -4358,10 +4356,9 @@ const Questionnaire15min = (() => {
           console.log('Plan saved to backend, id:', savedPlan.id);
         }
         // localStorage 仍然保存作为离线兜底
-        localStorage.setItem('haccp_15min_submitted', JSON.stringify(data));
         localStorage.setItem('haccp_submitted', 'true');
         localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
-        try { localStorage.removeItem('haccp_review_status'); } catch(e) {}
+        try { localStorage.removeItem('haccp_review_status'); } catch(e) { console.warn('Failed to remove localStorage haccp_review_status:', e); }
       });
 
       overlay.remove();
@@ -4374,7 +4371,7 @@ const Questionnaire15min = (() => {
 
   async function savePlanToBackend(data) {
     var token = null;
-    try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+    try { token = localStorage.getItem('haccp_token'); } catch(e) { console.warn('Failed to read localStorage haccp_token:', e); }
     if (!token) {
       var needsLogin = confirm(I18n.t('plan.loginRequired'));
       if (needsLogin) { if (typeof App !== 'undefined') App.showLoginModal(); }
@@ -4420,11 +4417,10 @@ const Questionnaire15min = (() => {
     });
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(finalData));
-    localStorage.setItem('haccp_15min_submitted', JSON.stringify(finalData));
     localStorage.setItem('haccp_submitted', 'true');
     localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
     // 清除验证程序提醒记录，触发24小时重新提醒
-    try { localStorage.removeItem('haccp_verification_reminder_time'); } catch(e) {}
+    try { localStorage.removeItem('haccp_verification_reminder_time'); } catch(e) { console.warn('Failed to remove localStorage haccp_verification_reminder_time:', e); }
     alert(I18n.t('q.alertSubmitSuccess') + '\n\n' + I18n.t('q.alertSubmitMsg'));
     App.navigateTo('results');
   }
