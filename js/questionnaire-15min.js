@@ -10,9 +10,14 @@ const Questionnaire15min = (() => {
   const SECTION_COMPLETED_KEY = 'haccp_15min_completed';
 
   function genId() { return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
-  function esc(str) {
+    function esc(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>');
+    var s = String(str);
+    s = s.replace(/&/g, String.fromCharCode(38, 97, 109, 112, 59));
+    s = s.replace(/"/g, String.fromCharCode(38, 113, 117, 111, 116, 59));
+    s = s.replace(/</g, String.fromCharCode(38, 108, 116, 59));
+    s = s.replace(/>/g, String.fromCharCode(38, 103, 116, 59));
+    return s;
   }
   function getContainer() { return document.getElementById('questionnaireContainer'); }
 
@@ -122,24 +127,24 @@ const Questionnaire15min = (() => {
     el.innerHTML = `
       <div class="q15-upload-zone ${hasFile ? 'has-file' : ''}" id="q15UploadZone">
         <div class="q15-upload-zone-icon">${hasFile ? '\u{1F4C4}' : '\u{1F4C1}'}</div>
-        <div class="q15-upload-zone-title">${hasFile ? '文件已解析' : '文件导入（可选）'}</div>
-        <div class="q15-upload-zone-hint">${hasFile ? _uploadedFileName : '拖拽文件到此处，或点击选择文件'}</div>
-        ${!hasFile ? '<div class="q15-upload-zone-hint" style="margin-top:4px;">支持 Word (.docx) / PDF (.pdf)</div>' : ''}
+        <div class="q15-upload-zone-title">${hasFile ? I18n.t('upload.parsed') : I18n.t('upload.optional')}</div>
+        <div class="q15-upload-zone-hint">${hasFile ? _uploadedFileName : I18n.t('upload.dropHint')}</div>
+        ${!hasFile ? '<div class="q15-upload-zone-hint" style="margin-top:4px;">' + I18n.t('upload.formats') + '</div>' : ''}
         <input type="file" id="q15FileInput" accept=".docx,.pdf" ${hasFile ? 'disabled' : ''}>
-        ${!hasFile ? '<button class="q15-upload-btn" id="q15SelectFileBtn">\u{1F4C2} 选择文件</button>' : ''}
+        ${!hasFile ? '<button class="q15-upload-btn" id="q15SelectFileBtn">' + I18n.t('upload.selectBtn') + '</button>' : ''}
       </div>
       ${_uploadedText ? `
         <div class="q15-upload-file-info">
           <span class="q15-file-icon">\u{1F4C4}</span>
           <span class="q15-file-name">${esc(_uploadedFileName)}</span>
           <span class="q15-file-size">${formatFileSize(_uploadedFileSize)}</span>
-          <span class="q15-file-status ok">\u2713 解析成功</span>
-          <button class="btn btn-xs btn-secondary" id="q15ClearFileBtn">清除</button>
+          <span class="q15-file-status ok">${I18n.t('upload.parseSuccess')}</span>
+          <button class="btn btn-xs btn-secondary" id="q15ClearFileBtn">${I18n.t('upload.clear')}</button>
         </div>
         <div class="q15-upload-preview">${esc(_uploadedText.slice(0, 300))}${_uploadedText.length > 300 ? '...' : ''}</div>
         <div class="q15-upload-actions">
-          <button class="btn btn-primary" id="q15AiFillBtn">\u{1F916} AI识别并填写问卷</button>
-          <button class="btn btn-secondary" id="q15ClearFileBtn2">重新选择</button>
+          <button class="btn btn-primary" id="q15AiFillBtn">${I18n.t('upload.aiFill')}</button>
+          <button class="btn btn-secondary" id="q15ClearFileBtn2">${I18n.t('upload.reselect')}</button>
         </div>
       ` : ''}
       <div class="q15-upload-error" id="q15UploadError"></div>
@@ -190,19 +195,19 @@ const Questionnaire15min = (() => {
   async function handleFile(file) {
     hideUploadError();
     const ext = file.name.split('.').pop().toLowerCase();
-    if (ext !== 'docx' && ext !== 'pdf') { showUploadError('只支持 Word (.docx) 和 PDF (.pdf) 文件'); return; }
-    if (file.size > 20 * 1024 * 1024) { showUploadError('文件大小不能超过 20MB'); return; }
-    if (ext === 'docx' && typeof mammoth === 'undefined') { showUploadError('Word 解析库未加载。请检查网络连接后刷新页面重试。'); return; }
-    if (ext === 'pdf' && (typeof pdfjsLib === 'undefined' || typeof pdfjsLib.getDocument !== 'function')) { showUploadError('PDF 解析库未加载。请检查网络连接后刷新页面重试。'); return; }
+    if (ext !== 'docx' && ext !== 'pdf') { showUploadError(I18n.t('upload.error.format')); return; }
+    if (file.size > 20 * 1024 * 1024) { showUploadError(I18n.t('upload.error.size')); return; }
+    if (ext === 'docx' && typeof mammoth === 'undefined') { showUploadError(I18n.t('upload.error.wordLib')); return; }
+    if (ext === 'pdf' && (typeof pdfjsLib === 'undefined' || typeof pdfjsLib.getDocument !== 'function')) { showUploadError(I18n.t('upload.error.pdfLib')); return; }
     _uploadedFileName = file.name; _uploadedFileSize = file.size;
     try {
       let text = '';
       if (ext === 'docx') text = await parseDocx(file);
       else if (ext === 'pdf') text = await parsePdf(file);
-      if (!text.trim()) { showUploadError('未能从文件中提取到有效文本，请检查文件内容'); return; }
+      if (!text.trim()) { showUploadError(I18n.t('upload.error.noText')); return; }
       _uploadedText = text; renderUploadArea();
     } catch (err) {
-      showUploadError('文件解析失败：' + (err.message || '未知错误') + '。请尝试重新选择文件。');
+      showUploadError(I18n.t('upload.error.parseFail') + (err.message || I18n.t('common.unknownError')) + I18n.t('upload.error.retry'));
     }
   }
 
@@ -223,7 +228,7 @@ const Questionnaire15min = (() => {
           }
         } catch (err) { reject(err); }
       };
-      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.onerror = () => reject(new Error(I18n.t('upload.error.readFail')));
       reader.readAsArrayBuffer(file);
     });
   }
@@ -281,7 +286,7 @@ const Questionnaire15min = (() => {
           resolve(allText.trim());
         } catch (err) { reject(err); }
       };
-      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.onerror = () => reject(new Error(I18n.t('upload.error.readFail')));
       reader.readAsArrayBuffer(file);
     });
   }
@@ -408,7 +413,7 @@ const Questionnaire15min = (() => {
     var filledFields = 0, totalFields = 0; for (var key in aiData) { totalFields++; if (Array.isArray(aiData[key])) { if (aiData[key].length > 0) filledFields++; } else if (aiData[key]) filledFields++; }
     aiBtn.textContent = '\u2713 填充完成（' + filledFields + '/' + totalFields + '个字段）';
     aiBtn.className = 'btn btn-primary';
-    setTimeout(() => { aiBtn.disabled = false; aiBtn.textContent = '\u{1F916} AI重新填写问卷'; aiBtn.className = 'btn btn-primary'; }, 3000);
+    setTimeout(() => { aiBtn.disabled = false; aiBtn.textContent = I18n.t('aifill.redo'); aiBtn.className = 'btn btn-primary'; }, 3000);
     renderSectionNav(); currentStep = 0; renderActiveSection(); renderSectionNav();
   }
 
@@ -445,16 +450,16 @@ const Questionnaire15min = (() => {
 
   let currentStep = 0;
   const TOTAL_STEPS = 5;
-  const SECTION_NAMES = (function() {
+  function getSectionNames() {
     try { return [I18n.t('q15.step0'), I18n.t('q15.step1'), I18n.t('q15.step2'), I18n.t('q15.step3'), I18n.t('q15.step4')]; }
     catch(e) { return ['进行危害分析', '确定关键控制点', '建立关键限值', '建立监控程序', '建立' + I18n.t('q.correctiveTitle') + '']; }
-  })();
+  }
 
   function renderSectionNav() {
     const data = loadData();
     const nav = document.getElementById('q15Progress');
     if (!nav) return;
-    nav.innerHTML = SECTION_NAMES.map((name, i) => { const isActive = i === currentStep; const isDone = isStepCompleted(data, i); return '<div class="q15-step ' + (isActive ? 'active' : '') + ' ' + (isDone ? 'done' : '') + '" data-step="' + i + '"><div class="q15-step-num">' + (isDone ? '\u2713' : i + 1) + '</div><span>' + name + '</span></div>'; }).join('');
+    nav.innerHTML = getSectionNames().map((name, i) => { const isActive = i === currentStep; const isDone = isStepCompleted(data, i); return '<div class="q15-step ' + (isActive ? 'active' : '') + ' ' + (isDone ? 'done' : '') + '" data-step="' + i + '"><div class="q15-step-num">' + (isDone ? '\u2713' : i + 1) + '</div><span>' + name + '</span></div>'; }).join('');
     nav.querySelectorAll('.q15-step').forEach(el => { el.addEventListener('click', () => { currentStep = parseInt(el.dataset.step); renderActiveSection(); renderSectionNav(); }); });
   }
 
@@ -498,13 +503,13 @@ const Questionnaire15min = (() => {
       console.error('渲染章节失败:', e);
       sectionHTML = '<div style="padding:24px;text-align:center;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin:20px 0;">' +
         '<div style="font-size:40px;margin-bottom:12px;">⚠️</div>' +
-        '<h3 style="color:#991b1b;margin-bottom:8px;">页面加载出现异常</h3>' +
-        '<p style="color:#b91c1c;font-size:14px;margin-bottom:16px;">这可能是因为之前保存的数据格式不兼容。您可以尝试重置数据后重新开始。</p>' +
-        '<button class="btn btn-primary" id="resetDataBtn" style="background:#dc2626;border-color:#dc2626;">🔄 重置数据并重新开始</button>' +
+        '<h3 style="color:#991b1b;margin-bottom:8px;">' + I18n.t('q.pageError') + '</h3>' +
+        '<p style="color:#b91c1c;font-size:14px;margin-bottom:16px;">' + I18n.t('q.resetHint') + '</p>' +
+        '<button class="btn btn-primary" id="resetDataBtn" style="background:#dc2626;border-color:#dc2626;">' + I18n.t('q.resetData') + '</button>' +
         '</div>';
       setTimeout(() => {
         document.getElementById('resetDataBtn')?.addEventListener('click', function() {
-          if (confirm('确定要重置所有问卷数据吗？此操作不可恢复！')) {
+          if (confirm(I18n.t('q.resetConfirm'))) {
             localStorage.removeItem(STORAGE_KEY);
             localStorage.removeItem(SECTION_COMPLETED_KEY);
             localStorage.removeItem('haccp_submitted');
@@ -521,9 +526,9 @@ const Questionnaire15min = (() => {
     } else if (currentStep < TOTAL_STEPS - 1) {
       navRightBtn = '<button class="btn btn-primary" id="q15NextBtn">' + I18n.t('q15.nextBtn') + '</button>';
     } else {
-      navRightBtn = '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">\u2713 提交问卷</button>';
+      navRightBtn = '<button class="btn btn-primary btn-lg" id="q15SubmitBtn">' + I18n.t('q.submitBtn2') + '</button>';
     }
-    content.innerHTML = '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>' + I18n.t('q15.prevBtn') + '</button><span class="q15-step-indicator">第 ' + (currentStep + 1) + ' / ' + TOTAL_STEPS + ' 步</span>' + navRightBtn + '</div>';
+    content.innerHTML = '<div class="q15-section"><h2>' + getSectionNames()[currentStep] + '</h2>' + sectionHTML + '</div><div class="q15-nav-buttons"><button class="btn btn-secondary" id="q15PrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>' + I18n.t('q15.prevBtn') + '</button><span class="q15-step-indicator">' + I18n.t('q15.step') + (currentStep + 1) + I18n.t('q15.of') + TOTAL_STEPS + I18n.t('q15.stepLabel') + '</span>' + navRightBtn + '</div>';
     // 更新审查横幅（独立于内容区域）
     updateReviewBanner();
     bindSectionEvents(content, data);
@@ -549,28 +554,28 @@ const Questionnaire15min = (() => {
   function renderCompanyInfo(data) {
     var extraHtml = '';
     if (data.extraItems && data.extraItems.length > 0) { extraHtml = data.extraItems.map(function(e, i) { return '<tr data-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%"></td><td><button class="q15-del-row" data-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
-    return '<div class="q15-field-group"><label>企业名称 <span class="required">*</span></label><input type="text" data-q15-field="companyName" value="' + esc(data.companyName) + '" placeholder="请输入企业名称"></div><div class="q15-field-group"><label>制定部门 <span class="required">*</span></label><input type="text" data-q15-field="deptName" value="' + esc(data.deptName) + '" placeholder="请输入制定部门"></div><div class="q15-field-group"><label>审核人员</label><input type="text" data-q15-field="auditor" value="' + esc(data.auditor) + '" placeholder="请输入审核人员姓名"></div><div class="q15-table-section"><h3>HACCP小组成员 <span class="required">*</span></h3><p class="q15-table-hint">成员涵盖生产、品控、设备、仓储、采购等部门负责人，必要时需要外部专家参与</p><table class="q15-table" id="teamTable"><thead><tr><th>姓名</th><th>部门</th><th>职位</th><th>小组职责</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="teamBody">' + data.haccpTeam.map(function(m, i) { return '<tr data-team-idx="' + i + '"><td><input type="text" value="' + esc(m.name) + '" placeholder="姓名"></td><td><input type="text" value="' + esc(m.dept) + '" placeholder="部门"></td><td><input type="text" value="' + esc(m.position) + '" placeholder="职位"></td><td><input type="text" value="' + esc(m.role) + '" placeholder="如：组长、副组长"></td><td><input type="text" value="' + esc(m.remark) + '" placeholder="' + I18n.t('q.monAddRemark') + '信息"></td><td><button class="q15-del-row" data-team-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addTeamRow">+ 添加成员</button></div><div class="q15-table-section" style="margin-top:16px;"><h3>其他项目 <span style="font-weight:400;font-size:13px;color:var(--gray-400);">（手动添加未列出的补充信息）</span></h3><p class="q15-table-hint">添加额外信息项，例如：地址、联系人、电话、邮箱等</p><table class="q15-table" id="extraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="extraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addExtraItemRow">+ 添加项目</button></div>';
+    return '<div class="q15-field-group"><label>' + I18n.t('q.companyName') + ' <span class="required">*</span></label><input type="text" data-q15-field="companyName" value="' + esc(data.companyName) + '" placeholder="' + I18n.t('q.companyNamePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.deptName') + ' <span class="required">*</span></label><input type="text" data-q15-field="deptName" value="' + esc(data.deptName) + '" placeholder="' + I18n.t('q.deptNamePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.auditor') + '</label><input type="text" data-q15-field="auditor" value="' + esc(data.auditor) + '" placeholder="' + I18n.t('q.auditorPh') + '"></div><div class="q15-table-section"><h3>' + I18n.t('q.teamTitle') + ' <span class="required">*</span></h3><p class="q15-table-hint">' + I18n.t('q.teamHint') + '</p><table class="q15-table" id="teamTable"><thead><tr><th>' + I18n.t('q.teamName') + '</th><th>' + I18n.t('q.teamDept') + '</th><th>' + I18n.t('q.teamPosition') + '</th><th>' + I18n.t('q.teamRole') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="teamBody">' + data.haccpTeam.map(function(m, i) { return '<tr data-team-idx="' + i + '"><td><input type="text" value="' + esc(m.name) + '" placeholder="' + I18n.t('q.teamName') + '"></td><td><input type="text" value="' + esc(m.dept) + '" placeholder="' + I18n.t('q.teamDept') + '"></td><td><input type="text" value="' + esc(m.position) + '" placeholder="' + I18n.t('q.teamPosition') + '"></td><td><input type="text" value="' + esc(m.role) + '" placeholder="' + I18n.t('q.teamRolePh') + '"></td><td><input type="text" value="' + esc(m.remark) + '" placeholder="' + I18n.t('q.monAddRemark') + '"></td><td><button class="q15-del-row" data-team-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addTeamRow">' + I18n.t('q.addMember') + '</button></div><div class="q15-table-section" style="margin-top:16px;"><h3>' + I18n.t('q.extraItems') + ' <span style="font-weight:400;font-size:13px;color:var(--gray-400);">' + I18n.t('q.extraHint') + '</span></h3><p class="q15-table-hint">' + I18n.t('q.extraDesc') + '</p><table class="q15-table" id="extraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="extraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addExtraItemRow">' + I18n.t('q.addExtra') + '</button></div>';
   }
 
   function renderProductInfo(data) {
     var extraHtml = '';
     if (data.productExtraItems && data.productExtraItems.length > 0) { extraHtml = data.productExtraItems.map(function(e, i) { return '<tr data-p-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%"></td><td><button class="q15-del-row" data-p-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
-    return '<div class="q15-field-group"><label>产品名称 <span class="required">*</span></label><input type="text" data-q15-field="productName" value="' + esc(data.productName) + '" placeholder="请输入产品名称"></div><div class="q15-field-group"><label>主要原料</label><textarea data-q15-field="rawMaterials" placeholder="列出主要原料，不同原料用逗号分隔">' + esc(data.rawMaterials) + '</textarea></div><div class="q15-field-group"><label>添加剂</label><textarea data-q15-field="additives" placeholder="列出使用的添加剂，不同添加剂用逗号分隔">' + esc(data.additives) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>产品的特性PH</label><input type="number" step="0.01" data-q15-field="productPH" value="' + esc(data.productPH) + '" placeholder="如：6.5"></div><div class="q15-field-group"><label>水分活度</label><input type="number" step="0.01" data-q15-field="waterActivity" value="' + esc(data.waterActivity) + '" placeholder="如：0.85"></div></div><div class="q15-field-group"><label>预期用途</label><textarea data-q15-field="intendedUse" placeholder="描述产品的预期用途和消费群体如何使用该产品">' + esc(data.intendedUse) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>储存条件</label><input type="text" data-q15-field="storageCondition" value="' + esc(data.storageCondition) + '" placeholder="如：阴凉干燥处"></div><div class="q15-field-group"><label>包装方式</label><input type="text" data-q15-field="packagingMethod" value="' + esc(data.packagingMethod) + '" placeholder="如：真空包装"></div></div><div class="q15-row"><div class="q15-field-group"><label>目标消费者</label><input type="text" data-q15-field="targetConsumer" value="' + esc(data.targetConsumer) + '" placeholder="如：一般人群"></div><div class="q15-field-group"><label>保质期</label><input type="text" data-q15-field="shelfLife" value="' + esc(data.shelfLife) + '" placeholder="如：12个月"></div></div><div class="q15-table-section" style="margin-top:16px;"><h3>其他项目 <span style="font-weight:400;font-size:13px;color:var(--gray-400);">（手动添加未列出的补充信息）</span></h3><p class="q15-table-hint">添加额外信息项，例如：产品型号、规格、批号等</p><table class="q15-table" id="productExtraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="productExtraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addProductExtraItemRow">+ 添加项目</button></div>';
+    return '<div class="q15-field-group"><label>' + I18n.t('q.productName') + ' <span class="required">*</span></label><input type="text" data-q15-field="productName" value="' + esc(data.productName) + '" placeholder="' + I18n.t('q.productNamePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.rawMaterials') + '</label><textarea data-q15-field="rawMaterials" placeholder="' + I18n.t('q.rawMaterialsPh') + '">' + esc(data.rawMaterials) + '</textarea></div><div class="q15-field-group"><label>' + I18n.t('q.additives') + '</label><textarea data-q15-field="additives" placeholder="' + I18n.t('q.additivesPh') + '">' + esc(data.additives) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>' + I18n.t('q.ph') + '</label><input type="number" step="0.01" data-q15-field="productPH" value="' + esc(data.productPH) + '" placeholder="' + I18n.t('q.phPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.waterActivity') + '</label><input type="number" step="0.01" data-q15-field="waterActivity" value="' + esc(data.waterActivity) + '" placeholder="' + I18n.t('q.awPh') + '"></div></div><div class="q15-field-group"><label>' + I18n.t('q.intendedUse') + '</label><textarea data-q15-field="intendedUse" placeholder="' + I18n.t('q.intendedUsePh') + '">' + esc(data.intendedUse) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>' + I18n.t('q.storageCondition') + '</label><input type="text" data-q15-field="storageCondition" value="' + esc(data.storageCondition) + '" placeholder="' + I18n.t('q.storagePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.packagingMethod') + '</label><input type="text" data-q15-field="packagingMethod" value="' + esc(data.packagingMethod) + '" placeholder="' + I18n.t('q.packagingPh') + '"></div></div><div class="q15-row"><div class="q15-field-group"><label>' + I18n.t('q.targetConsumer') + '</label><input type="text" data-q15-field="targetConsumer" value="' + esc(data.targetConsumer) + '" placeholder="' + I18n.t('q.targetPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.shelfLife') + '</label><input type="text" data-q15-field="shelfLife" value="' + esc(data.shelfLife) + '" placeholder="' + I18n.t('q.shelfPh') + '"></div></div><div class="q15-table-section" style="margin-top:16px;"><h3>' + I18n.t('q.extraItems') + ' <span style="font-weight:400;font-size:13px;color:var(--gray-400);">' + I18n.t('q.extraHint') + '</span></h3><p class="q15-table-hint">' + I18n.t('q.extraProductDesc') + '</p><table class="q15-table" id="productExtraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="productExtraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addProductExtraItemRow">' + I18n.t('q.addExtra') + '</button></div>';
   }
 
   // ===== 精简版文件上传区域（仅用于"进行危害分析"步骤内部）=====
   function renderCompactUploadArea() {
     if (!_uploadedText && !_uploadedFileName) {
       return '<div style="margin-bottom:12px;padding:8px 12px;border:1px dashed #d0d5dd;border-radius:6px;background:#fafbfc;display:flex;align-items:center;gap:10px;font-size:13px;">' +
-        '<span style="color:var(--gray-500);">文件导入（可选）</span>' +
+        '<span style="color:var(--gray-500);">' + I18n.t('upload.optional') + '</span>' +
         '<input type="file" id="q15CompactFileInput" accept=".docx,.pdf" style="font-size:12px;max-width:200px;">' +
-        '<span style="font-size:11px;color:var(--gray-400);">支持 .docx / .pdf</span>' +
+        '<span style="font-size:11px;color:var(--gray-400);">' + I18n.t('upload.formats') + '</span>' +
         '</div>';
     }
     return '<div style="margin-bottom:12px;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;display:flex;align-items:center;gap:10px;font-size:13px;">' +
-      '<span style="color:var(--gray-500);">已导入:</span> ' + esc(_uploadedFileName) +
+      '<span style="color:var(--gray-500);">' + I18n.t('upload.imported') + '</span> ' + esc(_uploadedFileName) +
       ' <span style="font-size:11px;color:var(--gray-400);">(' + formatFileSize(_uploadedFileSize) + ')</span>' +
-      '<button class="btn btn-xs btn-secondary" id="q15CompactClearBtn" style="padding:1px 8px;font-size:11px;">清除</button>' +
+      '<button class="btn btn-xs btn-secondary" id="q15CompactClearBtn" style="padding:1px 8px;font-size:11px;">' + I18n.t('upload.clear') + '</button>' +
       '</div>';
   }
 
@@ -601,7 +606,7 @@ const Questionnaire15min = (() => {
     
     var html = '<div class="ccp-nav-panel">';
     html += '<div class="ccp-nav-header" id="ccpNavToggle">';
-    html += '<span>📋 CCP判定导航</span>';
+    html += '<span>' + I18n.t('q15.navCcp') + '</span>';
     html += '<span class="ccp-nav-toggle" id="ccpNavArrow">▶</span>';
     html += '</div>';
     html += '<div class="ccp-nav-body" id="ccpNavBody">';
@@ -625,7 +630,7 @@ const Questionnaire15min = (() => {
         // 步骤编辑入口（在步骤列表的最后一项）
         html += '<div class="ccp-nav-hazard' + (isEditMode ? ' active' : '') + '" data-nav-edit="' + si + '">';
         html += '<span class="ccp-nav-hazard-badge">✎</span>';
-        html += '<span class="ccp-nav-hazard-label">编辑步骤信息</span>';
+        html += '<span class="ccp-nav-hazard-label">' + I18n.t('q.ccpEditStep') + '</span>';
         html += '</div>';
         
         hazardTypes.forEach(function(ht) {
@@ -635,9 +640,9 @@ const Questionnaire15min = (() => {
           if (hData.isCCP !== undefined) hClass = hClass || 'done';
           var statusText = '';
           if (hData.isCCP === true) statusText = '<span class="ccp-nav-hazard-status ccp">CCP</span>';
-          else if (hData.isCCP === false) statusText = '<span class="ccp-nav-hazard-status no-ccp">非CCP</span>';
-          else if (hData.isCCP === 'modify') statusText = '<span class="ccp-nav-hazard-status" style="background:#fffbeb;color:#d97706;">需修改</span>';
-          else statusText = '<span class="ccp-nav-hazard-status pending">待判定</span>';
+          else if (hData.isCCP === false) statusText = '<span class="ccp-nav-hazard-status no-ccp">' + I18n.t('q.ccpNonCcp') + '</span>';
+          else if (hData.isCCP === 'modify') statusText = '<span class="ccp-nav-hazard-status" style="background:#fffbeb;color:#d97706;">' + I18n.t('q.ccpNeedModify') + '</span>';
+          else statusText = '<span class="ccp-nav-hazard-status pending">' + I18n.t('q.ccpPending') + '</span>';
           
           html += '<div class="ccp-nav-hazard ' + hClass + '" data-nav-hazard="' + si + '" data-nav-ht="' + ht + '">';
           html += '<span class="ccp-nav-hazard-badge">' + hazardLabels[ht] + '</span>';
@@ -699,7 +704,7 @@ const Questionnaire15min = (() => {
       console.error('renderHazardAnalysis failed:', err);
       data.ccpPageMode = 'form';
       saveData(data);
-      return '<div style="padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;">关键控制点页面加载异常，已自动恢复。请重新填写。</div>' + renderStepFormPage(data);
+      return '<div style="padding:16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;">' + I18n.t('q.ccpError') + '</div>' + renderStepFormPage(data);
     }
   }
   
@@ -711,10 +716,10 @@ const Questionnaire15min = (() => {
     var stepData = (editIdx >= 0 && editIdx < data.processSteps.length) ? data.processSteps[editIdx] : { stepName: '', equipmentName: '', operationMethod: '', parameters: '' };
     var savedSteps = data.processSteps || [];
     var html = '<div class="q15-step-form">';
-    html += '<div class="q15-field-group"><label>' + I18n.t('q.stepName') + '</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName || '') + '" placeholder="如：清洗"></div>';
-    html += '<div class="q15-field-group"><label>' + I18n.t('q.equipment') + '</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName || '') + '" placeholder="如：清洗机"></div>';
-    html += '<div class="q15-field-group"><label>' + I18n.t('q.method') + '</label><textarea id="stepFormMethod" rows="2" placeholder="描述' + I18n.t('q.method') + '">' + esc(stepData.operationMethod || '') + '</textarea></div>';
-    html += '<div class="q15-field-group"><label>' + I18n.t('q.params') + '</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters || '') + '" placeholder="如：温度85℃，时间15分钟"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.stepName') + '</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName || '') + '" placeholder="' + I18n.t('q.stepNamePh') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.equipment') + '</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName || '') + '" placeholder="' + I18n.t('q.equipmentPh') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.method') + '</label><textarea id="stepFormMethod" rows="2" placeholder="' + I18n.t('q.methodPh') + '">' + esc(stepData.operationMethod || '') + '</textarea></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.params') + '</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters || '') + '" placeholder="' + I18n.t('q.paramsPh') + '"></div>';
     html += '<button class="btn btn-primary btn-sm" id="stepFormSaveBtn">' + I18n.t('q.saveStep') + '</button>';
     html += '</div>';
     if (savedSteps.length > 0) {
@@ -733,22 +738,22 @@ const Questionnaire15min = (() => {
         var border = isCcp ? '#fca5a5' : '#e2e8f0';
         var ccpBadge = '';
         if (isCcp) {
-          ccpBadge = '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0;margin-left:8px;" title="已判定为CCP: ' + ccpTypes.join('/') + '危害">CCP</span>';
+          ccpBadge = '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#dc2626;color:#fff;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0;margin-left:8px;" title="' + I18n.t('q.ccpJudgedAsCcp') + ccpTypes.join('/') + I18n.t('q.hwHazard') + '">CCP</span>';
         }
         html += '<li style="padding:8px 10px;margin:6px 0;background:' + bg + ';border:1px solid ' + border + ';border-radius:6px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;" data-step-edit="' + i + '">';
         html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || I18n.t('q.unnamed')) + '</strong>';
-        if (s.equipmentName) html += ' | 设备：' + esc(s.equipmentName);
-        if (s.operationMethod) html += ' | 方法：' + esc(s.operationMethod);
-        if (s.parameters) html += ' | 参数：' + esc(s.parameters);
+        if (s.equipmentName) html += ' | ' + I18n.t('flow.equipment') + esc(s.equipmentName);
+        if (s.operationMethod) html += ' | ' + I18n.t('flow.method') + esc(s.operationMethod);
+        if (s.parameters) html += ' | ' + I18n.t('flow.params') + esc(s.parameters);
         html += '</span>' + ccpBadge;
-        html += '<button class="btn btn-xs btn-secondary" data-step-delete="' + i + '" style="color:#dc2626;border-color:#fecaca;padding:2px 8px;font-size:12px;flex-shrink:0;">删除</button>';
+        html += '<button class="btn btn-xs btn-secondary" data-step-delete="' + i + '" style="color:#dc2626;border-color:#fecaca;padding:2px 8px;font-size:12px;flex-shrink:0;">' + I18n.t('q.delete') + '</button>';
         html += '</li>';
       });
       html += '</ul></div>';
     } else {
-      html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">暂无步骤数据，请先填写上方表单并点击“' + I18n.t('q.saveStep') + '”。</p>';
+      html += '<p style="color:var(--gray-400);font-size:13px;margin-top:16px;">' + I18n.t('q.noStepsHint') + '</p>';
     }
-    html += '<hr class="q15-divider"><div class="q15-field-group"><label>CCP判断树版本</label>';
+    html += '<hr class="q15-divider"><div class="q15-field-group"><label>' + I18n.t('q.ccpTreeVersion') + '</label>';
     html += '<div style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e40af;">' + I18n.t('q.ccpTreeVersion') + '</div>';
     html += '<div style="margin-top:4px;font-size:12px;color:var(--gray-400);">' + I18n.t('q.ccpTreeDesc') + '</div>';
     html += '<div style="margin-top:12px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#475569;line-height:1.7;">';
@@ -760,10 +765,10 @@ const Questionnaire15min = (() => {
     html += '<div>' + I18n.t('q.ccpInstrD') + '</div>';
     html += '</div></div>';
     html += '<div style="display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">';
-    html += '<button class="btn btn-primary btn-sm" id="aiCcpBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>' + I18n.t('q.ccpAiBtn') + '</button>';
-    html += '<button class="btn btn-outline btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>' + I18n.t('q.ccpManualBtn') + '</button>';
+    html += '<button class="btn btn-primary btn-sm" id="aiCcpBtn"' + (savedSteps.length === 0 ? ' disabled title="' + I18n.t('q.needSteps') + '"' : '') + '>' + I18n.t('q.ccpAiBtn') + '</button>';
+    html += '<button class="btn btn-outline btn-sm" id="ccpJudgeBtn"' + (savedSteps.length === 0 ? ' disabled title="' + I18n.t('q.needSteps') + '"' : '') + '>' + I18n.t('q.ccpManualBtn') + '</button>';
     html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">' + I18n.t('q.addStep') + '</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn"' + (savedSteps.length === 0 ? ' disabled title="请先保存至少一个步骤"' : '') + '>' + I18n.t('q.ccpCompleteBtn') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="completeStepsBtn"' + (savedSteps.length === 0 ? ' disabled title="' + I18n.t('q.needSteps') + '"' : '') + '>' + I18n.t('q.ccpCompleteBtn') + '</button>';
     html += '<span id="aiCcpHint" style="font-size:12px;color:var(--gray-400);margin-left:4px;align-self:center;"></span>';
     html += '</div>';
     return html;
@@ -771,15 +776,15 @@ const Questionnaire15min = (() => {
   
   function getCcpQuestionText(hazardType, currentQ) {
     var hazardFull = { bio: I18n.t('q.ccpHazardBio'), chem: I18n.t('q.ccpHazardChem'), phys: I18n.t('q.ccpHazardPhys') };
-    var name = hazardFull[hazardType] || '危害';
+    var name = hazardFull[hazardType] || I18n.b('危害|||Hazard');
     var map = {
-      1: 'Q1：针对此加工步骤已识别的|||Q1: For the identified ' + name + '，有控制措施存在吗？||| at this processing step, are there control measures in place?',
-      1.1: 'Q1（续）：该步骤上的控制对安全是必要的吗？|||Q1 (cont.): Is control at this step necessary for safety?',
-      2: 'Q2：该步骤是否专门设计用于把|||Q2: Is this step specifically designed to eliminate ' + name + '的可能发生消除、降低到可接受水平？||| or reduce its occurrence to an acceptable level?',
-      3: 'Q3：|||Q3: Could contamination from ' + name + '产生的污染是否会超过可接受水平，或增加到不可接受水平？||| exceed acceptable levels or increase to unacceptable levels?',
-      4: 'Q4：后续步骤可否消除|||Q4: Can subsequent steps eliminate ' + name + '或将||| or reduce ' + name + '的发生降低到可接受水平？||| to an acceptable level?'
+      1: I18n.b('Q1：针对此加工步骤已识别的 ' + name + '，有控制措施存在吗？|||Q1: For the identified ' + name + ' at this processing step, are there control measures in place?'),
+      1.1: I18n.b('Q1（续）：该步骤上的控制对安全是必要的吗？|||Q1 (cont.): Is control at this step necessary for safety?'),
+      2: I18n.b('Q2：该步骤是否专门设计用于把 ' + name + ' 的可能发生消除、降低到可接受水平？|||Q2: Is this step specifically designed to eliminate ' + name + ' or reduce its occurrence to an acceptable level?'),
+      3: I18n.b('Q3：' + name + ' 产生的污染是否会超过可接受水平，或增加到不可接受水平？|||Q3: Could contamination from ' + name + ' exceed acceptable levels or increase to unacceptable levels?'),
+      4: I18n.b('Q4：后续步骤可否消除' + name + '或将' + name + '的发生降低到可接受水平？|||Q4: Can subsequent steps eliminate ' + name + ' or reduce its occurrence to an acceptable level?')
     };
-    return map[currentQ] || '';
+    return I18n.b(map[currentQ] || '');
   }
   function renderCcpResultBlock(data, hazard, hazardType) {
     if (!hazard || hazard.isCCP === undefined || hazard.isCCP === null) return '';
@@ -791,13 +796,13 @@ const Questionnaire15min = (() => {
     var path=[];[1,2,3,4,5].forEach(function(qn){if(hazard['q'+qn]!==undefined)path.push('Q'+qn+':'+hazard['q'+qn]);});
     if(hazard.q2_need!==undefined)path.push('Q2' + I18n.t('q.cont') + ''+hazard.q2_need);
     var h='<div style="margin-top:16px;padding:12px;background:'+bg+';border:1px solid '+c+';border-radius:8px;color:'+c+';">';
-    h+='<div style="font-weight:600;margin-bottom:6px;">判定结果：'+label+'</div>';
-    h+='<div style="font-size:13px;color:#475569;">判定路径：'+(path.length?path.join(' → '):'—')+'</div>';
-    h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="ccpNextHazardBtn">'+(lastH?'完成':I18n.t('q.ccpNextQ'))+'</button>';
+    h+='<div style="font-weight:600;margin-bottom:6px;">'+I18n.t('ccp.result')+label+'</div>';
+    h+='<div style="font-size:13px;color:#475569;">'+I18n.b('判定路径：|||Decision Path: ')+(path.length?path.join(' → '):'—')+'</div>';
+    h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" id="ccpNextHazardBtn">'+(lastH?I18n.t('q.doneBtn'):I18n.t('q.ccpNextQ'))+'</button>';
     // 添加上一步按钮，回退到当前问题的上一个问题
     h+='<button class="btn btn-secondary btn-sm" id="ccpPrevStepBtn">' + I18n.t('q.ccpPrevStep') + '</button>';
     // 添加重新判定按钮，清除当前危害所有答案重新判断
-    h+='<button class="btn btn-secondary btn-sm" id="ccpResetAllBtn">🔄 重新判定本危害</button></div></div>';
+    h+='<button class="btn btn-secondary btn-sm" id="ccpResetAllBtn">' + I18n.t('q.ccpRedoHazard') + '</button></div></div>';
     return h;
   }
   function renderCCPJudgingPage(data) {
@@ -815,7 +820,7 @@ const Questionnaire15min = (() => {
     if(!data.ccpSteps[idx].hazards[ht])data.ccpSteps[idx].hazards[ht]={};
     var ch=data.ccpSteps[idx].hazards[ht];
     var html='<div class="ccp-judging-flow"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">';
-    html+='<span style="color:var(--gray-500);font-size:13px;">步骤 '+(idx+1)+'/'+steps.length+'：'+esc(step.stepName||I18n.t('q.unnamed'))+' — '+hf[ht]+'（'+(hti+1)+'/3）</span>';
+    html+='<span style="color:var(--gray-500);font-size:13px;">'+I18n.b('步骤 {a}/{b}：{c} — {d}（{e}/3）|||Step {a}/{b}: {c} — {d} ({e}/3)').replace('{a}',idx+1).replace('{b}',steps.length).replace('{c}',esc(step.stepName||I18n.t('q.unnamed'))).replace('{d}',hf[ht]).replace('{e}',hti+1)+'</span>';
     html+='<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;">'+{bio:'B',chem:'C',phys:'P'}[ht]+'</span></div>';
     if(ch.isCCP!==undefined&&ch.isCCP!==null){
       html+=renderCcpResultBlock(data,ch,ht);
@@ -824,12 +829,12 @@ const Questionnaire15min = (() => {
     }
     var sv=cq==='q2_need'?ch.q2_need:ch['q'+cq];
     html+='<div class="q15-field-group" style="margin-bottom:12px;"><label>'+getCcpQuestionText(ht,cq)+'</label>';
-    if(cq===1)html+='<textarea id="ccpHazardDescInput" rows="2" placeholder="请描述该危害">'+esc(ch.hazardDesc||'')+'</textarea>';
+    if(cq===1)html+='<textarea id="ccpHazardDescInput" rows="2" placeholder="' + I18n.t('q.ph_HazardDesc') + '">'+esc(I18n.b(ch.hazardDesc||''))+'</textarea>';
     html+='</div><div style="margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;">';
-    if(cq===1){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
-    else if(cq==='q2_need'){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是，需要修改后重新评估</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否，非关键控制点</label>';}
-    else{html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> 是</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> 否</label>';}
-    html+='</div><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确定</button><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">' + I18n.t('q.ccpBackToEdit') + '</button></div></div>';
+    if(cq===1){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> ' + I18n.t('common.yes') + '</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> ' + I18n.t('common.no') + '</label>';}
+    else if(cq==='q2_need'){html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> ' + I18n.t('q.ccpYesNeedModify') + '</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> ' + I18n.t('q.ccpNoNonCcp') + '</label>';}
+    else{html+='<label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="是"'+(sv==='是'?' checked':'')+'> ' + I18n.t('common.yes') + '</label><label class="ccp-radio-inline"><input type="radio" name="ccpQAnswer" value="否"'+(sv==='否'?' checked':'')+'> ' + I18n.t('common.no') + '</label>';}
+    html+='</div><div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary btn-sm" id="ccpAnswerBtn">' + I18n.t('common.ok') + '</button><button class="btn btn-secondary btn-sm" id="ccpJudgingBackBtn">' + I18n.t('q.ccpBackToEdit') + '</button></div></div>';
     return html;
   }
 
@@ -837,35 +842,35 @@ const Questionnaire15min = (() => {
   function buildCCPPathSummary(hazard) {
     if (!hazard || hazard.q1 === undefined) return '';
     var html = '<div style="margin-top:16px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;">';
-    html += '<div style="font-weight:500;margin-bottom:6px;">判定路径</div>';
+    html += '<div style="font-weight:500;margin-bottom:6px;">' + I18n.t('ccp.path') + '</div>';
     var resultText = '';
     if (hazard.q1 !== undefined) {
       html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1: ' + hazard.q1 + '</span>';
       if (hazard.q1 === '否') {
-        if (hazard.q1_need === '否') resultText = '非CCP（Q1=否且无需控制）';
-        else if (hazard.q1_need === '是') resultText = '需修改步骤重新评估';
+        if (hazard.q1_need === '否') resultText = I18n.t('q.ccpNonCcpQ1NoControl');
+        else if (hazard.q1_need === '是') resultText = I18n.t('q.ccpNeedModifyReEval');
         html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1.1: ' + (hazard.q1_need || '—') + '</span>';
       }
     }
     if (hazard.q2 !== undefined) {
       html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q2: ' + hazard.q2 + '</span>';
-      if (hazard.q2 === '是') resultText = 'CCP（Q2=是，步骤专门设计消除/降低危害）';
+      if (hazard.q2 === '是') resultText = I18n.t('q.ccpCCPQ2Yes');
     }
     if (hazard.q3 !== undefined) {
       html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q3: ' + hazard.q3 + '</span>';
-      if (hazard.q3 === '否') resultText = '非CCP（Q3=否，污染不超标）';
+      if (hazard.q3 === '否') resultText = I18n.t('q.ccpNonCcpQ3');
     }
     if (hazard.q4 !== undefined) {
       html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q4: ' + hazard.q4 + '</span>';
-      if (hazard.q4 === '是') resultText = '非CCP（Q4=是，后续可消除）';
-      else if (hazard.q4 === '否') resultText = 'CCP（Q4=否，后续无法消除）';
+      if (hazard.q4 === '是') resultText = I18n.t('q.ccpNonCcpQ4');
+      else if (hazard.q4 === '否') resultText = I18n.t('q.ccpCCPQ4No');
     }
     if (resultText) {
       var isCCPResult = resultText.indexOf('CCP') !== -1 && resultText.indexOf('非') === -1 && resultText.indexOf('需修改') === -1;
       var isModify = resultText.indexOf('需修改') !== -1;
       var color = isCCPResult ? '#dc2626' : (isModify ? '#d97706' : '#16a34a');
       html += '<div style="margin-top:8px;padding:8px 12px;background:' + (isCCPResult ? '#fef2f2' : isModify ? '#fffbeb' : '#f0fdf4') + ';border:1px solid ' + color + ';border-radius:6px;color:' + color + ';font-weight:500;">';
-      html += '判定结果：' + resultText;
+      html += I18n.t('ccp.result') + resultText;
       html += '</div>';
       
       var isLastHazard = data && data.ccpHazardType;
@@ -929,22 +934,22 @@ const Questionnaire15min = (() => {
     });
     
     var html = '<div class="ccp-unified-info">';
-    html += '💡 在下方表格中为每个步骤的每种危害进行CCP判定。点击「是/否」选择答案，系统自动计算判定结果。';
+    html += I18n.t('q.ccpUnifiedTip');
     html += '</div>';
     
     html += '<div class="ccp-unified-wrapper">';
     html += '<table class="ccp-unified-table">';
     html += '<thead><tr>';
-    html += '<th style="min-width:100px;">加工步骤</th>';
-    html += '<th style="min-width:70px;">危害</th>';
-    html += '<th style="min-width:120px;">危害描述</th>';
-    html += '<th style="width:70px;">Q1<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">是否存在危害</span></th>';
-    html += '<th style="width:70px;">Q2<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">是否有控制措施</span></th>';
-    html += '<th style="width:70px;">Q2.1<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">是否需要控制</span></th>';
-    html += '<th style="width:70px;">Q3<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">可消除危害</span></th>';
-    html += '<th style="width:70px;">Q4<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">污染升高</span></th>';
-    html += '<th style="width:70px;">Q5<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">后续消除</span></th>';
-    html += '<th style="min-width:80px;">判定结果</th>';
+    html += '<th style="min-width:100px;">' + I18n.t('ccp.summary.step') + '</th>';
+    html += '<th style="min-width:70px;">' + I18n.b('危害|||Hazard') + '</th>';
+    html += '<th style="min-width:120px;">' + I18n.t('q.sumColHazardDesc') + '</th>';
+    html += '<th style="width:70px;">Q1<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">' + I18n.t('q.sumColQ1') + '</span></th>';
+    html += '<th style="width:70px;">Q2<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">' + I18n.t('q.sumColQ2') + '</span></th>';
+    html += '<th style="width:70px;">Q2.1<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">' + I18n.t('q.sumColQ21') + '</span></th>';
+    html += '<th style="width:70px;">Q3<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">' + I18n.t('q.sumColQ3') + '</span></th>';
+    html += '<th style="width:70px;">Q4<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">' + I18n.t('q.sumColQ4') + '</span></th>';
+    html += '<th style="width:70px;">Q5<br><span style="font-weight:400;font-size:10px;color:var(--gray-400);">' + I18n.t('q.sumColQ5') + '</span></th>';
+    html += '<th style="min-width:80px;">' + I18n.t('q.sumColResult') + '</th>';
     html += '</tr></thead><tbody>';
     
     steps.forEach(function(step, si) {
@@ -952,11 +957,11 @@ const Questionnaire15min = (() => {
         var hData = data.ccpSteps[si].hazards[ht] || {};
         var rowClass = (hi === 0) ? '' : '';
         if (hi === 0) {
-          html += '<tr class="step-group-header"><td colspan="10">步骤 ' + (si + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</td></tr>';
+          html += '<tr class="step-group-header"><td colspan="10">' + I18n.t('q.ccpStepTitle').replace('{n}', si + 1) + esc(step.stepName || I18n.t('q.unnamed')) + '</td></tr>';
         }
         
         // 危害描述 
-        var descVal = hData.hazardDesc || '';
+        var descVal = I18n.b(hData.hazardDesc || '');
         
         // 各问题的值
         var q1Val = hData.q1 || '';
@@ -969,10 +974,10 @@ const Questionnaire15min = (() => {
         // 判定结果
         var isCCP = hData.isCCP;
         var resultClass = 'pending';
-        var resultText = '待判定';
-        if (isCCP === true) { resultClass = 'is-ccp'; resultText = '是 (CCP)'; }
-        else if (isCCP === false) { resultClass = 'no-ccp'; resultText = '否'; }
-        else if (isCCP === 'modify') { resultClass = 'modify'; resultText = '需修改'; }
+        var resultText = I18n.t('q.ccpPending');
+        if (isCCP === true) { resultClass = 'is-ccp'; resultText = I18n.t('q.ccpIsCCP'); }
+        else if (isCCP === false) { resultClass = 'no-ccp'; resultText = I18n.t('q.ccpNotCCP'); }
+        else if (isCCP === 'modify') { resultClass = 'modify'; resultText = I18n.t('q.ccpNeedModify'); }
         
         html += '<tr data-ut-row="' + si + '-' + ht + '">';
         // ' + I18n.t('q.stepName') + '
@@ -980,7 +985,7 @@ const Questionnaire15min = (() => {
         // 危害类型
         html += '<td><span class="ccp-ut-hazard-badge ' + ht + '">' + hazardLabels[ht] + '</span><span class="ccp-ut-hazard-label">' + hazardFull[ht] + '</span></td>';
         // 危害描述 (Q1文本域)
-        html += '<td><textarea class="ccp-ut-desc-input" data-ut-field="hazardDesc" data-ut-si="' + si + '" data-ut-ht="' + ht + '" rows="2" placeholder="描述危害...">' + esc(descVal) + '</textarea></td>';
+        html += '<td><textarea class="ccp-ut-desc-input" data-ut-field="hazardDesc" data-ut-si="' + si + '" data-ut-ht="' + ht + '" rows="2" placeholder="' + I18n.t('q.ccpDescPh') + '">' + esc(descVal) + '</textarea></td>';
         
         // Q1: 是否存在危害
         html += '<td>' + renderYesNoBtns(si, ht, 'q1', q1Val) + '</td>';
@@ -1005,8 +1010,8 @@ const Questionnaire15min = (() => {
     
     // 操作按钮
     html += '<div class="ccp-unified-actions">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpUnifiedSaveBtn">💾 保存判定结果</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpUnifiedFinishBtn">✅ 完成所有判定</button>';
+    html += '<button class="btn btn-primary btn-sm" id="ccpUnifiedSaveBtn">' + I18n.t('q.ccpSaveJudgment') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpUnifiedFinishBtn">' + I18n.t('q.ccpFinishAll') + '</button>';
     html += '</div>';
     
     return html;
@@ -1018,8 +1023,8 @@ const Questionnaire15min = (() => {
     var yesClass = value === '是' ? 'selected-yes' : '';
     var noClass = value === '否' ? 'selected-no' : '';
     return '<div class="ccp-ut-yn">' +
-      '<label class="' + yesClass + '"><input type="radio" name="' + name + '" value="是" data-ut-si="' + si + '" data-ut-ht="' + ht + '" data-ut-field="' + field + '"' + (value === '是' ? ' checked' : '') + '> 是</label>' +
-      '<label class="' + noClass + '"><input type="radio" name="' + name + '" value="否" data-ut-si="' + si + '" data-ut-ht="' + ht + '" data-ut-field="' + field + '"' + (value === '否' ? ' checked' : '') + '> 否</label>' +
+      '<label class="' + yesClass + '"><input type="radio" name="' + name + '" value="是" data-ut-si="' + si + '" data-ut-ht="' + ht + '" data-ut-field="' + field + '"' + (value === '是' ? ' checked' : '') + '> ' + I18n.t('common.yes') + '</label>' +
+      '<label class="' + noClass + '"><input type="radio" name="' + name + '" value="否" data-ut-si="' + si + '" data-ut-ht="' + ht + '" data-ut-field="' + field + '"' + (value === '否' ? ' checked' : '') + '> ' + I18n.t('common.no') + '</label>' +
       '</div>';
   }
 
@@ -1036,24 +1041,24 @@ const Questionnaire15min = (() => {
     // 当前危害类型
     var hazardType = data.ccpHazardType || 'bio';
     var hazardTypes = ['bio', 'chem', 'phys'];
-    var hazardLabels = { bio: '生物危害(B)', chem: '化学危害(C)', phys: '物理危害(P)' };
+    var hazardLabels = { bio: I18n.t('q.ccpDtHazardBioLabel'), chem: I18n.t('q.ccpDtHazardChemLabel'), phys: I18n.t('q.ccpDtHazardPhysLabel') };
     var hazardTypeIdx = hazardTypes.indexOf(hazardType);
     // 获取当前危害数据
     var currentHazard = data.ccpSteps[idx].hazards[hazardType] || {};
     // 问题文本 (5问题版本)
     var qTexts = {
-      1: 'Q1：该加工步骤是否存在危害？危害是什么？',
-      2: 'Q2：是否存在针对已识别危害的控制措施？',
-      3: 'Q3：该步骤是否经过专门设计，可消除危害或将其发生的可能性降低至可接受水平？',
-      4: 'Q4：该步骤是否会发生污染，或污染水平升高至不可接受的程度？',
-      5: 'Q5：后续步骤或操作是否会消除该危害，或将其降低至可接受水平？'
+      1: I18n.t('q.ccpDtQ1'),
+      2: I18n.t('q.ccpDtQ2'),
+      3: I18n.t('q.ccpDtQ3'),
+      4: I18n.t('q.ccpDtQ4'),
+      5: I18n.t('q.ccpDtQ5')
     };
     var qHelps = {
-      1: '请列出该加工步骤可能存在的生物/化学/物理危害',
-      2: '（例如：是否有SOP、' + I18n.t('q.params') + '控制、设备防护等措施）',
-      3: '（例如：金属检测器专门设计用于去除金属异物）',
-      4: '（例如：清洗不彻底可能导致微生物交叉污染）',
-      5: '（例如：后道杀菌工序可消除微生物危害）'
+      1: I18n.t('q.ccpDtQ1Help'),
+      2: I18n.t('q.ccpDtQ2Help'),
+      3: I18n.t('q.ccpDtQ3Help'),
+      4: I18n.t('q.ccpDtQ4Help'),
+      5: I18n.t('q.ccpDtQ5Help')
     };
     var currentQ = data.ccpCurrentQ || 1;
     // 如果当前危害已完成判定(isCCP!==null)，跳到下一个
@@ -1083,11 +1088,11 @@ const Questionnaire15min = (() => {
     // 构建危害提示
     var stepHazardDesc = '';
     if (hazardType === 'bio') {
-      stepHazardDesc = '该步骤可能存在的生物危害：微生物污染、细菌滋生、霉菌毒素等';
+      stepHazardDesc = I18n.t('q.ccpDtHazardBio');
     } else if (hazardType === 'chem') {
-      stepHazardDesc = '该步骤可能存在的化学危害：农药残留、重金属、添加剂违规使用等';
+      stepHazardDesc = I18n.t('q.ccpDtHazardChem');
     } else if (hazardType === 'phys') {
-      stepHazardDesc = '该步骤可能存在的物理危害：金属碎片、玻璃渣、石子、塑料片等';
+      stepHazardDesc = I18n.t('q.ccpDtHazardPhys');
     }
 
     // 判断当前问题是否已回答
@@ -1107,18 +1112,18 @@ const Questionnaire15min = (() => {
 
     var qHtml = '<div class="ccp-decision-tree">';
     qHtml += '<div class="ccp-dt-header">';
-    qHtml += '<span class="ccp-dt-step">步骤 ' + (idx + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</span>';
-    qHtml += '<span class="ccp-dt-hazard-type">' + hazardLabels[hazardType] + '判定 (' + (hazardTypeIdx + 1) + '/3)</span>';
+    qHtml += '<span class="ccp-dt-step">' + I18n.t('q.ccpDtStepNum') + (idx + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</span>';
+    qHtml += '<span class="ccp-dt-hazard-type">' + hazardLabels[hazardType] + I18n.t('q.ccpDtJudging') + ' (' + (hazardTypeIdx + 1) + '/3)</span>';
     qHtml += '</div>';
     qHtml += '<div class="ccp-dt-hazard-desc">' + I18n.t('q.ccpHazardHint') + '' + stepHazardDesc + '</div>';
 
     // Q1特殊：显示危害描述输入框
     if (currentQ === 1) {
-      var hazardDescVal = currentHazard.hazardDesc || '';
+      var hazardDescVal = I18n.b(currentHazard.hazardDesc || '');
       qHtml += '<div class="ccp-dt-question">';
       qHtml += '<div class="ccp-dt-q-text">' + qTexts[1] + '</div>';
       qHtml += '<div class="ccp-dt-q-help">' + qHelps[1] + '</div>';
-      qHtml += '<textarea class="ccp-dt-textarea" id="ccpHazardDescInput" placeholder="请描述该步骤存在的具体危害..." rows="3">' + esc(hazardDescVal) + '</textarea>';
+      qHtml += '<textarea class="ccp-dt-textarea" id="ccpHazardDescInput" placeholder="' + I18n.t('q.ph_HazardDetail') + '" rows="3">' + esc(hazardDescVal) + '</textarea>';
       qHtml += '<div class="ccp-dt-options">';
       qHtml += '<label class="ccp-dt-option' + (selectedVal === '是' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="是"' + (selectedVal === '是' ? ' checked' : '') + '> <span>' + I18n.t('q.ccpYesSpan') + '</span></label>';
       qHtml += '<label class="ccp-dt-option' + (selectedVal === '否' ? ' selected' : '') + '"><input type="radio" name="ccpQAnswer" value="否"' + (selectedVal === '否' ? ' checked' : '') + '> <span>' + I18n.t('q.ccpNoSpan') + '</span></label>';
@@ -1149,7 +1154,7 @@ const Questionnaire15min = (() => {
       qHtml += '</div>';
       qHtml += '<div class="ccp-dt-actions">';
       if (!answered) {
-        qHtml += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">确认回答</button>';
+        qHtml += '<button class="btn btn-primary btn-sm" id="ccpAnswerBtn">' + I18n.t('q.ccpConfirmAnswer') + '</button>';
       } else {
         qHtml += '<button class="btn btn-primary btn-sm" id="ccpNextQBtn">' + I18n.t('q.ccpNextQ') + '</button>';
       }
@@ -1159,14 +1164,14 @@ const Questionnaire15min = (() => {
     // 判定路径摘要
     if (currentHazard.q1 !== undefined) {
       qHtml += '<div class="ccp-dt-summary">';
-      qHtml += '<h4>判定路径</h4>';
+      qHtml += '<h4>' + I18n.t('q.ccpDtPathTitle') + '</h4>';
       var pathItems = [];
       var qVals = [1,2,3,4,5];
       for (var qi = 0; qi < qVals.length; qi++) {
         var qn = qVals[qi];
         var qv = currentHazard['q' + qn];
         if (qv !== undefined) {
-          pathItems.push('<span class="ccp-dt-path-step">Q' + qn + '：' + qv + '</span>');
+          pathItems.push('<span class="ccp-dt-path-step">' + I18n.b('Q{n}：|||Q{n}: ').replace('{n}', qn) + qv + '</span>');
           // 根据决策树显示分支结果
           if (qn === 1 && qv === '否') {
             pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ1') + '</span>');
@@ -1181,7 +1186,7 @@ const Questionnaire15min = (() => {
             break;
           }
           if (qn === 3 && qv === '是') {
-            pathItems.push('<span class="ccp-dt-path-result is-ccp">→ CCP（Q3=是，步骤可消除危害）</span>');
+            pathItems.push('<span class="ccp-dt-path-result is-ccp">' + I18n.t('q.ccpDtPathCCPQ3') + '</span>');
             break;
           }
           if (qn === 4 && qv === '否') {
@@ -1190,7 +1195,7 @@ const Questionnaire15min = (() => {
           }
           if (qn === 5) {
             if (qv === '是') pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ5') + '</span>');
-            else pathItems.push('<span class="ccp-dt-path-result is-ccp">→ CCP（Q5=否，后续无法消除危害）</span>');
+            else pathItems.push('<span class="ccp-dt-path-result is-ccp">' + I18n.t('q.ccpDtPathCCPQ5') + '</span>');
           }
         } else {
           break;
@@ -1207,7 +1212,7 @@ const Questionnaire15min = (() => {
       var ccpColor = isCCPVal === true ? '#dc2626' : (isCCPVal === 'modify' ? '#d97706' : '#16a34a');
       var ccpBg = isCCPVal === true ? '#fef2f2' : (isCCPVal === 'modify' ? '#fffbeb' : '#f0fdf4');
       qHtml += '<div class="ccp-dt-final" style="background:' + ccpBg + ';border:1px solid ' + ccpColor + ';color:' + ccpColor + ';">';
-      qHtml += '✅ ' + hazardLabels[hazardType] + '判定结果：<strong>' + ccpLabel + '</strong>';
+      qHtml += '✅ ' + hazardLabels[hazardType] + I18n.t('q.ccpDtResultPrefix') + '<strong>' + ccpLabel + '</strong>';
       qHtml += '</div>';
       // 如果需修改，显示修改后重新评估按钮
       if (isCCPVal === 'modify') {
@@ -1220,11 +1225,11 @@ const Questionnaire15min = (() => {
     var isFirstPosition = (idx === 0 && hazardType === 'bio' && currentQ === 1);
     var prevBtn = !isFirstPosition ? '<button class="btn btn-sm btn-secondary" id="ccpPrevStepBtn" style="margin-right:auto;">' + I18n.t('q15.prevBtn') + '</button>' : '';
     var maxQ = 5;
-    var qnumStr = currentQ === 'q2_need' ? 'Q2子判断' : '问题 ' + currentQ + '/' + maxQ + '（' + hazardLabels[hazardType] + ' ' + (hazardTypeIdx + 1) + '/3）';
+    var qnumStr = currentQ === 'q2_need' ? I18n.t('q.ccpDtQ2Sub') : (I18n.t('q.ccpDtQNum') + currentQ + '/' + maxQ + I18n.b('（||| (') + hazardLabels[hazardType] + ' ' + (hazardTypeIdx + 1) + '/3' + I18n.b('）||| )'));
 
     return '<div id="ccpStepContainer">' +
       '<div style="display:flex;align-items:center;margin-bottom:12px;">' + prevBtn +
-      '<span class="q15-step-indicator" style="margin:0 auto;">步骤 ' + (idx + 1) + ' / ' + steps.length + ' — ' + qnumStr + '</span></div>' +
+      '<span class="q15-step-indicator" style="margin:0 auto;">' + I18n.t('q.ccpDtStepNum') + (idx + 1) + ' / ' + steps.length + ' — ' + qnumStr + '</span></div>' +
       qHtml + '</div>';
   }
 
@@ -1232,11 +1237,11 @@ const Questionnaire15min = (() => {
   function renderCcpStepEditor(data, steps, editIdx) {
     if (editIdx < 0 || editIdx >= steps.length) editIdx = steps.length - 1;
     var step = steps[editIdx];
-    if (!step) return '<p>步骤数据不存在</p>';
+    if (!step) return '<p>' + I18n.t('q.ccpNoStepData') + '</p>';
     
     var html = '<div class="ccp-step-editor">';
-    html += '<h3>✏️ 编辑步骤 ' + (editIdx + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</h3>';
-    html += '<p class="q15-table-hint">在此处修改本步骤的基本信息，修改完成后返回CCP判定</p>';
+    html += '<h3>' + I18n.t('q.ccpEditStepN') + (editIdx + 1) + I18n.b('：|||: ') + esc(step.stepName || I18n.t('q.unnamed')) + '</h3>';
+    html += '<p class="q15-table-hint">' + I18n.t('q.ccpEditHint') + '</p>';
     
     // 步骤卡片编辑器
     html += '<div class="q15-process-card" data-ps-idx="' + editIdx + '" id="ccpEditStepCard">';
@@ -1246,14 +1251,14 @@ const Questionnaire15min = (() => {
     html += '</div>';
     html += '<div class="q15-field-group"><label>' + I18n.t('q.method') + '</label><textarea class="ccp-edit-input" data-ps-field="operationMethod" rows="2">' + esc(step.operationMethod || '') + '</textarea></div>';
     html += '<div class="q15-field-group"><label>' + I18n.t('q.params') + '</label><input type="text" class="ccp-edit-input" data-ps-field="parameters" value="' + esc(step.parameters || '') + '"></div>';
-    html += '<div class="q15-field-group"><label>' + I18n.t('q.controlPoint') + '</label><input type="text" class="ccp-edit-input" data-ps-field="controlPoint" value="' + esc(step.controlPoint || '') + '" placeholder="如：CCP-1"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.controlPoint') + '</label><input type="text" class="ccp-edit-input" data-ps-field="controlPoint" value="' + esc(step.controlPoint || '') + '" placeholder="' + I18n.t('q.ph_ControlPoint') + '"></div>';
     html += '</div>';
     
     // 操作按钮
     html += '<div class="ccp-step-editor-actions">';
-    html += '<button class="btn btn-primary btn-sm" id="ccpEditSaveBtn">💾 保存修改</button>';
+    html += '<button class="btn btn-primary btn-sm" id="ccpEditSaveBtn">' + I18n.t('q.ccpSaveEdit') + '</button>';
     html += '<button class="btn btn-secondary btn-sm" id="ccpEditDeleteBtn" style="color:#dc2626;border-color:#fecaca;">🗑️ ' + I18n.t('q.ccpDeleteStep') + '</button>';
-    html += '<button class="btn btn-secondary btn-sm" id="ccpEditBackToJudgeBtn">← 返回CCP判定</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="ccpEditBackToJudgeBtn">' + I18n.t('q.ccpBackToJudge') + '</button>';
     html += '</div>';
     
     html += '</div>';
@@ -1276,8 +1281,8 @@ const Questionnaire15min = (() => {
   function renderCcpSummary(data) {
     normalizeCcpSteps(data);
     var steps=data.processSteps||[];var ccpSteps=data.ccpSteps||[];
-    if(steps.length===0)return '<p style="color:var(--gray-400);text-align:center;padding:20px;">暂无步骤数据，请先返回填写步骤。</p><div style="margin-top:16px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
-    var hts=['bio','chem','phys'];var hf={bio:'B:生物危害',chem:'C:化学危害',phys:'P:物理危害'};var rows=[];
+    if(steps.length===0)return '<p style="color:var(--gray-400);text-align:center;padding:20px;">' + I18n.t('q.ccpNoStepsBack') + '</p><div style="margin-top:16px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">' + I18n.t('q.ccpBackEdit') + '</button></div>';
+    var hts=['bio','chem','phys'];var hf={bio:'B:'+I18n.t('q.ccpHazardBio'),chem:'C:'+I18n.t('q.ccpHazardChem'),phys:'P:'+I18n.t('q.ccpHazardPhys')};var rows=[];
     var hasAI = ccpSteps.some(function(cs) {
       return cs && cs.hazards && ['bio','chem','phys'].some(function(ht) { return cs.hazards[ht] && cs.hazards[ht].aiReasoning; });
     });
@@ -1290,7 +1295,7 @@ const Questionnaire15min = (() => {
       var displayReasoning = h.aiReasoning ? I18n.b(h.aiReasoning) : '';
       var reasoningCell = h.aiReasoning ? '<td style="font-size:11px;color:#6b7280;">' + esc(displayReasoning.length > 40 ? displayReasoning.substring(0, 40) + '...' : displayReasoning) + '</td>' : '<td></td>';
       var displayDesc = h.hazardDesc ? I18n.b(h.hazardDesc) : '';
-      rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(step.stepName||('步骤'+(si+1)))+'</td>':'')+
+      rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(step.stepName||I18n.t('q.ccpStepDefault').replace('{n}',si+1))+'</td>':'')+
       '<td>'+hf[ht]+(displayDesc?'<br><span style="font-size:12px;color:#64748b;">'+esc(displayDesc)+'</span>':'')+'</td>'+
       '<td style="text-align:center;">'+esc(h.q1||'—')+'</td>'+
       '<td style="text-align:center;">'+esc(h.q2||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">' + I18n.t('q.cont') + ''+esc(h.q2_need)+'</span>':'')+'</td>'+
@@ -1300,17 +1305,17 @@ const Questionnaire15min = (() => {
     var html = '';
     if (hasAI) {
       html += '<div style="margin-bottom:12px;padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:13px;color:#6d28d9;">';
-      html += '🤖 <strong>AI辅助判定完成</strong> — 以下结果由AI基于Codex判断树规则自动分析生成，请人工复核确认';
+      html += '🤖 <strong>' + I18n.t('ccp.localReasoning') + '</strong> — ' + I18n.t('ccp.localReasoningDesc');
       html += '</div>';
     }
-    html+='<h3 style="margin-bottom:12px;">CCP判定汇总表</h3>';
-    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:' + (hasAI ? '960px' : '820px') + ';"><thead><tr><th>加工步骤</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th>' + (hasAI ? '<th>AI分析依据</th>' : '') + '</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
-    html+='<div style="margin-top:16px;display:flex;gap:10px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">返回编辑</button></div>';
+    html+='<h3 style="margin-bottom:12px;">' + I18n.t('ccp.summary.title') + '</h3>';
+    html+='<div style="overflow-x:auto;"><table class="q15-table" style="min-width:' + (hasAI ? '960px' : '820px') + ';"><thead><tr><th>' + I18n.t('ccp.summary.step') + '</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>CCP</th>' + (hasAI ? '<th>' + I18n.t('q.ccpAiBasis') + '</th>' : '') + '</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+    html+='<div style="margin-top:16px;display:flex;gap:10px;"><button class="btn btn-secondary btn-sm" id="summaryBackBtn">' + I18n.t('q.ccpBackEdit') + '</button></div>';
     return html;
   }
 
   function renderCcpFooter(data) {
-    return '<hr class="q15-divider"><h3>流程图编辑 <span style="font-size:13px;font-weight:400;color:var(--gray-400);">使用 draw.io 绘制生产流程图</span></h3><p class="q15-table-hint">通过 draw.io 在线编辑器绘制专业的生产工艺流程图，直观展示各生产步骤的顺序关系</p><div class="q15-flowchart-area" id="flowchartArea">' + renderFlowchartPreview(data) + '</div><hr class="q15-divider"><h3>' + I18n.t('q.ccpFlowConfirm') + '</h3><div class="q15-confirm-box"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="flowConfirmed"' + (data.flowConfirmed ? ' checked' : '') + '> HACCP小组已到生产现场，对以上流程图的每一步进行核对确认，确保与实际操作完全一致</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">（确认内容包括：是否有额外的原料添加、步骤合并等）</p></div>';
+    return '<hr class="q15-divider"><h3>' + I18n.t('flow.title') + ' <span style="font-size:13px;font-weight:400;color:var(--gray-400);">' + I18n.t('flow.desc') + '</span></h3><p class="q15-table-hint">' + I18n.t('flow.hint') + '</p><div class="q15-flowchart-area" id="flowchartArea">' + renderFlowchartPreview(data) + '</div><hr class="q15-divider"><h3>' + I18n.t('q.ccpFlowConfirm') + '</h3><div class="q15-confirm-box"><label class="q15-checkbox-label"><input type="checkbox" data-q15-field="flowConfirmed"' + (data.flowConfirmed ? ' checked' : '') + '> ' + I18n.t('flow.confirmLabel') + '</label><p style="font-size:12px;color:var(--gray-400);margin-top:6px;">' + I18n.t('flow.confirmNote') + '</p></div>';
   }
 
   function renderCriticalLimits(data) {
@@ -1396,6 +1401,7 @@ const Questionnaire15min = (() => {
         html += '<button class="btn btn-xs btn-secondary cl-add-limit" data-cl-idx="' + li + '" style="margin-bottom:12px;">' + I18n.t('q.clAdd') + '</button>';
         
         // 操作限值表
+        if (!clData.operatingLimits) clData.operatingLimits = [];
         html += '<div style="font-weight:500;margin-bottom:8px;font-size:13px;color:#6366f1;">' + I18n.t('q.clOLTitle') + '<span style="font-weight:400;font-size:11px;color:var(--gray-400);">' + I18n.t('q.clOLHint') + '</span></div>';
         html += '<table class="q15-table" style="min-width:auto;margin-bottom:10px;"><thead><tr><th>' + I18n.t('q.clParam') + '</th><th>' + I18n.t('q.clOLValue') + '</th><th>' + I18n.t('q.clUnit') + '</th><th style="width:50px;"></th></tr></thead><tbody id="olBody_' + li + '">';
         clData.operatingLimits.forEach(function(ol, oli) {
@@ -1483,7 +1489,7 @@ const Questionnaire15min = (() => {
 
   function renderMonitoring(data) {
     syncCCPToMonitoringAndCorrective(data);
-    return '<h3>' + I18n.t('q.monitorTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.monitorHint') + '</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">' + I18n.t('q.monitorAI') + '</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.monitorObject') + '</th><th>' + I18n.t('q.monitorMethod') + '</th><th>' + I18n.t('q.monitorFreq') + '</th><th>' + I18n.t('q.monitorPersonnel') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">操作</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="' + I18n.t('q.monitorPhCCP') + '" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhObject') + '">' + esc(m.object) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhMethod') + '">' + esc(m.method) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhFreq') + '">' + esc(m.frequency) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhPersonnel') + '">' + esc(m.personnel) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhRemark') + '">' + esc(m.remark) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">' + I18n.t('q.monitorAdd') + '</button>';
+    return '<h3>' + I18n.t('q.monitorTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.monitorHint') + '</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">' + I18n.t('q.monitorAI') + '</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.monitorObject') + '</th><th>' + I18n.t('q.monitorMethod') + '</th><th>' + I18n.t('q.monitorFreq') + '</th><th>' + I18n.t('q.monitorPersonnel') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="' + I18n.t('q.monitorPhCCP') + '" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhObject') + '">' + esc(m.object) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhMethod') + '">' + esc(m.method) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhFreq') + '">' + esc(m.frequency) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhPersonnel') + '">' + esc(m.personnel) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhRemark') + '">' + esc(m.remark) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">' + I18n.t('q.monitorAdd') + '</button>';
   }
 
   function renderCorrective(data) {
@@ -1499,15 +1505,15 @@ const Questionnaire15min = (() => {
       '</div>';
     return '<h3>' + I18n.t('q.correctiveTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.correctiveHint') + '</p>' +
       '<div class="q15-ai-btn-wrapper" style="margin-bottom:12px;">' +
-        '<button class="btn btn-secondary btn-sm" id="aiCorrectiveBtn">🤖 AI规划' + I18n.t('q.correctiveTitle') + '</button>' +
+        '<button class="btn btn-secondary btn-sm" id="aiCorrectiveBtn">' + I18n.t('q.correctiveAI') + '</button>' +
         '<span id="aiCorrectiveHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>' +
       '</div>' +
-      '<table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.corPersonnel') + '</th><th>' + I18n.t('q.corCause') + '</th><th>' + I18n.t('q.corProduct') + '</th><th style="width:50px;">操作</th></tr></thead><tbody id="correctiveBody">' +
+      '<table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.corPersonnel') + '</th><th>' + I18n.t('q.corCause') + '</th><th>' + I18n.t('q.corProduct') + '</th><th style="width:50px;">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="correctiveBody">' +
       data.correctiveActions.map(function(c, i) {
         return '<tr data-ca-idx="' + i + '">' +
           '<td><input type="text" value="' + esc(c.ccp) + '" placeholder="' + I18n.t('q.correctivePhCCP') + '" style="width:100%;"></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="实施' + I18n.t('q.correctiveTitle') + '和负责受影响产品放行的人员">' + esc(c.personnel) + '</textarea></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.corCause') + '的识别和消除">' + esc(c.causeAnalysis) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhPersonnel') + '">' + esc(c.personnel) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhCause') + '">' + esc(c.causeAnalysis) + '</textarea></td>' +
           '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhProduct') + '">' + esc(c.productHandling) + '</textarea></td>' +
           '<td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td>' +
         '</tr>';
@@ -1601,17 +1607,26 @@ const Questionnaire15min = (() => {
       '<div id="verificationExtraBody">' +
       (extraCardsHtml || '<div style="font-size:12px;color:var(--gray-400);text-align:center;padding:8px;">' + I18n.t('q.verNoExtra') + '</div>') +
       '</div>' +
-      '<button class="btn btn-xs btn-secondary" id="addVerificationExtraRow" style="margin-top:4px;">+ 添加项目</button></div>' +
+      '<button class="btn btn-xs btn-secondary" id="addVerificationExtraRow" style="margin-top:4px;">' + I18n.t('q.verAddExtra') + '</button></div>' +
       managementReviewHtml +
       signerSection;
   }
 
   function renderRecordKeeping(data) {
-    return '<div class="q15-field-group"><label>' + I18n.t('q.recordPeriod') + '</label><input type="text" data-q15-field="recordPeriod" value="' + esc(data.recordPeriod) + '" placeholder="' + I18n.t('q.recordPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.recordFormat') + '</label><textarea data-q15-field="recordFormat" rows="3" placeholder="描述' + I18n.t('q.recordFormat') + '，如：电子版、纸质版">' + esc(data.recordFormat) + '</textarea></div><div class="q15-records-summary"><h3>' + I18n.t('q.recordTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.recordHint') + '</p><div class="q15-record-cards"><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CB}</div><h4>' + I18n.t('q.recMonitorTable') + '</h4><p>' + I18n.t('q.recMonitorDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CA}</div><h4>' + I18n.t('q.recCorrectiveTable') + '</h4><p>记录偏差情况及采取的' + I18n.t('q.correctiveTitle') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4C4}</div><h4>' + I18n.t('q.verRecord') + '表</h4><p>' + I18n.t('q.recVerifyDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4D1}</div><h4>' + I18n.t('q.recReportTable') + '</h4><p>AI生成标准化HACCP' + I18n.t('q.recReportTable') + '</p></div></div><div class="q15-export-actions"><button class="btn btn-secondary btn-sm" id="exportTableBtn" style="margin-top:10px;">' + I18n.t('q.recExportBtn') + '</button></div></div>';
+    return '<div class="q15-field-group"><label>' + I18n.t('q.recordPeriod') + '</label><input type="text" data-q15-field="recordPeriod" value="' + esc(data.recordPeriod) + '" placeholder="' + I18n.t('q.recordPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.recordFormat') + '</label><textarea data-q15-field="recordFormat" rows="3" placeholder="' + I18n.t('q.recordFormatPh') + '">' + esc(data.recordFormat) + '</textarea></div><div class="q15-records-summary"><h3>' + I18n.t('q.recordTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.recordHint') + '</p><div class="q15-record-cards"><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CB}</div><h4>' + I18n.t('q.recMonitorTable') + '</h4><p>' + I18n.t('q.recMonitorDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4CA}</div><h4>' + I18n.t('q.recCorrectiveTable') + '</h4><p>' + I18n.t('q.recordCorrectiveDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4C4}</div><h4>' + I18n.t('q.recordVerify') + '</h4><p>' + I18n.t('q.recVerifyDesc') + '</p></div><div class="q15-record-card"><div class="q15-record-icon">\u{1F4D1}</div><h4>' + I18n.t('q.recReportTable') + '</h4><p>' + I18n.t('q.recordReportDesc') + '</p></div></div><div class="q15-export-actions"><button class="btn btn-secondary btn-sm" id="exportTableBtn" style="margin-top:10px;">' + I18n.t('q.recExportBtn') + '</button></div></div>';
   }
 
   // ==================== 事件绑定 ====================
   function bindSectionEvents(content, data) {
+    // Auto-save data-q15-field inputs on every keystroke
+    content.querySelectorAll('[data-q15-field]').forEach(function(el) {
+      el.addEventListener('input', function() {
+        var field = this.dataset.q15Field;
+        if (this.type === 'checkbox') data[field] = this.checked;
+        else data[field] = this.value;
+        saveData(data);
+      });
+    });
     const addTeamBtn = content.querySelector('#addTeamRow');
     if (addTeamBtn) { addTeamBtn.addEventListener('click', function() { data.haccpTeam.push({ id: genId(), name: '', dept: '', position: '', role: '', remark: '' }); saveData(data); renderActiveSection(); renderSectionNav(); }); }
     content.querySelectorAll('#teamBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.teamIdx); if (data.haccpTeam.length > 1) { data.haccpTeam.splice(idx, 1); saveData(data); renderActiveSection(); renderSectionNav(); } }); });
@@ -1642,7 +1657,7 @@ const Questionnaire15min = (() => {
       aiBtn.addEventListener('click', async function() {
         aiBtn.disabled = true;
         var hint = content.querySelector('#aiHazardHint');
-        if (hint) hint.textContent = 'AI分析中...';
+        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
         // 收集产品信息
         collectSectionData(content, data);
         saveData(data);
@@ -1661,9 +1676,9 @@ const Questionnaire15min = (() => {
         }
         // 如果没有原料数据，直接提示
         if (materials.length === 0) {
-          if (hint) hint.textContent = '请先在第2步填写原料或在配方表中添加原料';
+          if (hint) hint.textContent = I18n.t('hazard.needMaterials');
           var emptyEl = document.getElementById('aiHazardResult');
-          if (emptyEl) emptyEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">请先在配方表或原料字段中填写原料名称，然后点击此按钮查询危害数据</div>';
+          if (emptyEl) emptyEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('hazard.needMaterials') + '</div>';
           aiBtn.disabled = false;
           return;
         }
@@ -1740,7 +1755,7 @@ const Questionnaire15min = (() => {
             data.hazardChem = hazardChem;
             data.hazardPhys = hazardPhys;
             saveData(data);
-            if (hint) hint.textContent = '\u2713 原料危害分析完成，已匹配 ' + matchedMaterials.length + ' 种原料';
+            if (hint) hint.textContent = I18n.b('✓ 原料危害分析完成，已匹配 {n} 种原料|||✓ Hazard analysis complete. Matched {n} material(s)').replace('{n}', matchedMaterials.length);
             renderAiHazardResult(hazardBio, hazardChem, hazardPhys, matchedMaterials);
           } else {
             // 没有匹配到任何原料：显示未匹配信息，不填充数据
@@ -1749,9 +1764,9 @@ const Questionnaire15min = (() => {
             data.hazardChem = [];
             data.hazardPhys = [];
             saveData(data);
-            if (hint) hint.textContent = '\u2716 未匹配到危害数据';
+            if (hint) hint.textContent = '\u2716 ' + I18n.t('hazard.noMatch');
             var resultEl = document.getElementById('aiHazardResult');
-            if (resultEl) resultEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">未在数据库中找到以下原料的危害数据：<strong>' + unmatchedList + '</strong><br><span style="font-size:12px;">如需添加请联系管理员更新原料危害数据库</span></div>';
+            if (resultEl) resultEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('hazard.dbNotFound') + '<strong>' + unmatchedList + '</strong><br><span style="font-size:12px;">' + I18n.t('hazard.dbNotFoundTip') + '</span></div>';
           }
         } catch (err) {
           console.warn('原料危害数据库查询失败:', err.message);
@@ -1759,9 +1774,9 @@ const Questionnaire15min = (() => {
           data.hazardChem = [];
           data.hazardPhys = [];
           saveData(data);
-          if (hint) hint.textContent = '\u2716 后端接口不可用';
+          if (hint) hint.textContent = '\u2716 ' + I18n.b('后端接口不可用|||Backend API unavailable');
           var resultEl = document.getElementById('aiHazardResult');
-          if (resultEl) resultEl.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626;">后端接口不可用，无法查询原料危害数据。请确认后端已启动（运行 python -m uvicorn backend.main:app）</div>';
+          if (resultEl) resultEl.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626;">' + I18n.t('hazard.backendDown') + '</div>';
         }
         aiBtn.disabled = false;
       });
@@ -1774,7 +1789,7 @@ const Questionnaire15min = (() => {
       aiCriticalBtn.addEventListener('click', async function() {
         aiCriticalBtn.disabled = true;
         var hint = content.querySelector('#aiCriticalHint');
-        if (hint) hint.textContent = 'AI分析中...';
+        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
         var resultEl = content.querySelector('#aiCriticalResult');
         
         // 收集当前数据
@@ -1862,7 +1877,7 @@ const Questionnaire15min = (() => {
       aiMonitorBtn.addEventListener('click', async function() {
         aiMonitorBtn.disabled = true;
         var hint = content.querySelector('#aiMonitorHint');
-        if (hint) hint.textContent = 'AI分析中...';
+        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
         collectSectionData(content, data);
         
         // 构建CCP列表
@@ -1906,7 +1921,7 @@ const Questionnaire15min = (() => {
       aiCorrectiveBtn.addEventListener('click', async function() {
         aiCorrectiveBtn.disabled = true;
         var hint = content.querySelector('#aiCorrectiveHint');
-        if (hint) hint.textContent = 'AI分析中...';
+        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
         collectSectionData(content, data);
         
         // 构建CCP列表（从ccpSteps中获取被判定为CCP的步骤）
@@ -2374,12 +2389,12 @@ const Questionnaire15min = (() => {
       var bioDesc = '';
       if (isHeat) bioDesc = '致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留|||Pathogenic bacteria (Salmonella, E. coli O157:H7, Listeria, etc.) residue';
       else if (isReceiving) bioDesc = '原料可能携带致病菌（沙门氏菌、大肠杆菌等）|||Raw materials may carry pathogenic bacteria (Salmonella, E. coli, etc.)';
-      else if (isCooling) bioDesc = '冷却过程中温度适宜微生物繁殖，可能导致微生物增殖';
-      else if (isPackaging) bioDesc = '包装环节在洁净环境下进行，无明显生物危害引入';
+      else if (isCooling) bioDesc = '冷却过程中温度适宜微生物繁殖，可能导致微生物增殖|||Cooling temperatures in microbial growth range may cause proliferation';
+      else if (isPackaging) bioDesc = '包装环节在洁净环境下进行，无明显生物危害引入|||Packaging performed in clean environment, no significant biological hazard';
       else if (isCleaning) bioDesc = '清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination';
-      else if (isFilter) bioDesc = '过滤介质可能滋生微生物';
-      else if (isStorage) bioDesc = '储存条件不当可能导致微生物增殖';
-      else bioDesc = '可能存在的微生物污染风险';
+      else if (isFilter) bioDesc = '过滤介质可能滋生微生物|||Filter media may harbor microorganisms';
+      else if (isStorage) bioDesc = '储存条件不当可能导致微生物增殖|||Improper storage may cause microbial growth';
+      else bioDesc = '可能存在的微生物污染风险|||Potential microbial contamination risk';
 
       // Codex decision tree
       var bioQ1, bioQ2, bioQ3, bioQ4, bioQ5, bioQ2need, bioIsCCP, bioReason;
@@ -2540,7 +2555,7 @@ const Questionnaire15min = (() => {
       data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();
     });
     content.querySelectorAll('[data-step-edit]').forEach(function(el){el.addEventListener('click',function(e){if(e.target&&e.target.dataset&&e.target.dataset.stepDelete!==undefined)return;var idx=parseInt(this.dataset.stepEdit);if(!isNaN(idx)&&idx>=0&&idx<data.processSteps.length){data.currentEditingStep=idx;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();}});});
-    content.querySelectorAll('[data-step-delete]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.stepDelete);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)return;if(!confirm('确定要删除步骤 "'+esc(data.processSteps[idx].stepName||('步骤'+(idx+1)))+'" 吗？'))return;data.processSteps.splice(idx,1);if(data.ccpSteps&&data.ccpSteps.length>idx)data.ccpSteps.splice(idx,1);data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();});});
+    content.querySelectorAll('[data-step-delete]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.stepDelete);if(isNaN(idx)||idx<0||idx>=data.processSteps.length)return;if(!confirm(I18n.t('step.confirmDel')+esc(data.processSteps[idx].stepName||I18n.t('q.ccpStepDefault').replace('{n}',idx+1))+I18n.t('step.confirmDelSuffix')))return;data.processSteps.splice(idx,1);if(data.ccpSteps&&data.ccpSteps.length>idx)data.ccpSteps.splice(idx,1);data.currentEditingStep=-1;normalizeCcpSteps(data);saveData(data);renderActiveSection();renderSectionNav();});});
     var aBtn=content.querySelector('#addNewStepBtn');if(aBtn)aBtn.addEventListener('click',function(){data.currentEditingStep=-1;data.ccpPageMode='form';saveData(data);renderActiveSection();renderSectionNav();});
     var aiBtn=content.querySelector('#aiCcpBtn');if(aiBtn)aiBtn.addEventListener('click',function(){collectSectionData(content,data);aiCcpJudgment(data);});
     var jBtn=content.querySelector('#ccpJudgeBtn');if(jBtn)jBtn.addEventListener('click',function(){if(!data.processSteps||data.processSteps.length===0){alert(I18n.t('q.needOneStep'));return;}normalizeCcpSteps(data);var stepCount=data.processSteps.length;var prevStepCount=data.ccpSteps?data.ccpSteps.length:0;if(stepCount!==prevStepCount){data.ccpSteps=[];normalizeCcpSteps(data);}// 步骤数未变化时保留已有的判定数据，不清空记录
@@ -3111,7 +3126,7 @@ const Questionnaire15min = (() => {
         });
         
         if (!allDone) {
-          if (!confirm('还有 ' + pendingCount + ' 项危害未完成判定，确定要完成吗？未判定的将默认视为非CCP。')) return;
+          if (!confirm(I18n.t('q.ccpPendingAlert').replace('{0}', pendingCount))) return;
           data.processSteps.forEach(function(step, si) {
             ['bio', 'chem', 'phys'].forEach(function(ht) {
               if (data.ccpSteps && data.ccpSteps[si] && data.ccpSteps[si].hazards && data.ccpSteps[si].hazards[ht]) {
@@ -3156,20 +3171,20 @@ const Questionnaire15min = (() => {
     var html = '';
     if (matchedMaterials && matchedMaterials.length > 0) {
       html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
-      html += '匹配到 ' + matchedMaterials.length + ' 种原料的危害数据：';
+      html += I18n.b('匹配到 {n} 种原料的危害数据：|||Matched {n} material(s) with hazard data: ').replace('{n}', matchedMaterials.length);
       html += matchedMaterials.map(function(e) { return '<strong>' + e.material + '</strong>'; }).join('、');
       html += '</div>';
     }
     if (allHazards.length > 0) {
-      html += '<div class="q15-hazard-preview" style="overflow-x:auto;"><table class="q15-table" style="min-width:900px;"><thead><tr><th style="min-width:70px;">原材料</th><th style="min-width:70px;">风险</th><th style="width:50px;">Q1</th><th style="width:50px;">Q2</th><th style="width:50px;">Q3</th><th style="width:70px;">CCP判断</th><th style="min-width:300px;">风险说明</th></tr></thead><tbody>';
+      html += '<div class="q15-hazard-preview" style="overflow-x:auto;"><table class="q15-table" style="min-width:900px;"><thead><tr><th style="min-width:70px;">' + I18n.t('r15.rawMaterial') + '</th><th style="min-width:70px;">' + I18n.t('r15.risk') + '</th><th style="width:50px;">Q1</th><th style="width:50px;">Q2</th><th style="width:50px;">Q3</th><th style="width:70px;">' + I18n.t('r15.ccpJudgment') + '</th><th style="min-width:300px;">' + I18n.t('r15.riskDetail') + '</th></tr></thead><tbody>';
       allHazards.forEach(function(h) {
-        var riskColor = h.hazardType === I18n.t('q.ccpHazardBio') ? '#dc2626' : (h.hazardType === I18n.t('q.ccpHazardChem') ? '#d97706' : '#6b7280');
+        var riskColor = (h.hazardType === '生物危害' || h.hazardType === 'Biological Hazard') ? '#dc2626' : ((h.hazardType === '化学危害' || h.hazardType === 'Chemical Hazard') ? '#d97706' : '#6b7280');
         html += '<tr><td><strong>' + esc(h.material || '') + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + esc(h.hazardType || '') + '</td><td>' + esc(h.q1 || '') + '</td><td>' + esc(h.q2 || '') + '</td><td>' + esc(h.q3 || '') + '</td><td>' + esc(h.ccpResult || '') + '</td><td style="font-size:13px;line-height:1.5;">' + esc(h.detail || h.desc || '') + '</td></tr>';
       });
       html += '</tbody></table></div>';
-      html += '<div style="margin-top:10px;font-size:12px;color:var(--gray-400);text-align:right;">已同步到第4步「危害分析」表中</div>';
+      html += '<div style="margin-top:10px;font-size:12px;color:var(--gray-400);text-align:right;">' + I18n.t('hazard.synced') + '</div>';
     } else {
-      html = '<div class="q15-ai-result-empty" style="padding:20px;text-align:center;color:var(--gray-400);">未匹配到危害数据</div>';
+      html = '<div class="q15-ai-result-empty" style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('hazard.noMatch') + '</div>';
     }
     resultEl.innerHTML = html;
   }
@@ -3369,7 +3384,7 @@ const Questionnaire15min = (() => {
     // 超时提示
     setTimeout(function() {
       if (!iframeReady && loadingMask && loadingMask.style.display !== 'none') {
-        loadingMask.innerHTML = '<div style="text-align:center;color:#dc2626;"><p style="font-size:16px;margin-bottom:8px;">⚠️ 加载超时</p><p style="font-size:13px;">无法连接到 Draw.io 服务器<br>请检查网络连接或稍后重试</p></div>';
+        loadingMask.innerHTML = '<div style="text-align:center;color:#dc2626;"><p style="font-size:16px;margin-bottom:8px;">' + I18n.t('flow.timeoutTitle') + '</p><p style="font-size:13px;">' + I18n.t('flow.timeoutDesc') + '</p></div>';
       }
     }, 15000);
   }
@@ -3692,7 +3707,7 @@ const Questionnaire15min = (() => {
       }, 100);
     }
 
-    var html = '<h3>识别' + I18n.t('q.ccpPotentialHazard') + '</h3><p class="q15-table-hint">' + I18n.t('q.hwIdentifyHint') + '</p>';
+    var html = '<h3>' + I18n.t('q.hwIdentify') + '</h3><p class="q15-table-hint">' + I18n.t('q.hwIdentifyHint') + '</p>';
 
     // 自动匹配中或匹配结果显示
     if (autoTriggered) {
@@ -3827,7 +3842,7 @@ const Questionnaire15min = (() => {
       return '<div style="padding:20px;text-align:center;color:var(--gray-400);">' + I18n.t('q.hwNoDataControl') + '</div>';
     }
     var html = '<div class="hw-control-table-wrapper"><table class="hw-table"><thead><tr>' +
-      '<th>加工步骤</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>' + I18n.t('q.hwControlMeasureCol') + '</th><th style="min-width:200px;">' + I18n.t('q.hwControlRelationCol') + '</th></tr></thead><tbody>';
+      '<th>' + I18n.t('ccp.summary.step') + '</th><th>' + I18n.t('q.ccpPotentialHazard') + '</th><th>' + I18n.t('q.hwControlMeasureCol') + '</th><th style="min-width:200px;">' + I18n.t('q.hwControlRelationCol') + '</th></tr></thead><tbody>';
     ws.forEach(function(step, si) {
       if (!step.hazards) return;
       step.hazards.forEach(function(h, hi) {
@@ -4113,7 +4128,7 @@ const Questionnaire15min = (() => {
           (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;font-weight:500;">' + esc(step.stepName) + '</td>' : '') +
           '<td>' + esc(h.hazardDesc) + '</td>' +
           '<td>' + catLabel + '</td>' +
-          '<td>' + (h.isSignificant ? '<span style="color:#dc2626;font-weight:500;">是</span>' : '<span style="color:var(--gray-400);">否</span>') + '</td>' +
+          '<td>' + (h.isSignificant ? '<span style="color:#dc2626;font-weight:500;">' + I18n.t('common.yes') + '</span>' : '<span style="color:var(--gray-400);">' + I18n.t('common.no') + '</span>') + '</td>' +
           '<td>' + esc(h.basis || '—') + '</td>' +
           '<td>' + esc(h.controlMeasure || '—') + '</td>' +
           '<td>' + esc(h.controlRelation || '—') + '</td>' +
@@ -4124,7 +4139,7 @@ const Questionnaire15min = (() => {
     html += '</tbody></table></div>';
     html += '<div style="margin-top:16px;display:flex;gap:10px;">';
     html += '<button class="btn btn-secondary" onclick="App.navigateTo(\'questionnaire\')">' + I18n.t('q.hwBackToQuestionnaire') + '</button>';
-    html += '<button class="btn btn-secondary" id="hwPrintBtn">🖨️ 打印/导出</button>';
+    html += '<button class="btn btn-secondary" id="hwPrintBtn">' + I18n.t('q.hwPrintExport') + '</button>';
     html += '</div></div>';
 
     container.innerHTML = html;
@@ -4145,14 +4160,14 @@ const Questionnaire15min = (() => {
   var _haccpReviewFromStep = -1;  // 从哪个步骤过来的
 
   var HACCP_CHECK_ITEMS = [
-    { key: 'profile', label: '企业信息和HACCP小组成员已填写完整', step: 'profile', icon: '🏢' },
-    { key: 'product', label: '产品描述和预期用途已确认', step: 'profile', icon: '📋' },
-    { key: 'flowchart', label: '工艺流程已制定并现场确认', step: 0, icon: '📊' },
-    { key: 'hazard', label: '危害分析已完成', step: 0, icon: '🔍' },
-    { key: 'ccp', label: 'CCP判定已完成', step: 1, icon: '🎯' },
-    { key: 'limits', label: '关键限值已设定', step: 2, icon: '📏' },
-    { key: 'monitor', label: '监控程序已建立', step: 3, icon: '📡' },
-    { key: 'corrective', label: '' + I18n.t('q.correctiveTitle') + '已建立', step: 4, icon: '🛠️' },
+    { key: 'profile', labelKey: 'q.haccpCheck1', step: 'profile', icon: '🏢' },
+    { key: 'product', labelKey: 'q.haccpCheck2', step: 'profile', icon: '📋' },
+    { key: 'flowchart', labelKey: 'q.haccpCheck3', step: 0, icon: '📊' },
+    { key: 'hazard', labelKey: 'q.haccpCheck4', step: 0, icon: '🔍' },
+    { key: 'ccp', labelKey: 'q.haccpCheck5', step: 1, icon: '🎯' },
+    { key: 'limits', labelKey: 'q.haccpCheck6', step: 2, icon: '📏' },
+    { key: 'monitor', labelKey: 'q.haccpCheck7', step: 3, icon: '📡' },
+    { key: 'corrective', labelKey: 'q.haccpCheck8', step: 4, icon: '🛠️' },
   ];
 
   function showHaccpConfirmationModal(data) {
@@ -4170,23 +4185,23 @@ const Questionnaire15min = (() => {
     overlay.innerHTML = '<div class="q15-haccp-confirm-modal" style="background:#fff;border-radius:12px;width:560px;max-width:94vw;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);">' +
       '<div style="padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;">' +
         '<span style="font-size:24px;">📋</span>' +
-        '<h2 style="margin:0;font-size:18px;font-weight:600;color:#1e293b;">HACCP 确认</h2>' +
-        '<span style="margin-left:auto;font-size:12px;color:#94a3b8;">请逐项预览确认</span>' +
+        '<h2 style="margin:0;font-size:18px;font-weight:600;color:#1e293b;">' + I18n.t('q.haccpConfirmTitle') + '</h2>' +
+        '<span style="margin-left:auto;font-size:12px;color:#94a3b8;">' + I18n.t('q.haccpConfirmSub') + '</span>' +
       '</div>' +
       '<div style="padding:16px 24px;overflow-y:auto;flex:1;" id="haccpChecklistBody">' +
         renderChecklistItems() +
       '</div>' +
       '<div style="padding:12px 24px 20px;border-top:1px solid #e2e8f0;">' +
         '<div style="margin-bottom:14px;">' +
-          '<label style="font-size:13px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">授权人员签署</label>' +
+          '<label style="font-size:13px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">' + I18n.t('q.haccpSignerLabel') + '</label>' +
           '<div style="display:flex;gap:10px;">' +
-            '<input type="text" id="haccpSignerName" placeholder="签署人姓名（' + I18n.t('q.verPersonnelPh') + '）" style="flex:1;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignerName || '') + '">' +
+            '<input type="text" id="haccpSignerName" placeholder="' + I18n.t('q.ph_SignerFull') + '" style="flex:1;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignerName || '') + '">' +
             '<input type="date" id="haccpSignerDate" style="width:140px;padding:9px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:13px;font-family:inherit;" value="' + esc(data._haccpSignDate || (new Date().toISOString().slice(0,10))) + '">' +
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:10px;">' +
-          '<button class="btn btn-secondary" id="haccpSaveDraftBtn" style="flex:1;padding:10px 16px;font-size:14px;">💾 保存草稿</button>' +
-          '<button class="btn btn-primary" id="haccpConfirmBtn" style="flex:1;padding:10px 16px;font-size:14px;' + (getReviewedCount() < HACCP_CHECK_ITEMS.length ? 'opacity:.5;cursor:not-allowed;' : '') + '">✅ 确认HACCP生成</button>' +
+          '<button class="btn btn-secondary" id="haccpSaveDraftBtn" style="flex:1;padding:10px 16px;font-size:14px;">' + I18n.t('q.btnSaveDraft') + '</button>' +
+          '<button class="btn btn-primary" id="haccpConfirmBtn" style="flex:1;padding:10px 16px;font-size:14px;' + (getReviewedCount() < HACCP_CHECK_ITEMS.length ? 'opacity:.5;cursor:not-allowed;' : '') + '">' + I18n.t('q.btnConfirmHACCP') + '</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -4201,10 +4216,10 @@ const Questionnaire15min = (() => {
     HACCP_CHECK_ITEMS.forEach(function(item, i) {
       var reviewed = _haccpReviewMap[item.key] || false;
       if (!reviewed) allReviewed = false;
-      html += '<div class="haccp-check-item" data-check-key="' + item.key + '" style="display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:6px;border:1px solid ' + (reviewed ? '#bbf7d0' : '#e2e8f0') + ';border-radius:8px;background:' + (reviewed ? '#f0fdf4' : '#fafbfc') + ';cursor:pointer;transition:all .2s;" title="' + (reviewed ? '✅ 已预览' : '点击预览此项') + '">' +
+      html += '<div class="haccp-check-item" data-check-key="' + item.key + '" style="display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:6px;border:1px solid ' + (reviewed ? '#bbf7d0' : '#e2e8f0') + ';border-radius:8px;background:' + (reviewed ? '#f0fdf4' : '#fafbfc') + ';cursor:pointer;transition:all .2s;" title="' + (reviewed ? '✅ ' + I18n.t('q.previewed') : I18n.t('q.previewClickItem')) + '">' +
         '<span style="font-size:18px;">' + (reviewed ? '✅' : item.icon) + '</span>' +
-        '<span style="flex:1;font-size:13px;color:' + (reviewed ? '#166534' : '#334155') + ';font-weight:' + (reviewed ? '500' : '400') + ';">' + item.label + '</span>' +
-        '<span data-check-action="preview" style="font-size:12px;color:' + (reviewed ? '#16a34a' : '#2563eb') + ';padding:3px 10px;border-radius:4px;background:' + (reviewed ? '#dcfce7' : '#eff6ff') + ';flex-shrink:0;">' + (reviewed ? '已预览' : '点击预览') + '</span>' +
+        '<span style="flex:1;font-size:13px;color:' + (reviewed ? '#166534' : '#334155') + ';font-weight:' + (reviewed ? '500' : '400') + ';">' + I18n.t(item.labelKey) + '</span>' +
+        '<span data-check-action="preview" style="font-size:12px;color:' + (reviewed ? '#16a34a' : '#2563eb') + ';padding:3px 10px;border-radius:4px;background:' + (reviewed ? '#dcfce7' : '#eff6ff') + ';flex-shrink:0;">' + (reviewed ? I18n.t('q.previewed') : I18n.t('q.previewClick')) + '</span>' +
       '</div>';
     });
     return html;
@@ -4240,8 +4255,8 @@ const Questionnaire15min = (() => {
       var reviewedCount = getReviewedCount();
       bannerEl.style.display = 'block';
       bannerEl.innerHTML = '<div class="haccp-review-banner" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📋</span><span style="font-size:13px;color:#166534;">HACCP确认审查中（已预览 <strong>' + reviewedCount + '</strong>/<strong>' + HACCP_CHECK_ITEMS.length + '</strong>）</span></div>' +
-        '<button class="btn btn-sm btn-primary" id="backToHaccpReviewBtn" style="padding:5px 14px;font-size:12px;background:#16a34a;border-color:#16a34a;">← 返回HACCP确认</button>' +
+        '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">📋</span><span style="font-size:13px;color:#166534;">' + I18n.t('pf.reviewBanner') + '<strong>' + reviewedCount + '</strong>/<strong>' + HACCP_CHECK_ITEMS.length + '</strong>' + I18n.t('pf.reviewBanner2') + '</span></div>' +
+        '<button class="btn btn-sm btn-primary" id="backToHaccpReviewBtn" style="padding:5px 14px;font-size:12px;background:#16a34a;border-color:#16a34a;">' + I18n.t('pf.reviewBackBtn') + '</button>' +
       '</div>';
       document.getElementById('backToHaccpReviewBtn')?.addEventListener('click', function() {
         openHaccpReviewModal();
@@ -4379,8 +4394,17 @@ const Questionnaire15min = (() => {
     }
     try {
       var planName = data.productName || data.companyName || ('Plan ' + new Date().toISOString().slice(0,10));
-      var resp = await fetch('/api/plans', {
-        method: 'POST',
+      var existingId = null;
+      try { existingId = localStorage.getItem('haccp_current_plan_id'); } catch(e) {}
+      var apiUrl = '/api/plans';
+      var method = 'POST';
+      // If a plan is currently selected, UPDATE it instead of creating a duplicate
+      if (existingId) {
+        apiUrl = '/api/plans/' + existingId;
+        method = 'PUT';
+      }
+      var resp = await fetch(apiUrl, {
+        method: method,
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({
           plan_name: planName,
@@ -4391,8 +4415,9 @@ const Questionnaire15min = (() => {
       });
       if (resp.ok) {
         var result = await resp.json();
-        localStorage.setItem('haccp_current_plan_id', String(result.plan.id));
-        return result.plan;
+        var plan = result.plan || {};
+        localStorage.setItem('haccp_current_plan_id', String(plan.id || existingId));
+        return plan;
       }
       if (resp.status === 401) {
         alert(I18n.t('plan.loginRequired'));

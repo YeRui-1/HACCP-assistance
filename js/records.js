@@ -3,9 +3,14 @@ const Records = (() => {
   const STORAGE_KEY = 'haccp_records_data';
   
   function genId() { return 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
-  function esc(str) {
+    function esc(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>');
+    var s = String(str);
+    s = s.replace(/&/g, String.fromCharCode(38, 97, 109, 112, 59));
+    s = s.replace(/"/g, String.fromCharCode(38, 113, 117, 111, 116, 59));
+    s = s.replace(/</g, String.fromCharCode(38, 108, 116, 59));
+    s = s.replace(/>/g, String.fromCharCode(38, 103, 116, 59));
+    return s;
   }
   
   // ===== 数据管理 =====
@@ -104,7 +109,9 @@ const Records = (() => {
   
   let activeTab = 'productDesc';
   
-  const TAB_NAMES = [I18n.t('rec.tabProductDesc'), I18n.t('rec.tabMonitoring'), I18n.t('rec.tabCorrective'), I18n.t('rec.tabVerification')];
+  function getTabNames() {
+    return [I18n.t('rec.tabProductDesc'), I18n.t('rec.tabMonitoring'), I18n.t('rec.tabCorrective'), I18n.t('rec.tabVerification')];
+  }
   const TAB_KEYS = ['productDesc', 'monitoring', 'corrective', 'verification'];
   
   function init() {
@@ -127,7 +134,7 @@ const Records = (() => {
   function renderTabNav() {
     const nav = document.getElementById('recordsTabNav');
     if (!nav) return;
-    nav.innerHTML = TAB_NAMES.map((name, i) => {
+    nav.innerHTML = getTabNames().map((name, i) => {
       const key = TAB_KEYS[i];
       const isActive = key === activeTab;
       return '<div class="q15-step ' + (isActive ? 'active' : '') + '" data-rec-tab="' + key + '">' +

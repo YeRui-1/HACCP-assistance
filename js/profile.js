@@ -32,11 +32,24 @@ const Profile = (() => {
   }
 
   function genId() { return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
-  function esc(str) {
+    function esc(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, '&').replace(/"/g, '"').replace(/</g, '<').replace(/>/g, '>');
+    var s = String(str);
+    s = s.replace(/&/g, String.fromCharCode(38, 97, 109, 112, 59));
+    s = s.replace(/"/g, String.fromCharCode(38, 113, 117, 111, 116, 59));
+    s = s.replace(/</g, String.fromCharCode(38, 108, 116, 59));
+    s = s.replace(/>/g, String.fromCharCode(38, 103, 116, 59));
+    return s;
   }
-  function xesc(s) { if (!s) return ''; return String(s).replace(/[&]/g, '&').replace(/[<]/g, '<').replace(/[>]/g, '>').replace(/["]/g, '"'); }
+    function xesc(s) {
+    if (!s) return '';
+    var t = String(s);
+    t = t.replace(/&/g, String.fromCharCode(38, 97, 109, 112, 59));
+    t = t.replace(/</g, String.fromCharCode(38, 108, 116, 59));
+    t = t.replace(/>/g, String.fromCharCode(38, 103, 116, 59));
+    t = t.replace(/"/g, String.fromCharCode(38, 113, 117, 111, 116, 59));
+    return t;
+  }
 
   function getDefaultData() {
     return {
@@ -60,22 +73,13 @@ const Profile = (() => {
       iu_vulnerableGroups: '',
       iu_unintendedUse: '',
       iuExtraItems: [],
-      productName: '',
-      rawMaterials: '',
-      additives: '',
-      productPH: '',
-      waterActivity: '',
-      intendedUse: '',
-      storageCondition: '',
-      packagingMethod: '',
-      targetConsumer: '',
-      shelfLife: '',
       formula: [{ id: genId(), material: '', dosage: '', func: '' }],
       processSteps: [{ id: genId(), stepName: '', operationMethod: '', parameters: '', controlPoint: '', equipmentName: '' }],
       flowConfirmed: false,
       flowchartConfirmDate: '',
       flowchartXml: '',
       flowchartSvg: '',
+      fcEditor: { steps: [], ccp: [] },
     };
   }
 
@@ -121,7 +125,9 @@ const Profile = (() => {
 
   let currentStep = 0;
   const TOTAL_STEPS = 5;
-  const SECTION_NAMES = [I18n.t('pf.section1'), I18n.t('pf.section2'), I18n.t('pf.section3'), I18n.t('pf.section4'), I18n.t('pf.section5')];
+  function getSectionNames() {
+    return [I18n.t('pf.section1'), I18n.t('pf.section2'), I18n.t('pf.section3'), I18n.t('pf.section4'), I18n.t('pf.section5')];
+  }
 
   function init() {
     currentStep = 0;
@@ -184,7 +190,7 @@ const Profile = (() => {
   function renderSectionNav() {
     const nav = document.getElementById('profileProgress');
     if (!nav) return;
-    nav.innerHTML = SECTION_NAMES.map(function(name, i) {
+    nav.innerHTML = getSectionNames().map(function(name, i) {
       var isActive = i === currentStep;
       return '<div class="q15-step ' + (isActive ? 'active' : '') + '" data-step="' + i + '"><div class="q15-step-num">' + (i + 1) + '</div><span>' + name + '</span></div>';
     }).join('');
@@ -209,7 +215,7 @@ const Profile = (() => {
     const sections = [renderHaccpTeam, renderProductDesc, renderIntendedUse, renderFlowchartMake, renderFlowchartConfirm];
     const sectionHTML = sections[currentStep](data);
     content.innerHTML = '' +
-      '<div class="q15-section"><h2>' + SECTION_NAMES[currentStep] + '</h2>' + sectionHTML + '</div>' +
+      '<div class="q15-section"><h2>' + getSectionNames()[currentStep] + '</h2>' + sectionHTML + '</div>' +
       '<div class="q15-nav-buttons">' +
         '<button class="btn btn-secondary" id="profilePrevBtn"' + (currentStep === 0 ? ' disabled' : '') + '>' + I18n.t('pf.prevBtn') + '</button>' +
         '<span class="q15-step-indicator">' + I18n.t('pf.stepIndicator') + (currentStep + 1) + I18n.t('pf.stepOf') + TOTAL_STEPS + I18n.t('pf.stepSuffix') + '</span>' +
@@ -472,7 +478,7 @@ const Profile = (() => {
     overlay.innerHTML = '' +
       '<div style="background:#fff;border-radius:10px;width:95vw;height:95vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#1e293b;color:#fff;border-radius:10px 10px 0 0;flex-shrink:0;">' +
-          '<span style="font-size:15px;font-weight:600;">📊 流程图模板编辑器</span>' +
+          '<span style="font-size:15px;font-weight:600;">' + I18n.t('pf.flowEditor') + '</span>' +
           '<div style="display:flex;align-items:center;gap:10px;">' +
             '<span id="pfFcEditorStatus" style="font-size:12px;color:#94a3b8;"></span>' +
             '<button id="pfFcSaveBackBtn" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px;">' + I18n.t('pf.flowSaveBack') + '</button>' +
@@ -528,7 +534,7 @@ const Profile = (() => {
   // ===== Step 4: 流程图的制定（简化版 - iframe 嵌入式流程图编辑器）=====
   function renderFlowchartMake(data) {
     return '' +
-      '<h3>📋 流程图模板编辑</h3>' +
+      '<h3>' + I18n.t('pf.flowEditorTitle') + '</h3>' +
       '<p class="q15-table-hint">' + I18n.t('pf.flowEditorHint') + '</p>' +
       '<div style="text-align:center;margin:20px 0;">' +
         '<button class="btn btn-primary" id="pfOpenFlowchartEditorBtn" style="font-size:15px;padding:12px 28px;">' +

@@ -570,7 +570,7 @@ const Admin = (() => {
         } else {
           display = esc(String(answer));
         }
-        html += `<div class="result-item"><span class="ri-label">${esc(q.title) || '(未命名)'}</span><span class="ri-value">${display}</span></div>`;
+        html += `<div class="result-item"><span class="ri-label">${esc(q.title) || I18n.t('step.unnamed')}</span><span class="ri-value">${display}</span></div>`;
       });
       html += '</div>';
     });
@@ -612,7 +612,7 @@ const Admin = (() => {
       + '<div class="admin-page-desc">' + I18n.t('admin.demoDataDesc') + '</div>'
       + '<div class="demo-editor-toolbar">'
         + '<button class="btn btn-primary btn-sm" id="demoLoadBtn">' + I18n.t('admin.demoLoad') + '</button>'
-        + '<button class="btn btn-secondary btn-sm" id="demoSaveBtn">' + I18n.t('admin.demoSave') + '</button>'
+        + '<button class="btn btn-primary btn-sm" id="demoSaveApplyBtn">' + I18n.t('admin.demoSaveApply') + '</button>'
         + '<span class="demo-status" id="demoStatus"></span>'
       + '</div>'
       + '<textarea id="demoEditor" class="demo-json-editor" placeholder="' + I18n.t('admin.demoEmpty') + '"></textarea>'
@@ -640,8 +640,8 @@ const Admin = (() => {
         .finally(function() { btn.disabled = false; });
     });
 
-    // Save to backend
-    document.getElementById('demoSaveBtn').addEventListener('click', function() {
+    // Save to backend AND push to localStorage in one click
+    document.getElementById('demoSaveApplyBtn').addEventListener('click', function() {
       var btn = this;
       var raw = ta.value.trim();
       if (!raw) { setStatus(I18n.t('admin.demoEmpty'), false); return; }
@@ -654,13 +654,154 @@ const Admin = (() => {
         body: JSON.stringify({ data: parsed }),
       })
         .then(function(r) { return r.json(); })
-        .then(function(d) { setStatus(I18n.t('admin.demoSaved'), true); })
+        .then(function(d) {
+          if (!d.ok) throw new Error(d.message || 'Unknown');
+          // Push to localStorage so flowchart-preview.html loads it
+          try {
+            localStorage.setItem('haccp_fc_steps', JSON.stringify(parsed.steps || []));
+            localStorage.setItem('haccp_fc_ccp', JSON.stringify(parsed.ccp || []));
+            localStorage.setItem('haccp_fc_leftNotes', JSON.stringify(parsed.leftNotes || []));
+            localStorage.setItem('haccp_fc_rightNotes', JSON.stringify(parsed.rightNotes || []));
+            localStorage.setItem('haccp_fc_rework', JSON.stringify(parsed.rework || []));
+          } catch(e) {}
+          setStatus(I18n.t('admin.demoApplied'), true);
+        })
         .catch(function(e) { setStatus(I18n.t('admin.demoError') + ': ' + e.message, false); })
         .finally(function() { btn.disabled = false; });
     });
 
     // Auto-load on open
     document.getElementById('demoLoadBtn').click();
+
+    // ===== 完整 HACCP 计划示例 =====
+    var fullDemoHtml = '<div class="admin-page-title" style="margin-top:32px;padding-top:24px;border-top:2px solid var(--gray-200);">' + I18n.t('admin.demoFullTitle') + '</div>'
+      + '<div class="admin-page-desc">' + I18n.t('admin.demoFullDesc') + '</div>'
+      + '<div class="demo-editor-toolbar">'
+        + '<button class="btn btn-primary btn-sm" id="demoFullLoadBtn">' + I18n.t('admin.demoFullLoad') + '</button>'
+        + '<button class="btn btn-secondary btn-sm" id="demoFullSaveBtn">' + I18n.t('admin.demoFullSave') + '</button>'
+        + '<button class="btn btn-secondary btn-sm" id="demoFullClearBtn" style="color:#dc2626;border-color:#fecaca;">' + I18n.t('admin.demoFullClear') + '</button>'
+        + '<span class="demo-status" id="demoFullStatus"></span>'
+      + '</div>';
+    content.innerHTML += fullDemoHtml;
+
+    document.getElementById('demoFullLoadBtn').addEventListener('click', function() {
+      var btn = this;
+      btn.disabled = true;
+      // Try localStorage backup first, then server file
+      var bak = localStorage.getItem('haccp_demo_backup');
+      if (bak) {
+        try {
+          var data = JSON.parse(bak);
+          writePlanToQuestionnaire(data);
+          btn.disabled = false;
+          loadDemoIntoEditor(data);
+          return;
+        } catch(e) {}
+      }
+      fetch('/data/demo_inulin_full.json?t=' + Date.now())
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          writePlanToQuestionnaire(data);
+          loadDemoIntoEditor(data);
+        })
+        .catch(function(e) {
+          document.getElementById('demoFullStatus').textContent = I18n.t('admin.demoError') + ': ' + e.message;
+          document.getElementById('demoFullStatus').style.color = '#dc2626';
+        })
+        .finally(function() { btn.disabled = false; });
+    });
+
+    function writePlanToQuestionnaire(data) {
+      localStorage.setItem('haccp_15min_data', JSON.stringify(data));
+      localStorage.setItem('haccp_submitted', 'true');
+      localStorage.setItem('haccp_15min_completed', 'true');
+      if (data.processSteps) {
+        var steps = data.processSteps.map(function(s) { return s.stepName; });
+        var ccp = data.processSteps.map(function(s) {
+          return s.controlPoint && s.controlPoint.toUpperCase().indexOf('CCP') !== -1 ? 1 : 0;
+        });
+        localStorage.setItem('haccp_fc_steps', JSON.stringify(steps));
+        localStorage.setItem('haccp_fc_ccp', JSON.stringify(ccp));
+        localStorage.setItem('haccp_fc_leftNotes', '[]');
+        localStorage.setItem('haccp_fc_rightNotes', '[]');
+        localStorage.setItem('haccp_fc_rework', '[]');
+      }
+      document.getElementById('demoFullStatus').textContent = I18n.t('admin.demoFullApplied');
+      document.getElementById('demoFullStatus').style.color = '#16a34a';
+    }
+
+    function loadDemoIntoEditor(data) {
+      var ta = document.getElementById('demoEditor');
+      if (ta) {
+        ta.value = JSON.stringify(data, null, 2);
+        document.getElementById('demoStatus').textContent = I18n.t('admin.demoLoaded');
+        document.getElementById('demoStatus').style.color = '#16a34a';
+      }
+    }
+
+    // Save current questionnaire data as complete demo
+    document.getElementById('demoFullSaveBtn').addEventListener('click', function() {
+      var btn = this;
+      var raw = localStorage.getItem('haccp_15min_data');
+      if (!raw) {
+        document.getElementById('demoFullStatus').textContent = I18n.t('admin.demoFullNoData');
+        document.getElementById('demoFullStatus').style.color = '#dc2626';
+        return;
+      }
+      try { var data = JSON.parse(raw); }
+      catch(e) {
+        document.getElementById('demoFullStatus').textContent = I18n.t('admin.demoInvalid');
+        document.getElementById('demoFullStatus').style.color = '#dc2626';
+        return;
+      }
+      btn.disabled = true;
+
+      // 1. Always save to localStorage backup (works offline)
+      try { localStorage.setItem('haccp_demo_backup', JSON.stringify(data)); } catch(e) {}
+
+      // 2. Try backend API (syncs to file on server)
+      fetch(API_BASE + '/api/demo/data', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: data }),
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (!d.ok) throw new Error(d.message || 'Unknown');
+          // 3. Also load into JSON editor so user can verify + use Save&Apply
+          loadDemoIntoEditor(data);
+          document.getElementById('demoFullStatus').textContent = I18n.t('admin.demoFullSaved');
+          document.getElementById('demoFullStatus').style.color = '#16a34a';
+        })
+        .catch(function(e) {
+          // Show warning but don't fail — localStorage backup already saved
+          document.getElementById('demoFullStatus').textContent =
+            '⚠ ' + I18n.t('admin.demoFullSavedLocal') + ' (' + e.message + ')';
+          document.getElementById('demoFullStatus').style.color = '#d97706';
+          loadDemoIntoEditor(data);
+        })
+        .finally(function() { btn.disabled = false; });
+    });
+
+    // Clear all questionnaire data from localStorage
+    document.getElementById('demoFullClearBtn').addEventListener('click', function() {
+      if (!confirm(I18n.t('admin.demoFullClearConfirm'))) return;
+      var keys = [
+        'haccp_15min_data','haccp_submitted','haccp_15min_completed',
+        'haccp_profile_data','haccp_records_data',
+        'haccp_fc_steps','haccp_fc_ccp','haccp_fc_leftNotes',
+        'haccp_fc_rightNotes','haccp_fc_rework','haccp_fc_xml',
+        'haccp_drawio_xml','haccp_drawio_svg','haccp_flowchart_mermaid',
+        'haccp_review_status','haccp_current_plan_id','haccp_verification_reminder_time',
+        'haccp_answers','haccp_flowchart','haccp_flowchart_test',
+        'haccp_test_answers','haccp_navigate_to_verification'
+      ];
+      keys.forEach(function(k) { try { localStorage.removeItem(k); } catch(e) {} });
+      document.getElementById('demoFullStatus').textContent = I18n.t('admin.demoFullCleared');
+      document.getElementById('demoFullStatus').style.color = '#16a34a';
+      // Reload page so all in-memory JS state is reset
+      setTimeout(function() { location.reload(); }, 800);
+    });
   }
 
   return { init };

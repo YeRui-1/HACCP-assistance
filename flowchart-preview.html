@@ -57,8 +57,7 @@ h2{font-size:14px;color:#1e3a8a;margin:0 0 14px;border-bottom:2px solid #e5e7eb;
 </head>
 <body>
 <div class="header"><span id="fpHeaderTitle">HACCP 工艺流程图 — 在线编辑</span>
-<div class="header-actions"><span style="font-size:12px;opacity:.7;" id="fpHeaderHint">点击CCP按钮切换标识，点击▲▼移动步骤</span>
-<button class="sync-btn" id="fpLoadDemo" onclick="loadDemo()">📋 加载菊粉示例</button></div></div>
+<div class="header-actions"><span style="font-size:12px;opacity:.7;" id="fpHeaderHint">点击CCP按钮切换标识，点击▲▼移动步骤</span></div></div>
 <div class="container">
 <div class="panel side-panel" style="order:1;">
 <h2 id="fpEditArea">编辑区</h2>
@@ -73,7 +72,7 @@ h2{font-size:14px;color:#1e3a8a;margin:0 0 14px;border-bottom:2px solid #e5e7eb;
 <div class="ar"><input id="nrs" placeholder="步号" data-fp-ph="fp.stepNo" style="width:34px;flex:none"><input id="nra" placeholder="上方文字" data-fp-ph="fp.aboveText"><input id="nrb" placeholder="下方" data-fp-ph="fp.belowText" style="width:70px;flex:none"><button class="btn bp bs" onclick="arn()">+</button></div>
 <div class="sl" id="fpReworkArrow">返工箭头</div>
 <div class="sbox" id="rwl"></div>
-<div class="ar"><input id="nrsrc" placeholder="源" data-fp-ph="fp.source" style="width:34px;flex:none"><input id="nrtgt" placeholder="目标" data-fp-ph="fp.target" style="width:34px;flex:none"><input id="nrlb" placeholder="'+I18n.t('fp.labelPlaceholder')+'" data-fp-ph="fp.labelPlaceholder"><button class="btn bp bs" onclick="arnw()">+</button></div>
+<div class="ar"><input id="nrsrc" placeholder="源" data-fp-ph="fp.source" style="width:34px;flex:none"><input id="nrtgt" placeholder="目标" data-fp-ph="fp.target" style="width:34px;flex:none"><input id="nrlb" placeholder="标签" data-fp-ph="fp.labelPlaceholder"><button class="btn bp bs" onclick="arnw()">+</button></div>
 </div>
 <div class="panel viewer-panel" style="order:2;">
 <h2 id="fpFlowchartView">工艺流程图</h2>
@@ -286,40 +285,17 @@ document.getElementById('saveBtn').addEventListener('click',function(){
   }catch(e){alert(I18n.t('fp.saveFailed')+e.message);}
 });
 
-function loadDemo(){
-  fetch('data/demo_inulin.json')
-    .then(function(r){return r.json();})
-    .then(function(data){
-      cur=data.steps.slice();
-      DC=data.ccp.slice();
-      LN.splice(0,LN.length); data.leftNotes.forEach(function(n){LN.push(n.slice());});
-      RN.splice(0,RN.length); data.rightNotes.forEach(function(n){RN.push(n.slice());});
-      RW.splice(0,RW.length); data.rework.forEach(function(n){RW.push(n.slice());});
-      renderAll();
-    })
-    .catch(function(e){alert('Failed to load demo data: '+e.message);});
-}
-
 function rt(){
-  // 清空所有数据
-  cur=[];
-  DC=[];
-  LN.splice(0,LN.length);
-  RN.splice(0,RN.length);
-  RW.splice(0,RW.length);
-  try{
-    localStorage.removeItem('haccp_fc_steps');
-    localStorage.removeItem('haccp_fc_ccp');
-    localStorage.removeItem('haccp_fc_leftNotes');
-    localStorage.removeItem('haccp_fc_rightNotes');
-    localStorage.removeItem('haccp_fc_rework');
-    localStorage.removeItem('haccp_fc_xml');
-  }catch(e){}
-  renderAll();
-translateFpPage();
+  cur=[];DC=[];LN.splice(0,LN.length);RN.splice(0,RN.length);RW.splice(0,RW.length);
+  ['haccp_fc_steps','haccp_fc_ccp','haccp_fc_leftNotes','haccp_fc_rightNotes','haccp_fc_rework','haccp_fc_xml'].forEach(function(k){try{localStorage.removeItem(k)}catch(e){}});
+  init();
 }
 
 init();
+  // Listen for demo data push from admin panel (other tab)
+  window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith('haccp_fc_')) setTimeout(init, 200);
+  });
 </script>
 </body>
 </html>

@@ -5,7 +5,10 @@
  */
 const FlowchartViewer = (() => {
 
-  var DRAWIO_EMBED_URL = 'https://embed.diagrams.net/?embed=1&spin=1&proto=json&ui=min&noExitBtn=1&saveAndExit=0&stealth=1&zoom=0.9&lang=zh';
+  function getDrawioUrl() {
+    var lang = (typeof I18n !== 'undefined' && I18n.getLang() === 'en') ? 'en' : 'zh';
+    return 'https://embed.diagrams.net/?embed=1&spin=1&proto=json&ui=min&noExitBtn=1&saveAndExit=0&stealth=1&zoom=0.9&lang=' + lang;
+  }
   var drawioFrame = null;
   var messageHandler = null;
   var initialized = false;
@@ -42,9 +45,9 @@ const FlowchartViewer = (() => {
     var toolbar = document.createElement('div');
     toolbar.className = 'fc-toolbar';
     toolbar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0 12px;flex-wrap:wrap;';
-    toolbar.innerHTML = '<span style="font-size:13px;color:#374151;flex:1;">在下方 draw.io 编辑器中编辑流程图，按 <strong>Ctrl+S</strong> 保存，将自动同步到 AI 报告。</span>'
-      + '<button id="fcSaveBtn" class="btn btn-sm btn-primary" style="min-width:80px;">💾 保存</button>'
-      + '<button id="fcResetBtn" class="btn btn-sm btn-secondary">↩️ 恢复默认</button>';
+    toolbar.innerHTML = '<span style="font-size:13px;color:#374151;flex:1;">' + I18n.t('flow.editorHint') + '</span>'
+      + '<button id="fcSaveBtn" class="btn btn-sm btn-primary" style="min-width:80px;">💾 ' + I18n.t('common.save') + '</button>'
+      + '<button id="fcResetBtn" class="btn btn-sm btn-secondary">' + I18n.t('flow.restoreDefault') + '</button>';
     container.appendChild(toolbar);
 
     // ===== draw.io iframe =====
@@ -55,12 +58,12 @@ const FlowchartViewer = (() => {
     loadingDiv.id = 'fcDrawioLoading';
     loadingDiv.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f9fafb;z-index:10;gap:12px;';
     loadingDiv.innerHTML = '<div class="fc-spinner" style="width:32px;height:32px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div>'
-      + '<p style="color:#6b7280;font-size:13px;margin:0;">正在加载 draw.io 编辑器...</p>';
+      + '<p style="color:#6b7280;font-size:13px;margin:0;">' + I18n.t('flow.loadingEditor') + '</p>';
     iframeWrap.appendChild(loadingDiv);
 
     var iframe = document.createElement('iframe');
     iframe.id = 'drawioFrame';
-    iframe.src = DRAWIO_EMBED_URL;
+    iframe.src = getDrawioUrl();
     iframe.style.cssText = 'width:100%;height:680px;border:none;display:block;';
     iframe.allow = 'clipboard-read; clipboard-write';
     iframeWrap.appendChild(iframe);
@@ -96,7 +99,7 @@ const FlowchartViewer = (() => {
           var loading = document.getElementById('fcDrawioLoading');
           if (loading) loading.style.display = 'none';
           initialized = true;
-          setStatus('✅ draw.io 已就绪，编辑后按 Ctrl+S 或点击「保存」');
+          setStatus(I18n.t('flow.editorReady'));
         }, 300);
       }
 
@@ -120,7 +123,7 @@ const FlowchartViewer = (() => {
       sendToDrawio({ action: 'export', format: 'xmlsvg', xml: getInitialXml() });
       // 也触发正常保存
       sendToDrawio({ action: 'load', xml: getInitialXml() });
-      setStatus('⏳ 正在保存...');
+      setStatus(I18n.t('flow.saving'));
       // 备用：如果 draw.io 没有响应，通过 xmlsvg 格式触发保存
       setTimeout(function() {
         sendToDrawio({ action: 'export', format: 'svg' });
@@ -134,14 +137,14 @@ const FlowchartViewer = (() => {
         localStorage.removeItem('haccp_drawio_svg');
       } catch(e2) {}
       sendToDrawio({ action: 'load', xml: I18n.processBilingual(window.INULIN_DRAWIO_XML || '') || getInitialXml() });
-      setStatus('✅ 已恢复默认流程图');
+      setStatus(I18n.t('flow.restored'));
     });
   }
 
   function saveXml(xml) {
     if (!xml) return;
     try { localStorage.setItem('haccp_drawio_xml', xml); } catch(e) {}
-    setStatus('✅ 已保存 · ' + new Date().toLocaleTimeString());
+    setStatus(I18n.t('flow.savedAt') + new Date().toLocaleTimeString());
   }
 
   function saveSvg(svgData) {

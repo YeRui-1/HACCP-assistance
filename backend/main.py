@@ -219,6 +219,30 @@ class CcpJudgmentRequest(BaseModel):
     steps: list = []  # List of {stepName, operationMethod, parameters, equipmentName}
 
 
+# ===== 演示数据 API（必须在所有路由之前注册）=====
+DEMO_FULL_FILE = pathlib.Path(__file__).resolve().parent.parent / "data" / "demo_inulin_full.json"
+
+@app.get("/api-demo-full")
+async def api_get_demo_full():
+    try:
+        if DEMO_FULL_FILE.exists():
+            with open(DEMO_FULL_FILE, "r", encoding="utf-8") as f:
+                return {"ok": True, "data": json.load(f)}
+        return {"ok": True, "data": {}}
+    except Exception as e:
+        raise HTTPException(500, f"读取失败: {str(e)}")
+
+@app.put("/api-demo-full")
+async def api_save_demo_full(body: dict):
+    try:
+        data = body.get("data", body)
+        DEMO_FULL_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEMO_FULL_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return {"ok": True, "message": "保存成功"}
+    except Exception as e:
+        raise HTTPException(500, f"保存失败: {str(e)}")
+
 # ===== 用户认证接口 =====
 
 @app.post("/api/auth/register")
@@ -1187,14 +1211,20 @@ def _mock_ccp_judgment(req: CcpJudgmentRequest) -> dict:
         pm = (step.get("parameters", "") if isinstance(step, dict) else "").lower()
         combined = name_lower + om + pm
 
-        # 判定规则
-        is_heat_step = any(kw in combined for kw in ["杀菌|||Sterilization", "热处理", "蒸煮", "灭菌", "uht", "巴氏", "消毒"])
-        is_metal_step = any(kw in combined for kw in ["金属检测|||Metal detection", "异物检测", "x光", "磁选", "筛选"])
-        is_receiving = any(kw in combined for kw in ["验收", "接收", "原料"])
-        is_cleaning = any(kw in combined for kw in ["清洗", "清洁", "cip", "消毒"])
-        is_cooling = any(kw in combined for kw in ["冷却|||Cooling", "降温", "冷藏", "冷冻", "速冻"])
-        is_packaging = any(kw in combined for kw in ["包装", "灌装", "封口", "封盖"])
-        is_filter = any(kw in combined for kw in ["过滤", "膜滤", "超滤", "离心", "脱色"])
+        # 判定规则 — 关键词匹配只对比中文部分
+        def _kw_match(kw, text):
+            """匹配关键词：如果含|||则只比中文部分，否则全文匹配"""
+            return kw.split("|||")[0] in text if "|||" in kw else kw in text
+
+        is_heat_step = any(_kw_match(kw, combined) for kw in ["杀菌|||Sterilization", "热处理", "蒸煮", "灭菌", "uht", "巴氏", "消毒", "加热"])
+        is_metal_step = any(_kw_match(kw, combined) for kw in ["金属检测|||Metal detection", "异物检测", "x光", "磁选", "筛选", "金属探测"])
+        is_receiving = any(_kw_match(kw, combined) for kw in ["验收", "接收", "原料"])
+        is_cleaning = any(_kw_match(kw, combined) for kw in ["清洗", "清洁", "cip", "消毒"])
+        is_cooling = any(_kw_match(kw, combined) for kw in ["冷却|||Cooling", "降温", "冷藏", "冷冻", "速冻"])
+        is_packaging = any(_kw_match(kw, combined) for kw in ["包装", "灌装", "封口", "封盖"])
+        is_filter = any(_kw_match(kw, combined) for kw in ["过滤", "膜滤", "超滤", "离心", "脱色"])
+        is_drying = any(_kw_match(kw, combined) for kw in ["干燥", "烘干", "喷雾", "脱水"])
+        is_storage = any(_kw_match(kw, combined) for kw in ["入库", "储存", "仓储", "出厂"])
 
         def make_bio_hazard():
             if is_heat_step:
@@ -1400,13 +1430,15 @@ async def api_ai_critical_limits(req: CriticalLimitsRequest):
         details = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌"]):
+            # _kw_match helper (bilingual keyword support)
+            def _kwm(kw, t): return kw.split("|||")[0] in t if "|||" in kw else kw in t
+            if any(_kwm(kw, name) for kw in ["杀菌|||Sterilization", "热处理", "灭菌", "消毒", "加热"]):
                 limits_text += f"1. **{s.get('stepName', '')}**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n"
                 details.append({"ccp": s.get("stepName", ""), "limit": "中心温度≥85℃，保持时间≥15秒|||Core temp ≥85°C, hold ≥15s", "basis": "GB 14881-2013", "rationale": "充分杀灭致病菌|||Effectively kills pathogenic bacteria"})
-            elif any(kw in name for kw in ["金属检测|||Metal detection", "异物"]):
+            elif any(_kwm(kw, name) for kw in ["金属检测|||Metal detection", "异物", "金属探测", "x光"]):
                 limits_text += f"2. **{s.get('stepName', '')}**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n"
                 details.append({"ccp": s.get("stepName", ""), "limit": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "basis": "GB/T 25346-2010", "rationale": "防止金属异物进入成品|||Prevent metal foreign objects in finished product"})
-            elif any(kw in name for kw in ["验收", "接收"]):
+            elif any(_kwm(kw, name) for kw in ["验收", "接收", "原料"]):
                 limits_text += f"3. **{s.get('stepName', '')}**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n"
                 details.append({"ccp": s.get("stepName", ""), "limit": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "basis": "GB 2763-2021、GB 2762-2022", "rationale": "原料安全是HACCP的基础|||Raw material safety is the foundation of HACCP"})
             else:
@@ -1442,11 +1474,11 @@ async def api_ai_monitoring(req: MonitoringRequest):
         monitor = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌"]):
+            if any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌", "消毒", "加热"]):
                 monitor.append({"ccp": s.get("stepName", ""), "object": "温度、时间|||Temperature, time", "method": "在线温度传感器连续监控|||Online temperature sensor continuous monitoring", "frequency": "每批次实时记录|||Real-time recording per batch", "personnel": "经HACCP培训的品控专员|||HACCP-trained QC specialist", "remark": "温度偏差需≤±1℃|||Temperature deviation ≤±1°C"})
-            elif any(kw in name for kw in ["金属检测|||Metal detection", "异物"]):
+            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["金属检测|||Metal detection", "异物", "金属探测", "x光"]):
                 monitor.append({"ccp": s.get("stepName", ""), "object": "金属异物", "method": "在线金属检测仪自动检测|||Online metal detector automatic inspection", "frequency": "连续监控|||Continuous monitoring", "personnel": "设备维护人员+品控专员|||Equipment maintenance staff + QC specialist", "remark": "按GB/T 25346-2010执行|||Per GB/T 25346-2010"})
-            elif any(kw in name for kw in ["验收", "接收"]):
+            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["验收", "接收", "原料"]):
                 monitor.append({"ccp": s.get("stepName", ""), "object": "农药残留、重金属", "method": "供应商检测报告+抽检验证|||Supplier test reports + spot check verification", "frequency": "每批次审核", "personnel": "经培训的采购专员|||Trained procurement specialist", "remark": "依据GB 2763-2021、GB 2762-2022|||Per GB 2763-2021, GB 2762-2022"})
             else:
                 monitor.append({"ccp": s.get("stepName", ""), "object": "工艺参数|||Process parameters", "method": "在线/人工检测|||Online/manual inspection", "frequency": "按需确定|||Determine as needed", "personnel": "品控人员|||QC personnel", "remark": "依据企业标准|||Per enterprise standard"})
@@ -1480,11 +1512,11 @@ async def api_ai_corrective_actions(req: CorrectiveActionsRequest):
         actions = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌"]):
+            if any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌", "消毒", "加热"]):
                 actions.append({"ccp": s.get("stepName", ""), "cl": "中心温度≥85℃，保持≥15秒", "corrective": "温度不达标时：1)立即调整设备参数；2)对受影响产品隔离评估；3)重新杀菌或销毁不合格品|||When temp fails: 1) Immediately adjust equipment; 2) Isolate and assess affected products; 3) Re-sterilize or destroy non-conforming products", "verification": "1)复查温度记录曲线；2)对重新加工产品抽样检测微生物；3)校准温度传感器|||1) Review temp record curves; 2) Micro testing of reworked products; 3) Calibrate temp sensors", "record": "《杀菌工序温度异常记录表》《产品隔离处理记录》|||Sterilization Temp Deviation Record, Product Isolation Record"})
-            elif any(kw in name for kw in ["金属检测|||Metal detection", "异物"]):
+            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["金属检测|||Metal detection", "异物", "金属探测", "x光"]):
                 actions.append({"ccp": s.get("stepName", ""), "cl": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "corrective": "检测仪报警时：1)立即将受影响产品隔离；2)用标准试块测试设备；3)对上一批次检出时段产品重新检测；4)查找异物来源|||When alarm triggers: 1) Isolate affected products; 2) Test equipment with standard blocks; 3) Re-inspect products from previous batch; 4) Identify foreign object source", "verification": "1)每小时用标准试块测试检测仪；2)对剔除产品进行确认；3)定期维护设备|||1) Test detector hourly with standard blocks; 2) Verify rejected products; 3) Regular equipment maintenance", "record": "《金属检测异常处理记录》《设备校验记录》|||Metal Detection Anomaly Record, Equipment Calibration Record"})
-            elif any(kw in name for kw in ["验收", "接收"]):
+            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["验收", "接收", "原料"]):
                 actions.append({"ccp": s.get("stepName", ""), "cl": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "corrective": "检测不合格时：1)拒收该批原料；2)通知供应商整改；3)如已入库则立即隔离标识；4)评估是否需要更换供应商|||When test fails: 1) Reject batch; 2) Notify supplier for corrective action; 3) Isolate and label if already received; 4) Evaluate supplier replacement", "verification": "1)每批查验供应商检测报告；2)定期送第三方检测；3)年度供应商审核|||1) Verify supplier reports per batch; 2) Periodic third-party testing; 3) Annual supplier audit", "record": "《原料验收不合格记录》《供应商整改通知单》|||Raw Material Rejection Record, Supplier Corrective Action Notice"})
             else:
                 actions.append({"ccp": s.get("stepName", ""), "cl": "待定|||TBD", "corrective": "偏离关键限值时：1)立即隔离受影响产品；2)查明原因并纠正；3)对受影响产品评估处理；4)记录处理过程|||On CL deviation: 1) Isolate affected products; 2) Identify and correct cause; 3) Assess and handle affected products; 4) Record the process", "verification": "复查纠正措施有效性|||Review effectiveness of corrective actions", "record": "《CCP偏差处理记录》|||CCP Deviation Handling Record"})
@@ -1680,16 +1712,29 @@ async def api_get_demo_data():
 
 @app.put("/api/demo/data")
 async def api_save_demo_data(body: dict):
-    """保存演示数据 JSON"""
+    """保存演示数据 JSON — 按数据类型分流：
+    含 processSteps/haccpTeam → 完整 HACCP 计划 (demo_inulin_full.json)
+    否则 → 流程图数据 (demo_inulin.json)
+    """
     try:
         data = body.get("data", body)
         DEMO_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(DEMO_DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+
+        # 判断是完整计划还是流程图数据
+        is_full_plan = "processSteps" in data or "haccpTeam" in data or "hazardWorksheet" in data
+
+        if is_full_plan:
+            # 完整 HACCP 计划 → 只写完整示例文件
+            full_file = pathlib.Path(__file__).resolve().parent.parent / "data" / "demo_inulin_full.json"
+            with open(full_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        else:
+            # 流程图数据 → 只写流程图文件
+            with open(DEMO_DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
         return {"ok": True, "message": "保存成功"}
     except Exception as e:
         raise HTTPException(500, f"保存失败: {str(e)}")
-
 
 # ===== 静态文件托管（前端页面）=====
 
@@ -1709,10 +1754,11 @@ async def serve_index():
         return FileResponse(str(index_path))
     return {"error": "index.html not found"}
 
-
-@app.get("/{filename:path}")
+@app.get("/{filename}")
 async def serve_static(filename: str):
-    """提供根目录下的静态 HTML 文件（如 flowchart-preview.html, flowchart-v2.html 等）"""
+    """提供根目录下的静态 HTML 文件（如 flowchart-preview.html 等）"""
+    if "/" in filename or "\\" in filename:
+        return FileResponse(str(PROJECT_ROOT / "HACCP Assistance.html"))
     file_path = PROJECT_ROOT / filename
     if file_path.exists() and file_path.is_file() and file_path.suffix in (".html", ".json", ".xml", ".png", ".jpg", ".svg", ".ico"):
         return FileResponse(str(file_path))

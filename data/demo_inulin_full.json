@@ -1,0 +1,236 @@
+{
+  "companyName": "菊粉生物科技有限公司",
+  "deptName": "品控部",
+  "haccpTeam": [
+    {
+      "id": "t1",
+      "name": "张伟",
+      "dept": "品控部",
+      "position": "经理",
+      "role": "组长",
+      "remark": "HACCP体系负责人"
+    },
+    {
+      "id": "t2",
+      "name": "李芳",
+      "dept": "生产部",
+      "position": "主管",
+      "role": "组员",
+      "remark": "生产工艺专家"
+    },
+    {
+      "id": "t3",
+      "name": "王强",
+      "dept": "质检部",
+      "position": "检验员",
+      "role": "组员",
+      "remark": "微生物检测"
+    },
+    {
+      "id": "t4",
+      "name": "陈敏",
+      "dept": "设备部",
+      "position": "工程师",
+      "role": "组员",
+      "remark": "设备维护保养"
+    }
+  ],
+  "auditor": "张伟",
+  "productName": "菊粉（Inulin）",
+  "rawMaterials": "新鲜菊芋（Jerusalem Artichoke）",
+  "additives": "活性炭、乙醇、交换树脂",
+  "productPH": "5.0-7.0",
+  "waterActivity": "≤0.85",
+  "intendedUse": "作为膳食纤维原料",
+  "storageCondition": "常温干燥避光",
+  "packagingMethod": "PE内袋+铝箔外袋",
+  "targetConsumer": "普通人群",
+  "shelfLife": "24个月",
+  "execStandard": "gb",
+  "formula": [
+    {
+      "id": "f1",
+      "material": "新鲜菊芋",
+      "dosage": "1000kg/批",
+      "func": "原料"
+    },
+    {
+      "id": "f2",
+      "material": "纯净水",
+      "dosage": "1.5-3倍",
+      "func": "溶剂"
+    },
+    {
+      "id": "f3",
+      "material": "活性炭",
+      "dosage": "1-3%",
+      "func": "脱色"
+    },
+    {
+      "id": "f4",
+      "material": "乙醇",
+      "dosage": "适量",
+      "func": "沉淀"
+    }
+  ],
+  "processSteps": [
+    {
+      "id": "ps1",
+      "stepName": "菊芋验收",
+      "operationMethod": "检验原料新鲜度",
+      "parameters": "感官检验",
+      "controlPoint": "CQP-1",
+      "equipmentName": ""
+    },
+    {
+      "id": "ps2",
+      "stepName": "清洗",
+      "operationMethod": "超声波清洗去皮",
+      "parameters": "40℃、30min",
+      "controlPoint": "OPRP-1",
+      "equipmentName": "超声波清洗机"
+    },
+    {
+      "id": "ps3",
+      "stepName": "粉碎",
+      "operationMethod": "三级逐级粉碎",
+      "parameters": "≤15mm",
+      "controlPoint": "OPRP-2",
+      "equipmentName": "粉碎机"
+    },
+    {
+      "id": "ps4",
+      "stepName": "匀浆",
+      "operationMethod": "加纯净水超声匀浆",
+      "parameters": "50-100W",
+      "controlPoint": "",
+      "equipmentName": ""
+    },
+    {
+      "id": "ps5",
+      "stepName": "加热加压提取",
+      "operationMethod": "高温高压提取",
+      "parameters": "120-150℃",
+      "controlPoint": "",
+      "equipmentName": "高压提取罐"
+    },
+    {
+      "id": "ps6",
+      "stepName": "减压浓缩",
+      "operationMethod": "减压浓缩",
+      "parameters": "50-60℃",
+      "controlPoint": "",
+      "equipmentName": "旋转蒸发器"
+    },
+    {
+      "id": "ps7",
+      "stepName": "一级膜过滤",
+      "operationMethod": "微滤除大分子",
+      "parameters": "0.2μm",
+      "controlPoint": "CCP-1",
+      "equipmentName": "膜过滤系统"
+    },
+    {
+      "id": "ps8",
+      "stepName": "脱色",
+      "operationMethod": "活性炭吸附",
+      "parameters": "1-3%",
+      "controlPoint": "OPRP-3",
+      "equipmentName": "脱色罐"
+    },
+    {
+      "id": "ps9",
+      "stepName": "脱离子",
+      "operationMethod": "离子交换",
+      "parameters": "2-4BV/h",
+      "controlPoint": "OPRP-4",
+      "equipmentName": "离子交换柱"
+    },
+    {
+      "id": "ps10",
+      "stepName": "二级膜过滤",
+      "operationMethod": "超滤除菌",
+      "parameters": "0.1μm",
+      "controlPoint": "CCP-2",
+      "equipmentName": "超滤膜系统"
+    },
+    {
+      "id": "ps11",
+      "stepName": "醇降",
+      "operationMethod": "乙醇沉淀",
+      "parameters": "60-70%",
+      "controlPoint": "",
+      "equipmentName": "沉淀罐"
+    },
+    {
+      "id": "ps12",
+      "stepName": "干燥",
+      "operationMethod": "真空干燥",
+      "parameters": "120-180℃",
+      "controlPoint": "CCP-3",
+      "equipmentName": "真空干燥机"
+    },
+    {
+      "id": "ps13",
+      "stepName": "金属检测",
+      "operationMethod": "金属探测",
+      "parameters": "Fe≥1.5mm",
+      "controlPoint": "CCP-4",
+      "equipmentName": "金属检测机"
+    },
+    {
+      "id": "ps14",
+      "stepName": "包装",
+      "operationMethod": "自动称量密封",
+      "parameters": "25kg/袋",
+      "controlPoint": "OPRP-5",
+      "equipmentName": "自动包装机"
+    },
+    {
+      "id": "ps15",
+      "stepName": "成品储存与运输",
+      "operationMethod": "常温避光防潮",
+      "parameters": "≤25℃",
+      "controlPoint": "",
+      "equipmentName": ""
+    }
+  ],
+  "flowConfirmed": true,
+  "flowchartXml": "",
+  "hazardBio": [],
+  "hazardChem": [],
+  "hazardPhys": [],
+  "hazardWorksheet": [],
+  "hazardWorksheetStep": "identify",
+  "hazardConfirmed": false,
+  "ccpSteps": [],
+  "ccpStepIndex": 0,
+  "ccpHazardType": "bio",
+  "ccpCurrentQ": 1,
+  "ccpDecisionTreeVersion": "v1",
+  "ccpCompleted": false,
+  "criticalLimits": "",
+  "criticalLimitsData": [],
+  "monitoring": [],
+  "correctiveActions": [],
+  "recordPeriod": "",
+  "recordFormat": "",
+  "verification": {
+    "basis": "",
+    "frequency": "",
+    "personnel": "",
+    "content": "",
+    "result": "",
+    "record": ""
+  },
+  "verificationExtraItems": [],
+  "verificationSubmitted": false,
+  "verificationSignerName": "",
+  "verificationSignerDate": "",
+  "managementReview": {
+    "reviewContent": "",
+    "reviewResult": "",
+    "correctiveMeasures": "",
+    "reVerification": ""
+  }
+}

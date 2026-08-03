@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HACCP 消费者调研 - 数据分析看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #636e72;
+    --accent: #0984e3;
+    --accent2: #00b894;
+    --danger: #d63031;
+    --warning: #e17055;
+    --border: #e0e0e0;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .dashboard-header {
+    background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #4a69bd 100%);
+    color: #fff;
+    padding: 2rem 2.5rem;
+    text-align: center;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .dashboard-header p {
+    margin-top: 0.4rem;
+    opacity: 0.85;
+    font-size: 0.95rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50px;
+    padding: 0.35rem 1.4rem;
+    font-size: 0.85rem;
+  }
+
+  .stat-pill strong { font-size: 1.1rem; margin-right: 0.2rem; }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Insight banner */
+  .insight-banner {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border-left: 4px solid #e17055;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    font-size: 0.92rem;
+    color: #5d3a1a;
+  }
+
+  .insight-banner strong { color: #c0392b; }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #1a1a2e;
+  }
+
+  .section-subtitle {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.2rem;
+  }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-grid.full {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-grid.triple {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s;
+  }
+
+  .card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+  }
+
+  .card h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+
+  .card .callout {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+  }
+
+  .chart-wrap.tall {
+    height: 380px;
+  }
+
+  .chart-wrap.short {
+    height: 280px;
+  }
+
+  canvas { width: 100% !important; height: 100% !important; }
+
+  .legend-note {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-note span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .highlight-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-top: 1rem;
+    font-size: 0.88rem;
+  }
+
+  .highlight-box.warn {
+    background: #fff7ed;
+    border-color: #fed7aa;
+  }
+
+  .highlight-box strong { color: #166534; }
+  .highlight-box.warn strong { color: #9a3412; }
+
+  @media (max-width: 768px) {
+    .chart-grid, .chart-grid.triple {
+      grid-template-columns: 1fr;
+    }
+    .container { padding: 1rem; }
+  }
+
+  footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.78rem;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<header class="dashboard-header">
+  <h1>HACCP 消费者调研 · 数据分析看板</h1>
+  <p>样本量 N=152 &nbsp;|&nbsp; 调研时间 2026年7月 &nbsp;|&nbsp; 聚焦中小企业食品安全与 AI 信任</p>
+  <div class="stat-row">
+    <span class="stat-pill"><strong>67.8%</strong> 倾向选择 AI 监控小厂</span>
+    <span class="stat-pill"><strong>78.3%</strong> 最担心记录造假</span>
+    <span class="stat-pill"><strong>64.5%</strong> 愿意为安全支付溢价</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ====== INSIGHT BANNER ====== -->
+  <div class="insight-banner">
+    <strong>核心洞察：</strong>消费者对大品牌存在惯性信赖（61.8%），但对小厂手写标签高度不信任（75% 怀疑/半信半疑）—— 这正是 <strong>AI 不可篡改记录 + 全天候监控</strong> 可以弥合的"信任鸿沟"。78.3% 的受访者最担心<strong>记录造假</strong>，而 AI 天然防篡改；66.4% 担心<strong>人工疏忽</strong>，AI 恰好可以 24/7 无间断运行。
+  </div>
+
+  <!-- ====== ROW 1: TRUST GAP (Chart 1) + PAIN POINTS (Chart 2) ====== -->
+  <div class="chart-grid">
+    <!-- Chart 1: Trust Gap -->
+    <div class="card">
+      <h3>🔍 消费者信任度对比</h3>
+      <p class="callout">Q6 品牌偏好 vs Q7 手写标签信任度 — 信任鸿沟一目了然</p>
+      <div class="chart-wrap tall">
+        <canvas id="chartTrustGap"></canvas>
+      </div>
+      <div class="legend-note">
+        <span><span class="dot" style="background:#0984e3"></span> Q6: 日常食品品牌选择倾向</span>
+        <span><span class="dot" style="background:#e17055"></span> Q7: 对手写标签/卫生检查标记的信任度</span>
+      </div>
+      <div class="highlight-box warn">
+        <strong>💡 信任鸿沟：</strong>61.8% 的消费者习惯选择大品牌，但对手写标签"半信半疑"的比例高达 58.6%。小厂即便做好安全措施，手写记录也难以赢得信任——<strong>AI 电子化记录正是破局关键</strong>。
+      </div>
+    </div>
+
+    <!-- Chart 2: Pain Points -->
+    <div class="card">
+      <h3>😰 消费者最担心的安全问题 Top 5</h3>
+      <p class="callout">Q22 中小企业 HACCP 体系运行中的安全隐患（多选，N=152）</p>
+      <div class="chart-wrap tall">
+        <canvas id="chartPainPoints"></canvas>
+      </div>
+      <div class="highlight-box">
+        <strong>💡 AI 对症下药：</strong>排名第一的"记录造假"（78.3%）和排名第二的"人工疏忽"（66.4%）恰好是 AI 系统的核心优势 — <strong>不可篡改的电子记录 + 24/7 全天候自动监控</strong>，精准打击消费者最大的两个顾虑。
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== ROW 2: AI ACCEPTANCE + PREMIUM (Chart 3) ====== -->
+  <div class="chart-grid triple">
+    <!-- Chart 3a: AI acceptance / Q23 -->
+    <div class="card">
+      <h3>🤖 AI 监控小厂 vs 大品牌</h3>
+      <p class="callout">Q23 消费者的选择倾向</p>
+      <div class="chart-wrap short">
+        <canvas id="chartAIAcceptance"></canvas>
+      </div>
+      <div class="legend-note">
+        <span><span class="dot" style="background:#00b894"></span> 倾向 AI 小厂 (55.9%)</span>
+        <span><span class="dot" style="background:#636e72"></span> 中立 (23.7%)</span>
+        <span><span class="dot" style="background:#dfe6e9"></span> 倾向大品牌 (20.4%)</span>
+      </div>
+    </div>
+
+    <!-- Chart 3b: Premium willingness / Q25 -->
+    <div class="card">
+      <h3>💰 安全溢价支付意愿</h3>
+      <p class="callout">Q25 愿意为 AI+HACCP 认证多付多少钱</p>
+      <div class="chart-wrap short">
+        <canvas id="chartPremium"></canvas>
+      </div>
+      <div class="legend-note">
+        <span><span class="dot" style="background:#00b894"></span> 愿意支付溢价 (64.5%)</span>
+        <span><span class="dot" style="background:#fdcb6e"></span> 价格无所谓 (21.1%)</span>
+        <span><span class="dot" style="background:#d63031"></span> 不愿多付 (14.5%)</span>
+      </div>
+    </div>
+
+    <!-- Key takeaway card -->
+    <div class="card" style="background: linear-gradient(135deg, #f8f9ff, #e8ecff); border: 1.5px solid #a29bfe;">
+      <h3 style="color:#3c36a0;">📊 商业价值结论</h3>
+      <div style="font-size:0.9rem; margin-top:0.6rem;">
+        <p style="margin-bottom:0.6rem;"><strong>55.9%</strong> 的消费者倾向选择有 AI 监控的小厂产品，超过了坚守大品牌的 20.4%。</p>
+        <p style="margin-bottom:0.6rem;"><strong>64.5%</strong> 愿意为安全溢价买单，其中 <strong>52.6%</strong> 可接受约 5% 的溢价，<strong>11.8%</strong> 可接受 10-15% 的溢价。</p>
+        <p style="margin-bottom:0.3rem;"><strong>核心结论：</strong></p>
+        <ul style="padding-left:1.2rem; line-height:1.5;">
+          <li>AI+HACCP 不仅是合规工具，更是<strong>消费者信任的"硬通货"</strong></li>
+          <li>为小厂提供了一条<strong>"以技术换信任"</strong>的品牌突围路径</li>
+          <li>具备明确的<strong>溢价变现空间</strong>（5%-15%价格上浮空间）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  数据来源：消费者食品安全与 AI 信任度调研 (N=152) &nbsp;|&nbsp; 调研平台：问卷星 &nbsp;|&nbsp; 生成时间：2026-07-29
+</footer>
+
+<script>
+// ===== SHARED PALETTE =====
+const BLUE = '#0984e3';
+const BLUE_LIGHT = '#74b9ff';
+const CORAL = '#e17055';
+const CORAL_LIGHT = '#fab1a0';
+const GREEN = '#00b894';
+const GREEN_LIGHT = '#55efc4';
+const RED = '#d63031';
+const YELLOW = '#fdcb6e';
+const PURPLE = '#6c5ce7';
+const GRAY = '#b2bec3';
+const DARK = '#2d3436';
+const GRAY_DARK = '#636e72';
+
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
+Chart.defaults.font.size = 12;
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0,0,0,0.8)';
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.cornerRadius = 6;
+
+// ==========================================
+// CHART 1: TRUST GAP — Grouped Bar
+// Q6: Brand preference vs Q7: Trust in handwritten labels
+// ==========================================
+(function() {
+  const ctx = document.getElementById('chartTrustGap').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['倾向大品牌\n/惯性信赖', '倾向小厂\n/接受尝试', '不看重规模\n/看成分', '半信半疑', '非常怀疑', '非常相信', '从未关注'],
+      datasets: [
+        {
+          label: 'Q6 品牌选择偏好',
+          data: [61.8, 28.3, 9.9, null, null, null, null],
+          backgroundColor: ['rgba(9,132,227,0.85)', 'rgba(9,132,227,0.55)', 'rgba(9,132,227,0.3)', 'transparent', 'transparent', 'transparent', 'transparent'],
+          borderColor: BLUE,
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Q7 手写标签信任度',
+          data: [null, null, null, 58.6, 16.4, 19.1, 5.9],
+          backgroundColor: ['transparent', 'transparent', 'transparent', 'rgba(225,112,85,0.85)', 'rgba(225,112,85,0.65)', 'rgba(225,112,85,0.45)', 'rgba(225,112,85,0.25)'],
+          borderColor: CORAL,
+          borderWidth: 1,
+          borderRadius: 6,
+          borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.dataset.label + ': ' + ctx.raw + '%';
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 75,
+          ticks: { callback: v => v + '%' },
+          title: { display: true, text: '占比 (%)', font: { weight: 'bold' } },
+          grid: { color: '#f0f0f0' }
+        },
+        x: {
+          ticks: { font: { size: 10.5 } }
+        }
+      }
+    }
+  });
+})();
+
+// ==========================================
+// CHART 2: PAIN POINTS — Horizontal Bar
+// Q22: Top safety concerns (multi-select)
+// ==========================================
+(function() {
+  const ctx = document.getElementById('chartPainPoints').getContext('2d');
+  const labels = [
+    '记录造假\n(事后修改/补录数据)',
+    '人工疏忽\n(疲劳导致监控疏忽)',
+    '监管盲区\n(缺设备缺人,体系成空谈)',
+    '方案滞后\n(专家方案难覆盖突发状况)',
+    '设施滞后\n(缺自动化,过度依赖肉眼)'
+  ];
+  const values = [78.3, 66.4, 61.8, 53.3, 53.3];
+  const colors = [
+    'rgba(214,48,49,0.82)',   // red - most severe
+    'rgba(225,112,85,0.80)',   // coral
+    'rgba(253,203,110,0.85)',  // yellow
+    'rgba(9,132,227,0.72)',    // blue
+    'rgba(9,132,227,0.55)',    // light blue
+  ];
+  const borderColors = [RED, CORAL, YELLOW, BLUE, BLUE_LIGHT];
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '选择比例 (%)',
+        data: values,
+        backgroundColor: colors,
+        borderColor: borderColors,
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.raw + '% 的受访者选择此项';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          max: 90,
+          ticks: { callback: v => v + '%' },
+          title: { display: true, text: '受访者选择比例 (%)', font: { weight: 'bold' } },
+          grid: { color: '#f0f0f0' }
+        },
+        y: {
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
+})();
+
+// ==========================================
+// CHART 3a: AI ACCEPTANCE — Doughnut
+// Q23: Big brand vs AI small factory
+// ==========================================
+(function() {
+  const ctx = document.getElementById('chartAIAcceptance').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [
+        '坚定选择 AI 小厂 (11.8%)',
+        '倾向选择 AI 小厂 (44.1%)',
+        '中立/观望 (23.7%)',
+        '倾向选择大品牌 (17.1%)',
+        '坚定选择大品牌 (3.3%)'
+      ],
+      datasets: [{
+        data: [11.8, 44.1, 23.7, 17.1, 3.3],
+        backgroundColor: [
+          GREEN,
+          GREEN_LIGHT,
+          GRAY,
+          CORAL_LIGHT,
+          CORAL
+        ],
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverBorderWidth: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 12,
+            usePointStyle: true,
+            pointStyleWidth: 8,
+            font: { size: 10 },
+            generateLabels: function(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: label,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: data.datasets[0].backgroundColor[i],
+                pointStyle: 'circle',
+                index: i,
+                fontColor: DARK
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.label + ': ' + ctx.raw + '%';
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+
+// ==========================================
+// CHART 3b: PREMIUM WILLINGNESS — Doughnut
+// Q25: How much premium would you pay?
+// ==========================================
+(function() {
+  const ctx = document.getElementById('chartPremium').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [
+        '愿意多付约 5% (52.6%)',
+        '愿意多付 10%-15% (11.8%)',
+        '价格无所谓,只要安全 (21.1%)',
+        '不愿意多付 (14.5%)'
+      ],
+      datasets: [{
+        data: [52.6, 11.8, 21.1, 14.5],
+        backgroundColor: [
+          GREEN,
+          '#0abde3',
+          YELLOW,
+          RED
+        ],
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverBorderWidth: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 12,
+            usePointStyle: true,
+            pointStyleWidth: 8,
+            font: { size: 10 },
+            generateLabels: function(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: label,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: data.datasets[0].backgroundColor[i],
+                pointStyle: 'circle',
+                index: i,
+                fontColor: DARK
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.label + ': ' + ctx.raw + '%';
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

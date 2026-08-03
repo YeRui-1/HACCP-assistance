@@ -24,6 +24,9 @@ const App = (() => {
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       el.placeholder = I18n.t(el.dataset.i18nPlaceholder);
     });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      el.title = I18n.t(el.dataset.i18nTitle);
+    });
     getEl('htmlRoot').setAttribute('lang', I18n.getLang() === 'en' ? 'en' : 'zh-CN');
     const btnLang = getEl('btnLang');
     if (btnLang) btnLang.textContent = I18n.getLang() === 'zh' ? 'EN' : '中文';

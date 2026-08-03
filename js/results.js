@@ -28,7 +28,7 @@ const Results = (() => {
 
   async function syncTemplateFromBackend() {
     try {
-      const resp = await fetch('http://localhost:8000/api/template');
+      const resp = await fetch(API_HOST + '/api/template');
       if (!resp.ok) return;
       const data = await resp.json();
       if (data.template && data.template.content) {
@@ -108,7 +108,14 @@ const Results = (() => {
       var resp = await fetch(API_HOST + '/api/plans/' + planId, { headers: { 'Authorization': 'Bearer ' + token } });
       if (resp.ok) {
         var data = await resp.json();
-        return data.plan.content;
+        var content = data.plan.content || {};
+        // Sync selected plan content into localStorage so verification/records
+        // operate on THIS plan, not a stale one (prevents cross-plan corruption)
+        try {
+          localStorage.setItem('haccp_15min_data', JSON.stringify(content));
+          localStorage.setItem('haccp_submitted', 'true');
+        } catch(e) {}
+        return content;
       }
     } catch(e) { console.warn('Failed to load plan from backend:', e); }
     return null;
@@ -278,9 +285,9 @@ const Results = (() => {
         '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="font-size:24px;">✅</span>' +
         '<div><div style="font-weight:600;color:#166534;">' + I18n.t('verification.submitted') + '</div>' +
-        '<div style="font-size:12px;color:#475569;margin-top:2px;">' + I18n.t('verification.signer') + '：<strong>' + esc(verSigner) + '</strong> | 签名日期：<strong>' + esc(verDate) + '</strong></div></div>' +
+        '<div style="font-size:12px;color:#475569;margin-top:2px;">' + I18n.t('verification.signer') + '：<strong>' + esc(verSigner) + '</strong> | ' + I18n.t('verification.signDate') + '：<strong>' + esc(verDate) + '</strong></div></div>' +
         '</div>' +
-        '<button class="btn btn-sm btn-secondary" id="resultEditVerBtn" style="border-color:#86efac;color:#166534;">📝 编辑验证程序</button>' +
+        '<button class="btn btn-sm btn-secondary" id="resultEditVerBtn" style="border-color:#86efac;color:#166534;">' + I18n.t('verification.editBtn') + '</button>' +
         '</div></div>';
     } else {
       html += '<div class="results-section" style="background:#fffbeb;border:1px solid #fde68a;">' +
@@ -290,7 +297,7 @@ const Results = (() => {
         '<div><div style="font-weight:600;color:#92400e;">' + I18n.t('verification.notSubmitted') + '</div>' +
         '<div style="font-size:12px;color:#92400e;margin-top:2px;">' + I18n.t('verification.notSubmittedHint') + '</div></div>' +
         '</div>' +
-        '<button class="btn btn-primary btn-sm" id="resultEditVerBtn">📝 去填写验证程序</button>' +
+        '<button class="btn btn-primary btn-sm" id="resultEditVerBtn">' + I18n.t('verification.goBtn') + '</button>' +
         '</div></div>';
     }
 
@@ -396,7 +403,7 @@ const Results = (() => {
         html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">';
         html += '<div style="flex:1;min-width:100px;padding:14px 18px;background:' + bannerBg + ';border:1px solid ' + bannerBorder + ';border-radius:10px;text-align:center;">';
         html += '<div style="font-size:28px;font-weight:700;color:' + bannerColor + ';">' + ccpCount + '</div>';
-        html += '<div style="font-size:12px;color:' + bannerColor + ';margin-top:4px;">' + I18n.t('ccp.result.ccp') + '（关键控制点）</div></div>';
+        html += '<div style="font-size:12px;color:' + bannerColor + ';margin-top:4px;">' + I18n.t('ccp.result.ccp') + I18n.t('result.ccp.suffix') + '</div></div>';
         html += '<div style="flex:1;min-width:100px;padding:14px 18px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;text-align:center;">';
         html += '<div style="font-size:28px;font-weight:700;color:#166534;">' + nonCcpCount + '</div>';
         html += '<div style="font-size:12px;color:#166534;margin-top:4px;">' + I18n.t('ccp.result.nonCcp') + '</div></div>';
@@ -414,7 +421,7 @@ const Results = (() => {
         var hasAI = data.ccpSteps.some(function(cs) { return cs && cs.hazards && ['bio','chem','phys'].some(function(ht) { return cs.hazards[ht] && cs.hazards[ht].aiReasoning; }); });
         if (hasAI) {
           html += '<div style="margin-bottom:16px;padding:10px 14px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:13px;color:#6d28d9;">';
-          html += '🤖 <strong>AI辅助判定完成</strong> — 以下结果由AI基于Codex判断树规则自动分析生成，请人工复核确认';
+          html += '🤖 <strong>' + I18n.t('ccp.localReasoning') + '</strong> — ' + I18n.t('ccp.localReasoningDesc');
           html += '</div>';
         }
       }
@@ -485,16 +492,16 @@ const Results = (() => {
     }
 
     // 四、危害分析 - 合并所有危害到统一表格，按文档格式展示
-    html += '<div class="results-section" id="section-q15-hazard"><h2>四、危害分析</h2>';
+    html += '<div class="results-section" id="section-q15-hazard"><h2>' + I18n.t('r15.section4') + '</h2>';
     var allHazards = [];
     ['hazardBio', 'hazardChem', 'hazardPhys'].forEach(function(key) {
       var items = data[key] || [];
       items.forEach(function(h) { allHazards.push(h); });
     });
     if (allHazards.length > 0) {
-      html += '<div style="overflow-x:auto;"><table style="min-width:850px;"><thead><tr><th>原材料</th><th>风险</th><th>Q1</th><th>Q2</th><th>Q3</th><th>CCP判断</th><th style="min-width:250px;">风险说明</th></tr></thead><tbody>';
+      html += '<div style="overflow-x:auto;"><table style="min-width:850px;"><thead><tr><th>' + I18n.t('r15.rawMaterial') + '</th><th>' + I18n.t('r15.risk') + '</th><th>Q1</th><th>Q2</th><th>Q3</th><th>' + I18n.t('r15.ccpJudgment') + '</th><th style="min-width:250px;">' + I18n.t('r15.riskDetail') + '</th></tr></thead><tbody>';
       allHazards.forEach(function(h) {
-        var riskColor = h.hazardType === '生物危害' ? '#dc2626' : (h.hazardType === '化学危害' ? '#d97706' : '#6b7280');
+        var riskColor = (h.hazardType === '生物危害' || h.hazardType === 'Biological Hazard') ? '#dc2626' : ((h.hazardType === '化学危害' || h.hazardType === 'Chemical Hazard') ? '#d97706' : '#6b7280');
         html += '<tr><td><strong>' + fieldValue(h.material) + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + fieldValue(h.hazardType) + '</td><td>' + fieldValue(h.q1) + '</td><td>' + fieldValue(h.q2) + '</td><td>' + fieldValue(h.q3) + '</td><td>' + fieldValue(h.ccpResult) + '</td><td style="font-size:13px;line-height:1.5;">' + fieldValue(h.detail || h.desc) + '</td></tr>';
       });
       html += '</tbody></table></div>';
@@ -502,18 +509,18 @@ const Results = (() => {
       var hasAnyHazard = (data.hazardBio || []).length > 0 || (data.hazardChem || []).length > 0 || (data.hazardPhys || []).length > 0;
       if (hasAnyHazard) {
         // 兼容旧数据格式
-        html += '<h3>生物危害</h3><table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>' +
+        html += '<h3>' + I18n.t('r15.bioHazard') + '</h3><table><thead><tr><th>' + I18n.t('r15.hazardDesc') + '</th><th>' + I18n.t('r15.severity') + '</th><th>' + I18n.t('r15.likelihood') + '</th><th>' + I18n.t('r15.control') + '</th></tr></thead><tbody>' +
           (data.hazardBio || []).map(function(h) { return '<tr><td>' + fieldValue(h.desc) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(h.control) + '</td></tr>'; }).join('') +
-          '</tbody></table><h3>化学危害</h3><table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>' +
+          '</tbody></table><h3>' + I18n.t('r15.chemHazard') + '</h3><table><thead><tr><th>' + I18n.t('r15.hazardDesc') + '</th><th>' + I18n.t('r15.severity') + '</th><th>' + I18n.t('r15.likelihood') + '</th><th>' + I18n.t('r15.control') + '</th></tr></thead><tbody>' +
           (data.hazardChem || []).map(function(h) { return '<tr><td>' + fieldValue(h.desc) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(h.control) + '</td></tr>'; }).join('') +
-          '</tbody></table><h3>物理危害</h3><table><thead><tr><th>危害描述</th><th>严重性</th><th>发生可能性</th><th>控制措施</th></tr></thead><tbody>' +
+          '</tbody></table><h3>' + I18n.t('r15.physHazard') + '</h3><table><thead><tr><th>' + I18n.t('r15.hazardDesc') + '</th><th>' + I18n.t('r15.severity') + '</th><th>' + I18n.t('r15.likelihood') + '</th><th>' + I18n.t('r15.control') + '</th></tr></thead><tbody>' +
           (data.hazardPhys || []).map(function(h) { return '<tr><td>' + fieldValue(h.desc) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(h.control) + '</td></tr>'; }).join('') +
           '</tbody></table>';
       } else {
-        html += '<p style="color:var(--gray-400);font-style:italic;">未填写</p>';
+        html += '<p style="color:var(--gray-400);font-style:italic;">' + I18n.t('r15.notFilled') + '</p>';
       }
     }
-    html += '<div class="result-item"><span class="ri-label">团队确认</span><span class="ri-value">' + boolYes(data.hazardConfirmed) + '</span></div></div>';
+    html += '<div class="result-item"><span class="ri-label">' + I18n.t('r15.teamConfirmed') + '</span><span class="ri-value">' + boolYes(data.hazardConfirmed) + '</span></div></div>';
 
     // 五、关键限制
     var stdLabels = { 'gb': I18n.t('limits.gb'), 'industry': I18n.t('limits.industry'), 'enterprise': I18n.t('limits.enterprise'), 'international': I18n.t('limits.international') };
@@ -629,7 +636,7 @@ const Results = (() => {
     const lang = I18n.getLang();
 
     try {
-      const resp = await fetch('http://localhost:8000/api/generate_report', {
+      const resp = await fetch(API_HOST + '/api/generate_report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ start_date: '2026-05-01', end_date: '2026-05-31' }),
@@ -658,7 +665,7 @@ const Results = (() => {
 
     var zh = {
       overview: I18n.t('r15.productOverview'),
-      noAnswer: '未填写',
+      noAnswer: I18n.t('r15.notFilled'),
       sectionLabel: I18n.t('r15.section'),
       questionLabel: I18n.t('r15.question'),
       answerLabel: I18n.t('r15.answer'),
@@ -726,7 +733,7 @@ const Results = (() => {
 
     return '<p style="font-size:13px;color:var(--gray-600);margin-bottom:12px;">' + t.title + '</p>' +
       '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px;background:#fafafa;overflow:auto;text-align:center;">' +
-      '<img src="' + imgSrc + '" style="max-width:100%;height:auto;" alt="工艺流程图" />' +
+      '<img src="' + imgSrc + '" style="max-width:100%;height:auto;" alt="' + I18n.t('r15.flowchart') + '" />' +
       '</div>' +
       '<p style="font-size:12px;color:#6b7280;margin-top:8px;">' + t.hint + '</p>';
   }
@@ -808,7 +815,7 @@ const Results = (() => {
     if (validSteps.length === 0) return null;
 
     var lines = ['graph TD'];
-    lines.push('  %% 15min 问卷生产流程');
+    lines.push('  %% ' + I18n.t('r15.exportMermaidTitle'));
     lines.push('  classDef step fill:#e8f5e9,stroke:#43a047,stroke-width:2px;');
     lines.push('  classDef ccp fill:#fff3e0,stroke:#ff9800,stroke-width:2px;');
 

@@ -25,7 +25,7 @@ const Questionnaire = (() => {
   // 从后端拉取模板，更新 localStorage
   async function syncTemplateFromBackend() {
     try {
-      const resp = await fetch('http://localhost:8000/api/template');
+      const resp = await fetch((window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') ? 'http://localhost:8000' : '' + '/api/template');
       if (!resp.ok) return;
       const data = await resp.json();
       if (data.template && data.template.content) {
