@@ -51,6 +51,16 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            content TEXT NOT NULL DEFAULT '{}',
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, name)
+        )
+    """)
     conn.commit()
 
     # 迁移：补齐旧表缺少的列
@@ -69,6 +79,41 @@ def init_db():
 
 
 # ===== 基础 CRUD =====
+
+def get_draft(user_id: int, name: str) -> dict | None:
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM drafts WHERE user_id = ? AND name = ?", (user_id, name)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "user_id": row["user_id"],
+        "name": row["name"],
+        "content": row["content"],
+        "updated_at": row["updated_at"],
+    }
+
+
+def save_draft(user_id: int, name: str, content: dict) -> dict:
+    now = _now()
+    content_json = json.dumps(content, ensure_ascii=False)
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM drafts WHERE user_id = ? AND name = ?", (user_id, name)).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE drafts SET content = ?, updated_at = ? WHERE user_id = ? AND name = ?",
+            (content_json, now, user_id, name),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO drafts (user_id, name, content, updated_at) VALUES (?, ?, ?, ?)",
+            (user_id, name, content_json, now),
+        )
+    conn.commit()
+    conn.close()
+    return get_draft(user_id, name)
+
 
 def get_template(template_id: int) -> dict | None:
     conn = get_conn()

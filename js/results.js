@@ -502,7 +502,9 @@ const Results = (() => {
       html += '<div style="overflow-x:auto;"><table style="min-width:850px;"><thead><tr><th>' + I18n.t('r15.rawMaterial') + '</th><th>' + I18n.t('r15.risk') + '</th><th>Q1</th><th>Q2</th><th>Q3</th><th>' + I18n.t('r15.ccpJudgment') + '</th><th style="min-width:250px;">' + I18n.t('r15.riskDetail') + '</th></tr></thead><tbody>';
       allHazards.forEach(function(h) {
         var riskColor = (h.hazardType === '生物危害' || h.hazardType === 'Biological Hazard') ? '#dc2626' : ((h.hazardType === '化学危害' || h.hazardType === 'Chemical Hazard') ? '#d97706' : '#6b7280');
-        html += '<tr><td><strong>' + fieldValue(h.material) + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + fieldValue(h.hazardType) + '</td><td>' + fieldValue(h.q1) + '</td><td>' + fieldValue(h.q2) + '</td><td>' + fieldValue(h.q3) + '</td><td>' + fieldValue(h.ccpResult) + '</td><td style="font-size:13px;line-height:1.5;">' + fieldValue(h.detail || h.desc) + '</td></tr>';
+        var htDisp = (h.hazardType === '生物危害' || h.hazardType === 'Biological Hazard') ? I18n.t('q.ccpHazardBio') : (h.hazardType === '化学危害' || h.hazardType === 'Chemical Hazard') ? I18n.t('q.ccpHazardChem') : (h.hazardType === '物理危害' || h.hazardType === 'Physical Hazard') ? I18n.t('q.ccpHazardPhys') : h.hazardType;
+        function yn(v) { return v === '是' ? I18n.t('common.yes') : (v === '否' ? I18n.t('common.no') : (v || '')); }
+        html += '<tr><td><strong>' + fieldValue(I18n.b(h.material || '')) + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + fieldValue(htDisp) + '</td><td>' + fieldValue(yn(h.q1)) + '</td><td>' + fieldValue(yn(h.q2)) + '</td><td>' + fieldValue(yn(h.q3)) + '</td><td>' + fieldValue(yn(h.ccpResult)) + '</td><td style="font-size:13px;line-height:1.5;">' + fieldValue(I18n.b(h.detail || h.desc || '')) + '</td></tr>';
       });
       html += '</tbody></table></div>';
     } else {
@@ -510,11 +512,11 @@ const Results = (() => {
       if (hasAnyHazard) {
         // 兼容旧数据格式
         html += '<h3>' + I18n.t('r15.bioHazard') + '</h3><table><thead><tr><th>' + I18n.t('r15.hazardDesc') + '</th><th>' + I18n.t('r15.severity') + '</th><th>' + I18n.t('r15.likelihood') + '</th><th>' + I18n.t('r15.control') + '</th></tr></thead><tbody>' +
-          (data.hazardBio || []).map(function(h) { return '<tr><td>' + fieldValue(h.desc) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(h.control) + '</td></tr>'; }).join('') +
+          (data.hazardBio || []).map(function(h) { return '<tr><td>' + fieldValue(I18n.b(h.desc || '')) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(I18n.b(h.control || '')) + '</td></tr>'; }).join('') +
           '</tbody></table><h3>' + I18n.t('r15.chemHazard') + '</h3><table><thead><tr><th>' + I18n.t('r15.hazardDesc') + '</th><th>' + I18n.t('r15.severity') + '</th><th>' + I18n.t('r15.likelihood') + '</th><th>' + I18n.t('r15.control') + '</th></tr></thead><tbody>' +
-          (data.hazardChem || []).map(function(h) { return '<tr><td>' + fieldValue(h.desc) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(h.control) + '</td></tr>'; }).join('') +
+          (data.hazardChem || []).map(function(h) { return '<tr><td>' + fieldValue(I18n.b(h.desc || '')) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(I18n.b(h.control || '')) + '</td></tr>'; }).join('') +
           '</tbody></table><h3>' + I18n.t('r15.physHazard') + '</h3><table><thead><tr><th>' + I18n.t('r15.hazardDesc') + '</th><th>' + I18n.t('r15.severity') + '</th><th>' + I18n.t('r15.likelihood') + '</th><th>' + I18n.t('r15.control') + '</th></tr></thead><tbody>' +
-          (data.hazardPhys || []).map(function(h) { return '<tr><td>' + fieldValue(h.desc) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(h.control) + '</td></tr>'; }).join('') +
+          (data.hazardPhys || []).map(function(h) { return '<tr><td>' + fieldValue(I18n.b(h.desc || '')) + '</td><td>' + fieldValue(h.severity) + '</td><td>' + fieldValue(h.likelihood) + '</td><td>' + fieldValue(I18n.b(h.control || '')) + '</td></tr>'; }).join('') +
           '</tbody></table>';
       } else {
         html += '<p style="color:var(--gray-400);font-style:italic;">' + I18n.t('r15.notFilled') + '</p>';
@@ -536,7 +538,7 @@ const Results = (() => {
       '</tbody></table>' +
       '<h3>' + I18n.t('r15.correctiveActions') + '</h3>' +
       '<table><thead><tr><th>' + I18n.t('r15.colCcp') + '</th><th>' + I18n.t('r15.colCl') + '</th><th>' + I18n.t('r15.colCorrective') + '</th><th>' + I18n.t('r15.colVerification') + '</th><th>' + I18n.t('r15.colRecord') + '</th></tr></thead><tbody>' +
-      (data.correctiveActions || []).map(function(c) { return '<tr><td>' + fieldValue(c.ccp) + '</td><td>' + fieldValue(c.cl) + '</td><td>' + fieldValue(c.corrective) + '</td><td>' + fieldValue(c.verification) + '</td><td>' + fieldValue(c.record) + '</td></tr>'; }).join('') +
+      (data.correctiveActions || []).map(function(c) { return '<tr><td>' + fieldValue(c.ccp) + '</td><td>' + fieldValue(I18n.b(c.cl || '')) + '</td><td>' + fieldValue(I18n.b(c.corrective || '')) + '</td><td>' + fieldValue(I18n.b(c.verification || '')) + '</td><td>' + fieldValue(I18n.b(c.record || '')) + '</td></tr>'; }).join('') +
       '</tbody></table></div>';
 
     // 七、记录

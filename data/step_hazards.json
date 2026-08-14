@@ -1,132 +1,186 @@
 [
   {
     "step": "原料接收",
-    "aliases": ["原料验收", "原料入库", "原料进厂", "原料采购"],
+    "aliases": ["原料验收", "原料入库", "原料进厂", "原料采购", "receiving", "acceptance", "raw material receiving", "fresh chicory"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料来自农田，可能携带污染物，或者运输过程中的污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料来自农田，可能携带污染物，或者运输过程中的污染|||Raw materials come from farmland and may carry contaminants, or become contaminated during transport",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "农药残留，重金属，持续性有机污染物",
+        "desc": "农药残留，重金属，持续性有机污染物|||Pesticide residues, heavy metals, persistent organic pollutants",
         "isSignificant": true,
-        "basis": "种植过程中农药的使用或控制不当造成的污染",
-        "control": "选择有合格检验证书的供应商，并索要外检报告；入厂快速检测（农药试纸）",
-        "controlRelation": "供应商验证和入厂检测可有效控制化学危害"
+        "basis": "种植过程中农药的使用或控制不当造成的污染|||Contamination from improper pesticide use or control during cultivation",
+        "control": "选择有合格检验证书的供应商，并索要外检报告；入厂快速检测（农药试纸）|||Select certified suppliers with inspection certificates; quick on-site testing at receiving (pesticide test strips)",
+        "controlRelation": "供应商验证和入厂检测可有效控制化学危害|||Supplier verification and receiving inspection effectively control chemical hazards"
       },
       "phys": {
-        "desc": "玻璃、金属、砂石、毛发、木屑、塑料等异物",
+        "desc": "玻璃、金属、砂石、毛发、木屑、塑料等异物|||Foreign matter: glass, metal, stones, hair, wood chips, plastic, etc.",
         "isSignificant": false,
-        "basis": "原料在生长环境中存在，在采摘运输过程中都有可能带入污染",
-        "control": "清洗步骤可去除",
-        "controlRelation": "后续清洗工序可去除物理异物"
+        "basis": "原料在生长环境中存在，在采摘运输过程中都有可能带入污染|||Present in the growing environment and may be introduced during harvest and transport",
+        "control": "清洗步骤可去除|||Removed by washing step",
+        "controlRelation": "后续清洗工序可去除物理异物|||Subsequent washing removes physical foreign matter"
       }
     }
   },
   {
     "step": "辅料验收",
-    "aliases": ["辅料接收", "辅料入库", "活性炭验收", "珍珠岩验收"],
+    "aliases": ["辅料接收", "辅料入库", "活性炭验收", "珍珠岩验收", "auxiliary material receiving", "excipient receiving"],
     "hazards": {
       "bio": {
-        "desc": "无显著生物危害",
+        "desc": "无显著生物危害|||No significant biological hazard",
         "isSignificant": false,
-        "basis": "辅料无显著生物危害",
-        "control": "查验第三方检测报告",
+        "basis": "辅料无显著生物危害|||No significant biological hazard in auxiliary materials",
+        "control": "查验第三方检测报告|||Verify third-party test reports",
         "controlRelation": ""
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
-        "basis": "辅料无显著化学危害",
-        "control": "查验第三方检测报告",
+        "basis": "辅料无显著化学危害|||No significant chemical hazard in auxiliary materials",
+        "control": "查验第三方检测报告|||Verify third-party test reports",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "玻璃、金属、砂石、毛发、木屑、塑料等异物",
+        "desc": "玻璃、金属、砂石、毛发、木屑、塑料等异物|||Foreign matter: glass, metal, stones, hair, wood chips, plastic, etc.",
         "isSignificant": false,
-        "basis": "辅料本身含有或者在运输过程中产生",
-        "control": "过滤、金属探测步骤可去除",
-        "controlRelation": "后续过滤和金属探测可去除物理危害"
+        "basis": "辅料本身含有或者在运输过程中产生|||Inherent in auxiliary materials or introduced during transport",
+        "control": "过滤、金属探测步骤可去除|||Removed by filtration and metal detection",
+        "controlRelation": "后续过滤和金属探测可去除物理危害|||Subsequent filtration and metal detection remove physical hazards"
       }
     }
   },
   {
     "step": "清洗",
-    "aliases": ["水洗", "漂洗", "冲洗", "清洗工序"],
+    "aliases": ["水洗", "漂洗", "冲洗", "清洗工序", "washing", "cleaning", "peeling"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料自身带有，清洗水污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料自身带有，清洗水污染|||Inherent in raw materials or contaminated washing water",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "清洗剂残留",
+        "desc": "清洗剂残留|||Cleaning agent residue",
         "isSignificant": false,
-        "basis": "未将原料清洗干净",
-        "control": "将原料多清洗几遍，确保无清洗剂残留",
-        "controlRelation": "充分漂洗可去除清洗剂残留"
+        "basis": "未将原料清洗干净|||Raw materials not rinsed thoroughly",
+        "control": "将原料多清洗几遍，确保无清洗剂残留|||Rinse raw materials multiple times to ensure no cleaning agent residue",
+        "controlRelation": "充分漂洗可去除清洗剂残留|||Thorough rinsing removes cleaning agent residue"
       },
       "phys": {
-        "desc": "砂石、异物",
+        "desc": "砂石、异物|||Stones and foreign matter",
         "isSignificant": false,
-        "basis": "原料自身带有",
-        "control": "清洗时10分钟排沙石一次，及时清理漂浮杂物",
-        "controlRelation": "排沙石操作可有效去除物理异物"
+        "basis": "原料自身带有|||Inherent in raw materials",
+        "control": "清洗时10分钟排沙石一次，及时清理漂浮杂物|||Remove stones every 10 minutes during washing; promptly clear floating debris",
+        "controlRelation": "排沙石操作可有效去除物理异物|||Stone removal operation effectively removes physical foreign matter"
       }
     }
   },
   {
     "step": "切丝",
-    "aliases": ["切碎", "切割", "切片", "切块"],
+    "aliases": ["切碎", "切割", "切片", "切块", "slicing", "cutting", "shredding"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身带有，设备带来的污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身带有，设备带来的污染|||Inherent in raw materials or contamination from equipment",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "设备零件掉落或清洗不净产生的异物",
+        "desc": "设备零件掉落或清洗不净产生的异物|||Foreign matter from equipment part detachment or inadequate cleaning",
         "isSignificant": false,
-        "basis": "设备零件掉落或清洗不净",
-        "control": "过滤、金属探测步骤去除",
-        "controlRelation": "后续过滤和金属探测可去除物理危害"
+        "basis": "设备零件掉落或清洗不净|||Equipment part detachment or inadequate cleaning",
+        "control": "过滤、金属探测步骤去除|||Removed by filtration and metal detection",
+        "controlRelation": "后续过滤和金属探测可去除物理危害|||Subsequent filtration and metal detection remove physical hazards"
+      }
+    }
+  },
+  {
+    "step": "粉碎",
+    "aliases": ["捣碎", "破碎", "研磨", "粉碎/捣碎", "crushing", "grinding", "pulverizing", "pulverisation"],
+    "hazards": {
+      "bio": {
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+        "isSignificant": false,
+        "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序可以去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
+      },
+      "chem": {
+        "desc": "无显著化学危害|||No significant chemical hazard",
+        "isSignificant": false,
+        "basis": "",
+        "control": "",
+        "controlRelation": ""
+      },
+      "phys": {
+        "desc": "原料本身含有，或设备零件掉落的异物|||Foreign matter inherent in raw materials or from equipment part detachment",
+        "isSignificant": false,
+        "basis": "原料本身含有，或设备零件掉落|||Inherent in raw materials or equipment part detachment",
+        "control": "过滤步骤可以去除|||Removed by filtration",
+        "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards"
+      }
+    }
+  },
+  {
+    "step": "破壁",
+    "aliases": ["超声破壁", "细胞破壁", "破壁处理", "disruption", "cell disruption", "ultrasonic disruption"],
+    "hazards": {
+      "bio": {
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+        "isSignificant": false,
+        "basis": "原料本身带有，破壁过程释放细胞内成分，设备接触可能引入污染|||Inherent in raw materials; cell disruption releases intracellular components and equipment contact may introduce contamination",
+        "control": "破壁后及时进入后续加热/灭菌工序，设备定期清洗消毒|||Proceed promptly to subsequent heating/sterilization; clean and disinfect equipment regularly",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
+      },
+      "chem": {
+        "desc": "无显著化学危害|||No significant chemical hazard",
+        "isSignificant": false,
+        "basis": "",
+        "control": "",
+        "controlRelation": ""
+      },
+      "phys": {
+        "desc": "设备零件磨损或脱落产生的金属异物|||Metal fragments from equipment wear or part detachment",
+        "isSignificant": false,
+        "basis": "设备高速运转零件磨损|||Wear of high-speed rotating equipment parts",
+        "control": "过滤、金属探测步骤去除|||Removed by filtration and metal detection",
+        "controlRelation": "后续过滤和金属探测可去除物理危害|||Subsequent filtration and metal detection remove physical hazards"
       }
     }
   },
   {
     "step": "浸提",
-    "aliases": ["浸泡提取", "提取", "萃取"],
+    "aliases": ["浸泡提取", "提取", "萃取", "extraction", "leaching", "maceration"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身带有、设备污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身带有、设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -136,78 +190,51 @@
   },
   {
     "step": "匀浆",
-    "aliases": ["打浆", "均质", "均浆"],
+    "aliases": ["打浆", "均质", "均浆", "homogenization", "homogenisation", "pulping"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有、清洗过程带入，设备带来的污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身含有、清洗过程带入，设备带来的污染|||Inherent in raw materials, introduced during washing, or from equipment",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
-      }
-    }
-  },
-  {
-    "step": "脱色",
-    "aliases": ["脱色处理"],
-    "hazards": {
-      "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
-        "isSignificant": false,
-        "basis": "原料本身带有，设备污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
-      },
-      "chem": {
-        "desc": "无显著化学危害",
-        "isSignificant": false,
-        "basis": "",
-        "control": "",
-        "controlRelation": ""
-      },
-      "phys": {
-        "desc": "原料本身含有，加工助剂中带有的异物",
-        "isSignificant": false,
-        "basis": "原料本身含有，加工助剂中带有",
-        "control": "过滤步骤去除",
-        "controlRelation": "后续过滤步骤可去除物理危害"
       }
     }
   },
   {
     "step": "加热加压提取",
-    "aliases": ["热提取", "高温提取", "热压提取"],
+    "aliases": ["热提取", "高温提取", "热压提取", "heat pressure extraction", "hot extraction", "high temperature extraction"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有并且加热加压时间和温度不够杀灭",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身含有并且加热加压时间和温度不够杀灭|||Inherent in raw materials; insufficient heating time or temperature to kill",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -217,24 +244,24 @@
   },
   {
     "step": "减压浓缩",
-    "aliases": ["浓缩", "蒸发浓缩"],
+    "aliases": ["浓缩", "蒸发浓缩", "concentration", "vacuum concentration", "evaporation"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有或设备污染",
-        "control": "灭菌工序去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -244,78 +271,162 @@
   },
   {
     "step": "膜滤",
-    "aliases": ["膜过滤", "一级膜滤", "二级膜滤", "一级/二级膜滤", "膜分离", "一级膜过滤", "二级膜过滤"],
+    "aliases": ["膜过滤", "一级膜滤", "二级膜滤", "一级/二级膜滤", "膜分离", "一级膜过滤", "二级膜过滤", "filtration", "membrane filtration", "ultrafiltration", "nanofiltration"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身自带",
-        "control": "灭菌工序可去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身自带|||Inherent in raw materials",
+        "control": "灭菌工序可去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "未过滤掉的异物",
+        "desc": "未过滤掉的异物|||Foreign matter not removed by filtration",
         "isSignificant": true,
-        "basis": "未过滤掉",
-        "control": "严格控制膜滤操作参数，定期检查膜完整性，确保过滤效果",
-        "controlRelation": "CCP-膜滤本身直接控制物理危害，是关键控制点"
+        "basis": "未过滤掉|||Not removed by filtration",
+        "control": "严格控制膜滤操作参数，定期检查膜完整性，确保过滤效果|||Strictly control membrane filtration parameters, regularly check membrane integrity to ensure filtration effectiveness",
+        "controlRelation": "CCP-膜滤本身直接控制物理危害，是关键控制点|||CCP - membrane filtration itself directly controls physical hazards and is a critical control point"
       }
     }
   },
   {
-    "step": "粉碎",
-    "aliases": ["捣碎", "破碎", "研磨", "粉碎/捣碎"],
+    "step": "絮凝沉淀",
+    "aliases": ["絮凝", "絮凝反应", "絮凝沉降", "floccul", "flocculation", "flocculation reaction"],
+    "exclude": ["alcohol", "醇"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有或设备污染",
-        "control": "灭菌工序可以去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "絮凝剂溶液或容器可能滋生微生物|||Microorganisms may proliferate in flocculant solution or containers",
+        "control": "灭菌工序去除，絮凝剂现配现用|||Eliminated by sterilization; prepare flocculant fresh for each use",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "絮凝剂残留|||Flocculant residue",
+        "isSignificant": false,
+        "basis": "絮凝剂投加过量或未完全沉降|||Excessive flocculant dosing or incomplete settling",
+        "control": "严格控制絮凝剂投加量，投加后充分搅拌并静置沉降|||Strictly control flocculant dosage; stir thoroughly and allow full settling after dosing",
+        "controlRelation": "后续过滤步骤可去除絮凝剂残留|||Subsequent filtration removes flocculant residue"
+      },
+      "phys": {
+        "desc": "絮凝物、沉降物中带入的异物|||Foreign matter carried in flocs or sediment",
+        "isSignificant": false,
+        "basis": "絮凝沉降过程聚集|||Accumulated during flocculation and settling",
+        "control": "过滤步骤去除|||Removed by filtration",
+        "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards"
+      }
+    }
+  },
+  {
+    "step": "沉淀分离",
+    "aliases": ["沉淀", "上清液", "静置", "supernatant", "settling", "decanting"],
+    "exclude": ["alcohol", "醇"],
+    "hazards": {
+      "bio": {
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+        "isSignificant": false,
+        "basis": "静置过程中微生物可能增殖|||Microorganisms may proliferate during settling",
+        "control": "控制静置时间，及时进入后续工序|||Control settling time and proceed promptly to subsequent steps",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
+      },
+      "chem": {
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "原料本身含有，或设备零件掉落的异物",
+        "desc": "沉淀中夹带的异物|||Foreign matter carried in sediment",
         "isSignificant": false,
-        "basis": "原料本身含有，或设备零件掉落",
-        "control": "过滤步骤可以去除",
-        "controlRelation": "后续过滤步骤可去除物理危害"
+        "basis": "沉降过程聚集|||Accumulated during settling",
+        "control": "过滤步骤去除|||Removed by filtration",
+        "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards"
+      }
+    }
+  },
+  {
+    "step": "离心净化",
+    "aliases": ["离心", "离心分离", "离心过滤", "离心净化", "净化", "centrifugal", "centrifugal separation", "purification"],
+    "exclude": ["carbon", "炭", "alcohol", "醇"],
+    "hazards": {
+      "bio": {
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+        "isSignificant": false,
+        "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序去除，设备定期清洗|||Eliminated by sterilization; clean equipment regularly",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
+      },
+      "chem": {
+        "desc": "无显著化学危害|||No significant chemical hazard",
+        "isSignificant": false,
+        "basis": "",
+        "control": "",
+        "controlRelation": ""
+      },
+      "phys": {
+        "desc": "设备零件磨损产生的金属异物|||Metal fragments from equipment wear",
+        "isSignificant": false,
+        "basis": "高速运转设备零件磨损|||Wear of high-speed rotating equipment parts",
+        "control": "金属探测步骤去除，定期维护设备|||Removed by metal detection; regular equipment maintenance",
+        "controlRelation": "后续金属探测可去除物理危害|||Subsequent metal detection removes physical hazards"
+      }
+    }
+  },
+  {
+    "step": "脱色",
+    "aliases": ["脱色处理", "活性炭脱色", "decolorization", "decoloration", "decolorising", "activated carbon decolor"],
+    "hazards": {
+      "bio": {
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+        "isSignificant": false,
+        "basis": "原料本身带有，设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
+      },
+      "chem": {
+        "desc": "无显著化学危害|||No significant chemical hazard",
+        "isSignificant": false,
+        "basis": "",
+        "control": "",
+        "controlRelation": ""
+      },
+      "phys": {
+        "desc": "原料本身含有，加工助剂中带有的异物|||Foreign matter inherent in raw materials or introduced by processing aids",
+        "isSignificant": false,
+        "basis": "原料本身含有，加工助剂中带有|||Inherent in raw materials or in processing aids",
+        "control": "过滤步骤去除|||Removed by filtration",
+        "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards"
       }
     }
   },
   {
     "step": "离子交换",
-    "aliases": ["离子交换处理", "离子交换树脂"],
+    "aliases": ["离子交换处理", "离子交换树脂", "脱盐", "deionization", "ion exchange", "resin"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有或设备污染",
-        "control": "灭菌工序可以去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序可以去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -325,24 +436,24 @@
   },
   {
     "step": "纳滤纯化",
-    "aliases": ["纳滤", "纳滤纯化分级", "膜分离", "膜滤"],
+    "aliases": ["纳滤", "纳滤纯化分级", "膜分离", "膜滤", "nanofiltration", "nanofiltration purification"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有或设备污染",
-        "control": "灭菌工序可以去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序可以去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -352,24 +463,24 @@
   },
   {
     "step": "降膜蒸发浓缩",
-    "aliases": ["降膜蒸发", "降膜浓缩"],
+    "aliases": ["降膜蒸发", "降膜浓缩", "falling film evaporation"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": false,
-        "basis": "原料本身含有或设备污染",
-        "control": "灭菌工序可以去除",
-        "controlRelation": "后道灭菌工序可消除生物危害"
+        "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+        "control": "灭菌工序可以去除|||Eliminated by sterilization process",
+        "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -379,24 +490,24 @@
   },
   {
     "step": "灭菌",
-    "aliases": ["杀菌", "高温灭菌", "消毒", "巴氏杀菌"],
+    "aliases": ["杀菌", "高温灭菌", "消毒", "巴氏杀菌", "sterilization", "sterilizing", "pasteurization"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": true,
-        "basis": "灭菌操作、温度和时间不符合要求",
-        "control": "严格控制灭菌温度和时间，定期验证灭菌效果",
-        "controlRelation": "CCP-灭菌操作直接控制生物危害，是关键控制点"
+        "basis": "灭菌操作、温度和时间不符合要求|||Sterilization operation, temperature, or time does not meet requirements",
+        "control": "严格控制灭菌温度和时间，定期验证灭菌效果|||Strictly control sterilization temperature and time; periodically verify effectiveness",
+        "controlRelation": "CCP-灭菌操作直接控制生物危害，是关键控制点|||CCP - sterilization directly controls biological hazards and is a critical control point"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -406,105 +517,105 @@
   },
   {
     "step": "喷雾干燥",
-    "aliases": ["干燥", "喷干", "干燥工序"],
+    "aliases": ["干燥", "喷干", "干燥工序", "drying", "spray drying", "dehydration"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": true,
-        "basis": "设备污染，干燥温度和时间不足",
-        "control": "严格控制喷雾干燥的温度和进风量，定期清洗设备",
-        "controlRelation": "CCP-干燥条件直接控制微生物危害"
+        "basis": "设备污染，干燥温度和时间不足|||Equipment contamination, or insufficient drying temperature and time",
+        "control": "严格控制喷雾干燥的温度和进风量，定期清洗设备|||Strictly control spray drying temperature and inlet air volume; clean equipment regularly",
+        "controlRelation": "CCP-干燥条件直接控制微生物危害|||CCP - drying conditions directly control microbial hazards"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "设备零件掉落的金属异物",
+        "desc": "设备零件掉落的金属异物|||Metal fragments from equipment part detachment",
         "isSignificant": false,
-        "basis": "设备零件掉落",
-        "control": "金属探测可以去除",
-        "controlRelation": "后续金属探测可去除物理危害"
+        "basis": "设备零件掉落|||Equipment part detachment",
+        "control": "金属探测可以去除|||Removed by metal detection",
+        "controlRelation": "后续金属探测可去除物理危害|||Subsequent metal detection removes physical hazards"
       }
     }
   },
   {
     "step": "金属探测",
-    "aliases": ["金属检测", "金属检测仪", "金属异物检测"],
+    "aliases": ["金属检测", "金属检测仪", "金属异物检测", "metal detection", "metal detector", "metal inspection"],
     "hazards": {
       "bio": {
-        "desc": "无显著生物危害",
+        "desc": "无显著生物危害|||No significant biological hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "金属异物",
+        "desc": "金属异物|||Metal foreign matter",
         "isSignificant": true,
-        "basis": "金属探测步骤操作不符合要求",
-        "control": "严格按照金属探测仪操作规范执行，定期校验灵敏度",
-        "controlRelation": "CCP-金属探测是控制物理危害的关键控制点"
+        "basis": "金属探测步骤操作不符合要求|||Metal detection operation does not meet requirements",
+        "control": "严格按照金属探测仪操作规范执行，定期校验灵敏度|||Strictly follow metal detector operation procedures; periodically verify sensitivity",
+        "controlRelation": "CCP-金属探测是控制物理危害的关键控制点|||CCP - metal detection is the critical control point for physical hazards"
       }
     }
   },
   {
     "step": "包装",
-    "aliases": ["包装工序", "灌装", "内包装", "外包装"],
+    "aliases": ["包装工序", "灌装", "内包装", "外包装", "packaging", "filling", "packing", "filling and packaging"],
     "hazards": {
       "bio": {
-        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌",
+        "desc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
         "isSignificant": true,
-        "basis": "包装袋污染",
-        "control": "必须使用合格供方包装并提供出厂检验报告",
-        "controlRelation": "包装材料验证可控制生物危害，否则需设为CCP"
+        "basis": "包装袋污染|||Contamination of packaging bags",
+        "control": "必须使用合格供方包装并提供出厂检验报告|||Use packaging from qualified suppliers with factory inspection reports",
+        "controlRelation": "包装材料验证可控制生物危害，否则需设为CCP|||Packaging material verification controls biological hazards; otherwise it must be set as CCP"
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "包装袋混入的异物",
+        "desc": "包装袋混入的异物|||Foreign matter introduced from packaging bags",
         "isSignificant": false,
-        "basis": "包装袋混入",
-        "control": "使用前对包装逐一检查，合格后使用",
-        "controlRelation": "包装前检查可控制物理危害"
+        "basis": "包装袋混入|||Introduced from packaging bags",
+        "control": "使用前对包装逐一检查，合格后使用|||Inspect each package before use and use only qualified ones",
+        "controlRelation": "包装前检查可控制物理危害|||Pre-packaging inspection controls physical hazards"
       }
     }
   },
   {
     "step": "入库储存",
-    "aliases": ["入库", "储存", "仓储", "成品入库"],
+    "aliases": ["入库", "储存", "仓储", "成品入库", "storage", "storing", "warehousing", "storag"],
     "hazards": {
       "bio": {
-        "desc": "无显著生物危害",
+        "desc": "无显著生物危害|||No significant biological hazard",
         "isSignificant": false,
-        "basis": "储存环境符合要求",
-        "control": "仓库温湿度控制，防虫防鼠",
+        "basis": "储存环境符合要求|||Storage environment meets requirements",
+        "control": "仓库温湿度控制，防虫防鼠|||Control warehouse temperature and humidity; pest and rodent prevention",
         "controlRelation": ""
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
@@ -514,24 +625,24 @@
   },
   {
     "step": "运输",
-    "aliases": ["物流", "出货", "配送"],
+    "aliases": ["物流", "出货", "配送", "transport", "transportation", "delivery", "distribution"],
     "hazards": {
       "bio": {
-        "desc": "无显著生物危害",
+        "desc": "无显著生物危害|||No significant biological hazard",
         "isSignificant": false,
-        "basis": "运输过程符合卫生要求",
-        "control": "运输车辆清洁卫生，温度控制",
+        "basis": "运输过程符合卫生要求|||Transport process meets hygiene requirements",
+        "control": "运输车辆清洁卫生，温度控制|||Keep transport vehicles clean and control temperature",
         "controlRelation": ""
       },
       "chem": {
-        "desc": "无显著化学危害",
+        "desc": "无显著化学危害|||No significant chemical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",
         "controlRelation": ""
       },
       "phys": {
-        "desc": "无显著物理危害",
+        "desc": "无显著物理危害|||No significant physical hazard",
         "isSignificant": false,
         "basis": "",
         "control": "",

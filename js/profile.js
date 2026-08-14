@@ -2,6 +2,12 @@
 const Profile = (() => {
   const STORAGE_KEY = 'haccp_profile_data';
 
+  // 如果是通过 file:// 打开的，自动补全后端地址
+  var API_HOST = '';
+  if (window.location.protocol === 'file:' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+    API_HOST = 'http://localhost:8000';
+  }
+
   const DEPT_OPTIONS = [
     I18n.t('pf.dept.qc'),
     I18n.t('pf.dept.rd'),
@@ -100,6 +106,49 @@ const Profile = (() => {
 
   function saveData(data) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.warn('Failed to write localStorage ' + STORAGE_KEY + ':', e); }
+    scheduleDraftSync(data);
+  }
+
+  // ===== 草稿自动保存到后端（登录用户，15秒节流）=====
+  var _draftTimer = null;
+  function scheduleDraftSync(data) {
+    var token = null;
+    try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+    if (!token) return;
+    if (_draftTimer) clearTimeout(_draftTimer);
+    _draftTimer = setTimeout(function() {
+      _draftTimer = null;
+      var payload;
+      try { payload = JSON.stringify(data); } catch(e) { return; }
+      fetch(API_HOST + '/api/drafts/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ data: JSON.parse(payload) }),
+      }).catch(function() { /* 后端不可用时静默跳过，本地已保存 */ });
+    }, 15000);
+  }
+
+  function loadDraftFromBackendIfNeeded() {
+    try {
+      if (localStorage.getItem(STORAGE_KEY)) return;
+      var token = localStorage.getItem('haccp_token');
+      if (!token) return;
+      fetch(API_HOST + '/api/drafts/profile', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d && d.ok && d.draft && d.draft.content) {
+            var parsed = JSON.parse(d.draft.content);
+            if (parsed && typeof parsed === 'object') {
+              localStorage.setItem(STORAGE_KEY, d.draft.content);
+              renderActiveSection();
+              renderSectionNav();
+            }
+          }
+        })
+        .catch(function() { /* 忽略 */ });
+    } catch(e) {}
   }
 
   function syncToQuestionnaire(data) {
@@ -133,6 +182,8 @@ const Profile = (() => {
     currentStep = 0;
     const container = document.getElementById('profileContainer');
     if (!container) return;
+    // 本地无数据时，尝试从后端草稿恢复
+    loadDraftFromBackendIfNeeded();
     const data = loadData();
     // 检测是否处于 HACCP 审查模式
     var reviewActive = false;
@@ -158,9 +209,16 @@ const Profile = (() => {
         '<p class="q15-desc">' + I18n.t('pf.pageDesc') + '</p>' +
         '<div class="q15-progress" id="profileProgress"></div>' +
       '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">' +
+        '<span style="font-size:12px;color:var(--gray-400);flex:1;">📦 ' + I18n.t('q.demoSave') + ' / ' + I18n.t('q.demoLoad') + '</span>' +
+        '<button class="btn btn-xs btn-secondary" id="pfDemoSaveBtn">' + I18n.t('q.demoSave') + '</button>' +
+        '<button class="btn btn-xs btn-secondary" id="pfDemoLoadBtn">' + I18n.t('q.demoLoad') + '</button>' +
+        '<span id="pfDemoStatus" style="font-size:12px;color:var(--gray-400);"></span>' +
+      '</div>' +
       '<div id="profileContent"></div>';
     renderSectionNav();
     renderActiveSection();
+    bindDemoEvents();
     // 绑定审查模式返回按钮
     document.getElementById('backToHaccpReviewBtn')?.addEventListener('click', function() {
       // 跳回HACCP计划书 - 步骤5（纠偏措施）
@@ -184,6 +242,82 @@ const Profile = (() => {
           }
         }
       }, 200);
+    });
+  }
+
+  // ===== 演示数据：保存 15-min 问卷内容到后端 / 载入展示 =====
+  function setDemoStatus(msg, ok) {
+    var el = document.getElementById('pfDemoStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok ? '#16a34a' : '#dc2626';
+  }
+
+  function applyProfileDemo(demo) {
+    const def = getDefaultData();
+    Object.keys(def).forEach(function(k) { if (demo[k] === undefined) demo[k] = def[k]; });
+    saveData(demo);
+    syncToQuestionnaire(demo);
+    // 标记为已提交，便于在结果页展示
+    try {
+      localStorage.setItem('haccp_submitted', 'true');
+      localStorage.setItem('haccp_15min_completed', 'true');
+    } catch(e) {}
+    currentStep = 0;
+    renderSectionNav();
+    renderActiveSection();
+  }
+
+  function saveProfileDemo() {
+    const data = loadData();
+    var hasContent = JSON.stringify(data) !== JSON.stringify(getDefaultData());
+    if (!hasContent) { setDemoStatus(I18n.t('q.demoEmpty'), false); return; }
+    // 1. 本地备份（离线兜底）
+    try { localStorage.setItem('haccp_profile_demo_backup', JSON.stringify(data)); } catch(e) {}
+    // 2. 保存到后端（写入 data/demo_profile.json）
+    fetch(API_HOST + '/api/demo/profile-data', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: data }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) setDemoStatus(I18n.t('q.demoSaved'), true);
+        else setDemoStatus(I18n.t('q.demoFailed') + (d.message || ''), false);
+      })
+      .catch(function(e) { setDemoStatus(I18n.t('q.demoSavedLocal'), false); });
+  }
+
+  function loadProfileDemo() {
+    var backup = null;
+    try { backup = localStorage.getItem('haccp_profile_demo_backup'); } catch(e) {}
+    fetch(API_HOST + '/api/demo/profile-data')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok && d.data) {
+          applyProfileDemo(d.data);
+          setDemoStatus(I18n.t('q.demoLoaded'), true);
+        } else {
+          throw new Error('no data');
+        }
+      })
+      .catch(function(e) {
+        if (backup) {
+          try { applyProfileDemo(JSON.parse(backup)); setDemoStatus(I18n.t('q.demoLoaded'), true); }
+          catch(e2) { setDemoStatus(I18n.t('q.demoFailed') + e2.message, false); }
+        } else {
+          setDemoStatus(I18n.t('q.demoFailed') + (e.message || ''), false);
+        }
+      });
+  }
+
+  function bindDemoEvents() {
+    var saveBtn = document.getElementById('pfDemoSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveProfileDemo);
+    var loadBtn = document.getElementById('pfDemoLoadBtn');
+    if (loadBtn) loadBtn.addEventListener('click', function() {
+      if (!confirm(I18n.t('q.demoConfirm'))) return;
+      loadProfileDemo();
     });
   }
 
@@ -492,7 +626,7 @@ const Profile = (() => {
     document.body.appendChild(overlay);
 
     var iframe = document.getElementById('pfFcIframe');
-    iframe.src = 'flowchart-preview.html';
+    iframe.src = 'flowchart-preview.html?v=' + Date.now();
 
     function closeEditor(doSync) {
       if (doSync !== false) {

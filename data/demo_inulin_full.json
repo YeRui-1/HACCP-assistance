@@ -1,218 +1,2268 @@
 {
-  "companyName": "菊粉生物科技有限公司",
-  "deptName": "品控部",
+  "companyName": "Gansu Lircon Biological Co., Ltd.",
+  "deptName": "Quality Assurance Department",
   "haccpTeam": [
     {
-      "id": "t1",
-      "name": "张伟",
-      "dept": "品控部",
-      "position": "经理",
-      "role": "组长",
-      "remark": "HACCP体系负责人"
+      "id": "f_1785746256960_59nna",
+      "name": "David Chen",
+      "dept": "Hygiene & Quality Control",
+      "role": "Team leader",
+      "authority": "Approve CCP limits, verify records",
+      "remark": ""
     },
     {
-      "id": "t2",
-      "name": "李芳",
-      "dept": "生产部",
-      "position": "主管",
-      "role": "组员",
-      "remark": "生产工艺专家"
+      "id": "f_1785746256960_rlfd3",
+      "name": "Sarah Miller",
+      "dept": "Product R&D",
+      "role": "Deputy Leader",
+      "authority": "Approve corrective actions, halt production",
+      "remark": ""
     },
     {
-      "id": "t3",
-      "name": "王强",
-      "dept": "质检部",
-      "position": "检验员",
-      "role": "组员",
-      "remark": "微生物检测"
+      "id": "f_1785746256960_t56nu",
+      "name": "Emily Zhang",
+      "dept": "Hygiene & Quality Control",
+      "role": "Coordinator",
+      "authority": "Maintain documents, compile",
+      "remark": ""
     },
     {
-      "id": "t4",
-      "name": "陈敏",
-      "dept": "设备部",
-      "position": "工程师",
-      "role": "组员",
-      "remark": "设备维护保养"
+      "id": "f_1785746256960_ziqgp",
+      "name": "James Wilson",
+      "dept": "Equipment & Facility Management",
+      "role": "Member",
+      "authority": "Calibrate monitoring equipment, validation tests",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_1czzm",
+      "name": "Lisa Wang",
+      "dept": "Equipment & Facility Management",
+      "role": "Member",
+      "authority": "Calibrate monitoring equipment, validation tests",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_8js1o",
+      "name": "Robert Taylor",
+      "dept": "Transport",
+      "role": "Member",
+      "authority": "Approve suppliers, verify raw material specs",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_9jcqb",
+      "name": "Amanda Lee",
+      "dept": "Warehouse",
+      "role": "Member",
+      "authority": "Monitor storage conditions, control shipments",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_3qsqx",
+      "name": "Michael Brown",
+      "dept": "Equipment & Facility Management",
+      "role": "Member",
+      "authority": "Operate CCP monitoring, record CCP data",
+      "remark": ""
     }
   ],
-  "auditor": "张伟",
-  "productName": "菊粉（Inulin）",
-  "rawMaterials": "新鲜菊芋（Jerusalem Artichoke）",
-  "additives": "活性炭、乙醇、交换树脂",
-  "productPH": "5.0-7.0",
-  "waterActivity": "≤0.85",
-  "intendedUse": "作为膳食纤维原料",
-  "storageCondition": "常温干燥避光",
-  "packagingMethod": "PE内袋+铝箔外袋",
-  "targetConsumer": "普通人群",
-  "shelfLife": "24个月",
-  "execStandard": "gb",
+  "auditor": "Kevin Nakamura",
+  "extraItems": [],
+  "productExtraItems": [],
+  "productName": "inulin",
+  "rawMaterials": "chicory root, activated carbon",
+  "additives": "",
+  "productPH": "",
+  "waterActivity": "",
+  "intendedUse": "",
+  "storageCondition": "",
+  "packagingMethod": "",
+  "targetConsumer": "",
+  "shelfLife": "",
   "formula": [
     {
-      "id": "f1",
-      "material": "新鲜菊芋",
-      "dosage": "1000kg/批",
-      "func": "原料"
-    },
-    {
-      "id": "f2",
-      "material": "纯净水",
-      "dosage": "1.5-3倍",
-      "func": "溶剂"
-    },
-    {
-      "id": "f3",
-      "material": "活性炭",
-      "dosage": "1-3%",
-      "func": "脱色"
-    },
-    {
-      "id": "f4",
-      "material": "乙醇",
-      "dosage": "适量",
-      "func": "沉淀"
+      "id": "f_1784301621246_ls5ls",
+      "material": "",
+      "dosage": "",
+      "func": ""
     }
   ],
   "processSteps": [
     {
-      "id": "ps1",
-      "stepName": "菊芋验收",
-      "operationMethod": "检验原料新鲜度",
-      "parameters": "感官检验",
-      "controlPoint": "CQP-1",
-      "equipmentName": ""
-    },
-    {
-      "id": "ps2",
-      "stepName": "清洗",
-      "operationMethod": "超声波清洗去皮",
-      "parameters": "40℃、30min",
-      "controlPoint": "OPRP-1",
-      "equipmentName": "超声波清洗机"
-    },
-    {
-      "id": "ps3",
-      "stepName": "粉碎",
-      "operationMethod": "三级逐级粉碎",
-      "parameters": "≤15mm",
-      "controlPoint": "OPRP-2",
-      "equipmentName": "粉碎机"
-    },
-    {
-      "id": "ps4",
-      "stepName": "匀浆",
-      "operationMethod": "加纯净水超声匀浆",
-      "parameters": "50-100W",
+      "id": "f_1785823543985_tayhj",
+      "stepName": "Fresh chicory root",
+      "operationMethod": "Receive fresh chicory root, remove rotten/deformed tubers",
+      "parameters": "Sound tubers, free of pests/disease",
       "controlPoint": "",
-      "equipmentName": ""
+      "equipmentName": "Raw material receiving area"
     },
     {
-      "id": "ps5",
-      "stepName": "加热加压提取",
-      "operationMethod": "高温高压提取",
-      "parameters": "120-150℃",
+      "id": "f_1785823543985_0zde1",
+      "stepName": "Ultrasonic cleaning and peeling",
+      "operationMethod": "Wash and peel in ultrasonic cleaner; expanded skin rubs against fish-scale wall under ultrasonic water flow",
+      "parameters": "Wash 20-30 min; water 40-60℃",
       "controlPoint": "",
-      "equipmentName": "高压提取罐"
+      "equipmentName": "Ultrasonic cleaner (fish-scale inner wall)"
     },
     {
-      "id": "ps6",
-      "stepName": "减压浓缩",
-      "operationMethod": "减压浓缩",
-      "parameters": "50-60℃",
+      "id": "f_1785823543985_t6kwg",
+      "stepName": "Crushing pretreatment",
+      "operationMethod": "Feed peeled tubers into three-stage crusher for primary crushing",
+      "parameters": "Primary crush to 15-25 mm particles",
       "controlPoint": "",
-      "equipmentName": "旋转蒸发器"
+      "equipmentName": "Three-stage crusher"
     },
     {
-      "id": "ps7",
-      "stepName": "一级膜过滤",
-      "operationMethod": "微滤除大分子",
-      "parameters": "0.2μm",
-      "controlPoint": "CCP-1",
-      "equipmentName": "膜过滤系统"
-    },
-    {
-      "id": "ps8",
-      "stepName": "脱色",
-      "operationMethod": "活性炭吸附",
-      "parameters": "1-3%",
-      "controlPoint": "OPRP-3",
-      "equipmentName": "脱色罐"
-    },
-    {
-      "id": "ps9",
-      "stepName": "脱离子",
-      "operationMethod": "离子交换",
-      "parameters": "2-4BV/h",
-      "controlPoint": "OPRP-4",
-      "equipmentName": "离子交换柱"
-    },
-    {
-      "id": "ps10",
-      "stepName": "二级膜过滤",
-      "operationMethod": "超滤除菌",
-      "parameters": "0.1μm",
-      "controlPoint": "CCP-2",
-      "equipmentName": "超滤膜系统"
-    },
-    {
-      "id": "ps11",
-      "stepName": "醇降",
-      "operationMethod": "乙醇沉淀",
-      "parameters": "60-70%",
+      "id": "f_1785823543985_gv6mm",
+      "stepName": "Fine grinding",
+      "operationMethod": "Mash the crushed tubers with hammer-type masher",
+      "parameters": "Mash to 5-10 mm particles",
       "controlPoint": "",
-      "equipmentName": "沉淀罐"
+      "equipmentName": "Hammer-type masher"
     },
     {
-      "id": "ps12",
-      "stepName": "干燥",
-      "operationMethod": "真空干燥",
-      "parameters": "120-180℃",
-      "controlPoint": "CCP-3",
-      "equipmentName": "真空干燥机"
-    },
-    {
-      "id": "ps13",
-      "stepName": "金属检测",
-      "operationMethod": "金属探测",
-      "parameters": "Fe≥1.5mm",
-      "controlPoint": "CCP-4",
-      "equipmentName": "金属检测机"
-    },
-    {
-      "id": "ps14",
-      "stepName": "包装",
-      "operationMethod": "自动称量密封",
-      "parameters": "25kg/袋",
-      "controlPoint": "OPRP-5",
-      "equipmentName": "自动包装机"
-    },
-    {
-      "id": "ps15",
-      "stepName": "成品储存与运输",
-      "operationMethod": "常温避光防潮",
-      "parameters": "≤25℃",
+      "id": "f_1785823543985_sq12v",
+      "stepName": "Homogenization",
+      "operationMethod": "Mix mashed tubers with water and stir rapidly into slurry",
+      "parameters": "Water 1.5-3 times tuber mass",
       "controlPoint": "",
-      "equipmentName": ""
+      "equipmentName": "Stirrer"
+    },
+    {
+      "id": "f_1785823543985_qq95o",
+      "stepName": "Ultrasound disruption",
+      "operationMethod": "Ultrasonic treatment of slurry to disrupt cell walls and release inulin",
+      "parameters": "Power 50-100 W; 40 kHz; 12 min",
+      "controlPoint": "",
+      "equipmentName": "Ultrasonic processor"
+    },
+    {
+      "id": "f_1785823543985_wnfnd",
+      "stepName": "Precipitation",
+      "operationMethod": "Heat and pressurize slurry, let stand, take supernatant as crude extract",
+      "parameters": "Stand 5-20 min after heating/pressurizing",
+      "controlPoint": "",
+      "equipmentName": "Heating/pressurizing vessel"
+    },
+    {
+      "id": "f_1785823543985_tgfbl",
+      "stepName": "Hot-water extraction",
+      "operationMethod": "Hot-water extraction of inulin, remove coarse residue",
+      "parameters": "Hot extraction, solid:liquid ≈ 1:1.5-3",
+      "controlPoint": "",
+      "equipmentName": "Extraction tank"
+    },
+    {
+      "id": "f_1785823543985_vfg8u",
+      "stepName": "Vacuum concentration",
+      "operationMethod": "Concentrate crude extract under vacuum",
+      "parameters": "Concentrate to suitable solids content",
+      "controlPoint": "",
+      "equipmentName": "Vacuum concentrator"
+    },
+    {
+      "id": "f_1785823543985_nklqw",
+      "stepName": "Membrane filtration",
+      "operationMethod": "Filter concentrated extract through membrane to remove protein and cellulose",
+      "parameters": "Membrane pore 4-8 mm",
+      "controlPoint": "CCP",
+      "equipmentName": "Membrane filter"
+    },
+    {
+      "id": "f_1785823543985_zhyey",
+      "stepName": "Flocculation",
+      "operationMethod": "Heat filtered extract and stir to flocculate",
+      "parameters": "Heat 35-50℃; stir at 80-180 rpm",
+      "controlPoint": "",
+      "equipmentName": "Stirred reaction tank"
+    },
+    {
+      "id": "f_1785823543985_wu8ff",
+      "stepName": "Centrifugal separation",
+      "operationMethod": "Centrifuge to remove residual precipitate",
+      "parameters": "Centrifuge until clear",
+      "controlPoint": "",
+      "equipmentName": "Centrifuge"
+    },
+    {
+      "id": "f_1785823543985_jqae5",
+      "stepName": "Activated carbon decolorization",
+      "operationMethod": "Remove pigments by activated carbon adsorption",
+      "parameters": "Activated carbon decolorization with stirring",
+      "controlPoint": "",
+      "equipmentName": "Decolorization tank"
+    },
+    {
+      "id": "f_1785823543985_6vs17",
+      "stepName": "Centrifugal carbon removal",
+      "operationMethod": "Centrifuge to remove activated carbon",
+      "parameters": "Centrifuge until carbon-free",
+      "controlPoint": "",
+      "equipmentName": "Centrifuge"
+    },
+    {
+      "id": "f_1785823543985_45zhv",
+      "stepName": "Resin deionization",
+      "operationMethod": "Pass through anion then cation exchange resin to remove ions",
+      "parameters": "Anion + cation resin in series",
+      "controlPoint": "",
+      "equipmentName": "Ion exchange columns (anion/cation)"
+    },
+    {
+      "id": "f_1785823543985_4dsa7",
+      "stepName": "Secondary membrane filtration",
+      "operationMethod": "Stir deionized inulin solution and filter through membrane again",
+      "parameters": "Membrane pore 4-8 mm",
+      "controlPoint": "CCP",
+      "equipmentName": "Membrane filter"
+    },
+    {
+      "id": "f_1785823543985_cajvb",
+      "stepName": "Alcohol precipitation",
+      "operationMethod": "Pour fine inulin solution into tank for alcohol precipitation; collect precipitates of different DP",
+      "parameters": "Alcohol precipitation; collect by degree of polymerization",
+      "controlPoint": "",
+      "equipmentName": "Precipitation tank"
+    },
+    {
+      "id": "f_1785823543985_4ha8x",
+      "stepName": "Drying",
+      "operationMethod": "Dry alcohol-precipitated inulin in dryer",
+      "parameters": "Drying at 120-180℃",
+      "controlPoint": "CCP",
+      "equipmentName": "Dryer"
+    },
+    {
+      "id": "f_1785823543985_gaic0",
+      "stepName": "Metal detection",
+      "operationMethod": "Inspect finished inulin for metal foreign objects",
+      "parameters": "Fe≤1.5 mm; SUS≤2.0 mm",
+      "controlPoint": "CCP",
+      "equipmentName": "Metal detector"
+    },
+    {
+      "id": "f_1785823543985_ics0v",
+      "stepName": "Packaging",
+      "operationMethod": "Fill and pack finished inulin",
+      "parameters": "Weighed filling, sealed packaging",
+      "controlPoint": "",
+      "equipmentName": "Filler, packaging bags"
+    },
+    {
+      "id": "f_1785823543985_jck75",
+      "stepName": "Storage",
+      "operationMethod": "Store finished product in warehouse",
+      "parameters": "Cool and dry; avoid moisture",
+      "controlPoint": "",
+      "equipmentName": "Finished goods warehouse"
     }
   ],
-  "flowConfirmed": true,
+  "flowConfirmed": false,
   "flowchartXml": "",
-  "hazardBio": [],
-  "hazardChem": [],
-  "hazardPhys": [],
-  "hazardWorksheet": [],
+  "hazardBio": [
+    {
+      "material": "菊芋|||chicory root",
+      "hazardType": "Biological Hazard",
+      "desc": "生物危害|||Biological hazard",
+      "q1": "是",
+      "q2": "是",
+      "q3": "是",
+      "isCCP": true,
+      "ccpResult": "是",
+      "severity": "高",
+      "likelihood": "中",
+      "control": "后续通过有效的高温处理环节消除（如高温干燥）；如果接收区域和其他原料共用需彻底消毒设备|||Eliminated by subsequent effective high-temperature processing (e.g., high-temperature drying); thoroughly disinfect equipment if the receiving area is shared with other raw materials",
+      "detail": "菊芋原料常见的生物危害有真菌（霉菌）、害虫（蛴螬、地老虎，蚜虫）、细菌（大肠杆菌、鞘氨醇菌、假单胞菌、产碱杆菌、葡萄球菌、大肠杆菌和芽孢杆菌），后续它们可以通过有效的高温处理环节被消除（例如高温干燥）。如果接收区域和其他原料共用，且后续无法对设备进行彻底消毒，那就有交叉污染的风险。|||Common biological hazards in chicory root raw materials include fungi (molds), pests (white grubs, cutworms, aphids) and bacteria (E. coli, Sphingomonas, Pseudomonas, Alcaligenes, Staphylococcus, E. coli and Bacillus). They can be eliminated by effective subsequent high-temperature processing (e.g., high-temperature drying). If the receiving area is shared with other raw materials and equipment cannot be thoroughly disinfected, there is a risk of cross-contamination."
+    },
+    {
+      "material": "活性炭|||Activated carbon",
+      "hazardType": "Biological Hazard",
+      "desc": "生物危害|||Biological hazard",
+      "q1": "否",
+      "q2": "\\",
+      "q3": "\\",
+      "isCCP": false,
+      "ccpResult": "否",
+      "severity": "中",
+      "likelihood": "中",
+      "control": "查验第三方检测报告确保符合GB 1886.255-2016或GB 1886.363-2022食用级活性炭要求；干燥存储|||Verify third-party test reports per GB 1886.255-2016 or GB 1886.363-2022 food-grade activated carbon requirements; store in a dry place",
+      "detail": "活性炭是多孔结构吸附大量有机物，在潮湿环境极易滋生细菌和霉菌；肉毒素是当革兰氏阴性菌在活性炭上繁殖并死亡裂解后产生的，在高温下也无法杀死。活性炭入厂时，必须查验并核对其第三方检测报告确保其符合GB 1886.255-2016 或GB 1886.363-2022中关于食用级活性炭的要求，否则后续操作无法去除这些危害。|||Activated carbon has a porous structure that adsorbs large amounts of organic matter and easily harbors bacteria and mold in humid environments; botulinum toxin is produced when Gram-negative bacteria grow and lyse on activated carbon and cannot be destroyed even at high temperatures. At receiving, third-party test reports must be verified per GB 1886.255-2016 or GB 1886.363-2022 food-grade activated carbon requirements; otherwise subsequent operations cannot remove these hazards."
+    }
+  ],
+  "hazardChem": [
+    {
+      "material": "菊芋|||chicory root",
+      "hazardType": "Chemical Hazard",
+      "desc": "化学危害|||Chemical hazard",
+      "q1": "是",
+      "q2": "否",
+      "q3": "\\",
+      "isCCP": true,
+      "ccpResult": "是",
+      "severity": "高",
+      "likelihood": "中",
+      "control": "原料必须由实施良好农业规范（GAP）、信誉良好的供应商提供，需提供分析证书和相关检测报告|||Raw materials must be sourced from reputable suppliers implementing Good Agricultural Practices (GAP), with analysis certificates and relevant test reports",
+      "detail": "如果原料中的农药残留和金属残留不满足控制标准（如GB 2763农药残留、GB 2762重金属限量等）有机磷类农药≤0.01mg/kg拟除虫菊酯类≤0.05mg/kg，那么后续的操作是无法消除这些残留危害的，所以原料必须由实施良好农业规范（GAP）、信誉良好的供应商提供，同时还需提供分析证书和相关检测报告。|||If pesticide and heavy metal residues in raw materials fail to meet control standards (e.g., GB 2763 pesticide residues, GB 2762 heavy metal limits; organophosphates ≤0.01 mg/kg, pyrethroids ≤0.05 mg/kg), subsequent operations cannot eliminate these residues. Therefore, raw materials must be sourced from reputable GAP-implementing suppliers with analysis certificates and test reports."
+    },
+    {
+      "material": "活性炭|||Activated carbon",
+      "hazardType": "Chemical Hazard",
+      "desc": "化学危害|||Chemical hazard",
+      "q1": "是",
+      "q2": "否",
+      "q3": "\\",
+      "isCCP": true,
+      "ccpResult": "是",
+      "severity": "高",
+      "likelihood": "中",
+      "control": "入厂时查验第三方检测报告确保符合GB 1886.255-2016或GB 1886.363-2022食用级活性炭要求|||Verify third-party test reports at receiving per GB 1886.255-2016 or GB 1886.363-2022 food-grade activated carbon requirements",
+      "detail": "活性炭的生产可能含有重金属残留（如铅、砷）、工艺副产物（高级芳香烃、氰化物）残留等危害，活性炭入厂时，必须查验并核对其第三方检测报告确保其符合GB 1886.255-2016 或GB 1886.363-2022中关于食用级活性炭的要求，否则后续操作无法去除这些危害。|||Activated carbon production may leave heavy metal residues (e.g., lead, arsenic) and process by-products (higher aromatic hydrocarbons, cyanides). At receiving, third-party test reports must be verified per GB 1886.255-2016 or GB 1886.363-2022; otherwise subsequent operations cannot remove these hazards."
+    }
+  ],
+  "hazardPhys": [
+    {
+      "material": "菊芋|||chicory root",
+      "hazardType": "Physical Hazard",
+      "desc": "物理危害|||Physical hazard",
+      "q1": "是",
+      "q2": "是",
+      "q3": "否",
+      "isCCP": false,
+      "ccpResult": "否",
+      "severity": "中",
+      "likelihood": "中",
+      "control": "后续加工可通过过滤等技术去除|||Removed by subsequent processing techniques such as filtration",
+      "detail": "在接收过程中，会检查灰尘、玻璃碎片、塑料碎片、毛发、土壤颗粒物以及昆虫尸体等，并且后续加工有一定的技术去除他们（例如过滤）。|||During receiving, dust, glass fragments, plastic pieces, hair, soil particles and insect remains are inspected and can be removed by subsequent processing techniques such as filtration."
+    },
+    {
+      "material": "活性炭|||Activated carbon",
+      "hazardType": "Physical Hazard",
+      "desc": "物理危害|||Physical hazard",
+      "q1": "是",
+      "q2": "是",
+      "q3": "否",
+      "isCCP": false,
+      "ccpResult": "否",
+      "severity": "中",
+      "likelihood": "中",
+      "control": "后续通过过滤操作有效去除|||Effectively removed by subsequent filtration",
+      "detail": "活性炭本身可能会混入其他颗粒杂质，例如包装破损可能引入塑料等异物，不过后续能通过过滤操作有效去除。|||Activated carbon itself may contain granular impurities; for example, damaged packaging may introduce plastic and other foreign matter, which can be effectively removed by subsequent filtration."
+    }
+  ],
+  "hazardWorksheet": [
+    {
+      "stepId": "f_1786728754127_d5zua",
+      "stepName": "Fresh chicory root",
+      "hazards": [
+        {
+          "id": "f_1786728754127_qo16e",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Fresh chicory root",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料来自农田，可能携带污染物，或者运输过程中的污染|||Raw materials come from farmland and may carry contaminants, or become contaminated during transport",
+          "controlMeasure": "灭菌工序去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754127_7gooc",
+          "category": "chemical",
+          "hazardDesc": "农药残留，重金属，持续性有机污染物|||Pesticide residues, heavy metals, persistent organic pollutants",
+          "source": "Fresh chicory root",
+          "isSignificant": true,
+          "severity": "高",
+          "likelihood": "高",
+          "basis": "种植过程中农药的使用或控制不当造成的污染|||Contamination from improper pesticide use or control during cultivation",
+          "controlMeasure": "选择有合格检验证书的供应商，并索要外检报告；入厂快速检测（农药试纸）|||Select certified suppliers with inspection certificates; quick on-site testing at receiving (pesticide test strips)",
+          "controlRelation": "供应商验证和入厂检测可有效控制化学危害|||Supplier verification and receiving inspection effectively control chemical hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754127_za7y2",
+          "category": "physical",
+          "hazardDesc": "玻璃、金属、砂石、毛发、木屑、塑料等异物|||Foreign matter: glass, metal, stones, hair, wood chips, plastic, etc.",
+          "source": "Fresh chicory root",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "原料在生长环境中存在，在采摘运输过程中都有可能带入污染|||Present in the growing environment and may be introduced during harvest and transport",
+          "controlMeasure": "清洗步骤可去除|||Removed by washing step",
+          "controlRelation": "后续清洗工序可去除物理异物|||Subsequent washing removes physical foreign matter",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_po2dg",
+      "stepName": "Ultrasonic cleaning and peeling",
+      "hazards": [
+        {
+          "id": "f_1786728754128_hmoeg",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Ultrasonic cleaning and peeling",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料自身带有，清洗水污染|||Inherent in raw materials or contaminated washing water",
+          "controlMeasure": "灭菌工序去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_2tikq",
+          "category": "chemical",
+          "hazardDesc": "清洗剂残留|||Cleaning agent residue",
+          "source": "Ultrasonic cleaning and peeling",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "未将原料清洗干净|||Raw materials not rinsed thoroughly",
+          "controlMeasure": "将原料多清洗几遍，确保无清洗剂残留|||Rinse raw materials multiple times to ensure no cleaning agent residue",
+          "controlRelation": "充分漂洗可去除清洗剂残留|||Thorough rinsing removes cleaning agent residue",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_25ro0",
+          "category": "physical",
+          "hazardDesc": "砂石、异物|||Stones and foreign matter",
+          "source": "Ultrasonic cleaning and peeling",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "原料自身带有|||Inherent in raw materials",
+          "controlMeasure": "清洗时10分钟排沙石一次，及时清理漂浮杂物|||Remove stones every 10 minutes during washing; promptly clear floating debris",
+          "controlRelation": "排沙石操作可有效去除物理异物|||Stone removal operation effectively removes physical foreign matter",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_mhgg0",
+      "stepName": "Crushing pretreatment",
+      "hazards": [
+        {
+          "id": "f_1786728754128_6nunz",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Crushing pretreatment",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序可以去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_pluhd",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Crushing pretreatment",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_y2iep",
+          "category": "physical",
+          "hazardDesc": "原料本身含有，或设备零件掉落的异物|||Foreign matter inherent in raw materials or from equipment part detachment",
+          "source": "Crushing pretreatment",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "原料本身含有，或设备零件掉落|||Inherent in raw materials or equipment part detachment",
+          "controlMeasure": "过滤步骤可以去除|||Removed by filtration",
+          "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_oilhx",
+      "stepName": "Fine grinding",
+      "hazards": [
+        {
+          "id": "f_1786728754128_mk152",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Fine grinding",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序可以去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_xhuwu",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Fine grinding",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_sk7yw",
+          "category": "physical",
+          "hazardDesc": "原料本身含有，或设备零件掉落的异物|||Foreign matter inherent in raw materials or from equipment part detachment",
+          "source": "Fine grinding",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "原料本身含有，或设备零件掉落|||Inherent in raw materials or equipment part detachment",
+          "controlMeasure": "过滤步骤可以去除|||Removed by filtration",
+          "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_xjjzk",
+      "stepName": "Homogenization",
+      "hazards": [
+        {
+          "id": "f_1786728754128_g3lsd",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Homogenization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身含有、清洗过程带入，设备带来的污染|||Inherent in raw materials, introduced during washing, or from equipment",
+          "controlMeasure": "灭菌工序去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_9elax",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Homogenization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_mfk2a",
+          "category": "physical",
+          "hazardDesc": "无显著物理危害|||No significant physical hazard",
+          "source": "Homogenization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_btf7x",
+      "stepName": "Ultrasound disruption",
+      "hazards": [
+        {
+          "id": "f_1786728754128_1baiw",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Ultrasound disruption",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身带有，破壁过程释放细胞内成分，设备接触可能引入污染|||Inherent in raw materials; cell disruption releases intracellular components and equipment contact may introduce contamination",
+          "controlMeasure": "破壁后及时进入后续加热/灭菌工序，设备定期清洗消毒|||Proceed promptly to subsequent heating/sterilization; clean and disinfect equipment regularly",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_d3zyr",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Ultrasound disruption",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_f2dtd",
+          "category": "physical",
+          "hazardDesc": "设备零件磨损或脱落产生的金属异物|||Metal fragments from equipment wear or part detachment",
+          "source": "Ultrasound disruption",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "设备高速运转零件磨损|||Wear of high-speed rotating equipment parts",
+          "controlMeasure": "过滤、金属探测步骤去除|||Removed by filtration and metal detection",
+          "controlRelation": "后续过滤和金属探测可去除物理危害|||Subsequent filtration and metal detection remove physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_ajzd3",
+      "stepName": "Precipitation",
+      "hazards": []
+    },
+    {
+      "stepId": "f_1786728754128_qathv",
+      "stepName": "Hot-water extraction",
+      "hazards": [
+        {
+          "id": "f_1786728754128_t206e",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Hot-water extraction",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身带有、设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_av5pd",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Hot-water extraction",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_d3b82",
+          "category": "physical",
+          "hazardDesc": "无显著物理危害|||No significant physical hazard",
+          "source": "Hot-water extraction",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_3jzw9",
+      "stepName": "Vacuum concentration",
+      "hazards": [
+        {
+          "id": "f_1786728754128_d54t5",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Vacuum concentration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_10tng",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Vacuum concentration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_j4npc",
+          "category": "physical",
+          "hazardDesc": "无显著物理危害|||No significant physical hazard",
+          "source": "Vacuum concentration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_mysrt",
+      "stepName": "Membrane filtration",
+      "hazards": [
+        {
+          "id": "f_1786728754128_p9o81",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Membrane filtration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身自带|||Inherent in raw materials",
+          "controlMeasure": "灭菌工序可去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_clcho",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Membrane filtration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_vqe14",
+          "category": "physical",
+          "hazardDesc": "未过滤掉的异物|||Foreign matter not removed by filtration",
+          "source": "Membrane filtration",
+          "isSignificant": true,
+          "severity": "高",
+          "likelihood": "中",
+          "basis": "未过滤掉|||Not removed by filtration",
+          "controlMeasure": "严格控制膜滤操作参数，定期检查膜完整性，确保过滤效果|||Strictly control membrane filtration parameters, regularly check membrane integrity to ensure filtration effectiveness",
+          "controlRelation": "CCP-膜滤本身直接控制物理危害，是关键控制点|||CCP - membrane filtration itself directly controls physical hazards and is a critical control point",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_ecme4",
+      "stepName": "Flocculation",
+      "hazards": [
+        {
+          "id": "f_1786728754128_56mrm",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Flocculation",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "絮凝剂溶液或容器可能滋生微生物|||Microorganisms may proliferate in flocculant solution or containers",
+          "controlMeasure": "灭菌工序去除，絮凝剂现配现用|||Eliminated by sterilization; prepare flocculant fresh for each use",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_lz2j1",
+          "category": "chemical",
+          "hazardDesc": "絮凝剂残留|||Flocculant residue",
+          "source": "Flocculation",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "絮凝剂投加过量或未完全沉降|||Excessive flocculant dosing or incomplete settling",
+          "controlMeasure": "严格控制絮凝剂投加量，投加后充分搅拌并静置沉降|||Strictly control flocculant dosage; stir thoroughly and allow full settling after dosing",
+          "controlRelation": "后续过滤步骤可去除絮凝剂残留|||Subsequent filtration removes flocculant residue",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_b36as",
+          "category": "physical",
+          "hazardDesc": "絮凝物、沉降物中带入的异物|||Foreign matter carried in flocs or sediment",
+          "source": "Flocculation",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "絮凝沉降过程聚集|||Accumulated during flocculation and settling",
+          "controlMeasure": "过滤步骤去除|||Removed by filtration",
+          "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_arqtw",
+      "stepName": "Centrifugal separation",
+      "hazards": [
+        {
+          "id": "f_1786728754128_igbnx",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Centrifugal separation",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序去除，设备定期清洗|||Eliminated by sterilization; clean equipment regularly",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_jwp7m",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Centrifugal separation",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_cy2qo",
+          "category": "physical",
+          "hazardDesc": "设备零件磨损产生的金属异物|||Metal fragments from equipment wear",
+          "source": "Centrifugal separation",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "高速运转设备零件磨损|||Wear of high-speed rotating equipment parts",
+          "controlMeasure": "金属探测步骤去除，定期维护设备|||Removed by metal detection; regular equipment maintenance",
+          "controlRelation": "后续金属探测可去除物理危害|||Subsequent metal detection removes physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_u378q",
+      "stepName": "Activated carbon decolorization",
+      "hazards": [
+        {
+          "id": "f_1786728754128_b4a3z",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Activated carbon decolorization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身带有，设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_i0vg4",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Activated carbon decolorization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754128_qip3q",
+          "category": "physical",
+          "hazardDesc": "原料本身含有，加工助剂中带有的异物|||Foreign matter inherent in raw materials or introduced by processing aids",
+          "source": "Activated carbon decolorization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "原料本身含有，加工助剂中带有|||Inherent in raw materials or in processing aids",
+          "controlMeasure": "过滤步骤去除|||Removed by filtration",
+          "controlRelation": "后续过滤步骤可去除物理危害|||Subsequent filtration removes physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754128_ihbni",
+      "stepName": "Centrifugal carbon removal",
+      "hazards": []
+    },
+    {
+      "stepId": "f_1786728754129_lb85w",
+      "stepName": "Resin deionization",
+      "hazards": [
+        {
+          "id": "f_1786728754129_47uxb",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Resin deionization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身含有或设备污染|||Inherent in raw materials or equipment contamination",
+          "controlMeasure": "灭菌工序可以去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_ct8q3",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Resin deionization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_z60jw",
+          "category": "physical",
+          "hazardDesc": "无显著物理危害|||No significant physical hazard",
+          "source": "Resin deionization",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754129_jhsae",
+      "stepName": "Secondary membrane filtration",
+      "hazards": [
+        {
+          "id": "f_1786728754129_vriz8",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Secondary membrane filtration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "原料本身自带|||Inherent in raw materials",
+          "controlMeasure": "灭菌工序可去除|||Eliminated by sterilization process",
+          "controlRelation": "后道灭菌工序可消除生物危害|||Subsequent sterilization eliminates biological hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_7zpto",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Secondary membrane filtration",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_sp9gw",
+          "category": "physical",
+          "hazardDesc": "未过滤掉的异物|||Foreign matter not removed by filtration",
+          "source": "Secondary membrane filtration",
+          "isSignificant": true,
+          "severity": "高",
+          "likelihood": "中",
+          "basis": "未过滤掉|||Not removed by filtration",
+          "controlMeasure": "严格控制膜滤操作参数，定期检查膜完整性，确保过滤效果|||Strictly control membrane filtration parameters, regularly check membrane integrity to ensure filtration effectiveness",
+          "controlRelation": "CCP-膜滤本身直接控制物理危害，是关键控制点|||CCP - membrane filtration itself directly controls physical hazards and is a critical control point",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754129_7kqfy",
+      "stepName": "Alcohol precipitation",
+      "hazards": []
+    },
+    {
+      "stepId": "f_1786728754129_423su",
+      "stepName": "Drying",
+      "hazards": [
+        {
+          "id": "f_1786728754129_d8god",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Drying",
+          "isSignificant": true,
+          "severity": "高",
+          "likelihood": "高",
+          "basis": "设备污染，干燥温度和时间不足|||Equipment contamination, or insufficient drying temperature and time",
+          "controlMeasure": "严格控制喷雾干燥的温度和进风量，定期清洗设备|||Strictly control spray drying temperature and inlet air volume; clean equipment regularly",
+          "controlRelation": "CCP-干燥条件直接控制微生物危害|||CCP - drying conditions directly control microbial hazards",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_lw435",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Drying",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_tumu8",
+          "category": "physical",
+          "hazardDesc": "设备零件掉落的金属异物|||Metal fragments from equipment part detachment",
+          "source": "Drying",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "设备零件掉落|||Equipment part detachment",
+          "controlMeasure": "金属探测可以去除|||Removed by metal detection",
+          "controlRelation": "后续金属探测可去除物理危害|||Subsequent metal detection removes physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754129_wgj55",
+      "stepName": "Metal detection",
+      "hazards": [
+        {
+          "id": "f_1786728754129_3kotv",
+          "category": "biological",
+          "hazardDesc": "无显著生物危害|||No significant biological hazard",
+          "source": "Metal detection",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_s4p4p",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Metal detection",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_v6pe9",
+          "category": "physical",
+          "hazardDesc": "金属异物|||Metal foreign matter",
+          "source": "Metal detection",
+          "isSignificant": true,
+          "severity": "高",
+          "likelihood": "中",
+          "basis": "金属探测步骤操作不符合要求|||Metal detection operation does not meet requirements",
+          "controlMeasure": "严格按照金属探测仪操作规范执行，定期校验灵敏度|||Strictly follow metal detector operation procedures; periodically verify sensitivity",
+          "controlRelation": "CCP-金属探测是控制物理危害的关键控制点|||CCP - metal detection is the critical control point for physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754129_9rtcb",
+      "stepName": "Packaging",
+      "hazards": [
+        {
+          "id": "f_1786728754129_kickd",
+          "category": "biological",
+          "hazardDesc": "沙门氏菌、金黄色葡萄球菌、大肠菌群、霉菌等致病菌|||Pathogenic bacteria such as Salmonella, Staphylococcus aureus, coliforms, mold, etc.",
+          "source": "Packaging",
+          "isSignificant": true,
+          "severity": "高",
+          "likelihood": "高",
+          "basis": "包装袋污染|||Contamination of packaging bags",
+          "controlMeasure": "必须使用合格供方包装并提供出厂检验报告|||Use packaging from qualified suppliers with factory inspection reports",
+          "controlRelation": "包装材料验证可控制生物危害，否则需设为CCP|||Packaging material verification controls biological hazards; otherwise it must be set as CCP",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_1m9dd",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Packaging",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_tiigs",
+          "category": "physical",
+          "hazardDesc": "包装袋混入的异物|||Foreign matter introduced from packaging bags",
+          "source": "Packaging",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "包装袋混入|||Introduced from packaging bags",
+          "controlMeasure": "使用前对包装逐一检查，合格后使用|||Inspect each package before use and use only qualified ones",
+          "controlRelation": "包装前检查可控制物理危害|||Pre-packaging inspection controls physical hazards",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "stepId": "f_1786728754129_ustnd",
+      "stepName": "Storage",
+      "hazards": [
+        {
+          "id": "f_1786728754129_diq3v",
+          "category": "biological",
+          "hazardDesc": "无显著生物危害|||No significant biological hazard",
+          "source": "Storage",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "储存环境符合要求|||Storage environment meets requirements",
+          "controlMeasure": "仓库温湿度控制，防虫防鼠|||Control warehouse temperature and humidity; pest and rodent prevention",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_cjpax",
+          "category": "chemical",
+          "hazardDesc": "无显著化学危害|||No significant chemical hazard",
+          "source": "Storage",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "中",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        },
+        {
+          "id": "f_1786728754129_017jr",
+          "category": "physical",
+          "hazardDesc": "无显著物理危害|||No significant physical hazard",
+          "source": "Storage",
+          "isSignificant": false,
+          "severity": "中",
+          "likelihood": "低",
+          "basis": "",
+          "controlMeasure": "",
+          "controlRelation": "",
+          "selected": true
+        }
+      ]
+    }
+  ],
   "hazardWorksheetStep": "identify",
   "hazardConfirmed": false,
-  "ccpSteps": [],
+  "ccpSteps": [
+    {
+      "stepName": "Fresh chicory root",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "原料可能携带致病菌（沙门氏菌、大肠杆菌等）|||Raw materials may carry pathogenic bacteria (Salmonella, E. coli, etc.)",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "是",
+          "q5": "是",
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "原料可能存在生物危害，有验收控制措施（Q2=是），但验收非专门设计用于消除危害（Q3=否），后续加工步骤（杀菌）可消除该危害（Q5=是），故判定为非CCP。|||Raw materials may carry biological hazards. Receiving inspection controls exist (Q2=Yes) but are not specifically designed to eliminate hazards (Q3=No). Subsequent sterilization eliminates the hazard (Q5=Yes), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "农药残留、重金属（铅、砷、镉）、兽药残留超标|||Pesticide residues, heavy metals (Pb, As, Cd), veterinary drug residues exceeding limits",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "原料可能存在化学危害，有验收检测控制（Q2=是），但验收步骤不会导致化学危害升高（Q4=否），故判定为非CCP。|||Raw materials may contain chemical hazards. Receiving inspection controls exist (Q2=Yes), but receiving does not increase chemical hazards (Q4=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "原料中可能混入砂石、金属、玻璃等异物|||Raw materials may contain stones, metal, glass and other foreign objects",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "原料可能携带物理异物，有验收目视检查（Q2=是），但验收不会增加物理危害（Q4=否），故判定为非CCP。|||Raw materials may contain physical foreign objects. Visual inspection exists (Q2=Yes), but receiving does not increase physical hazards (Q4=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Ultrasonic cleaning and peeling",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "清洗剂/消毒剂残留|||Cleaning agent/disinfectant residues",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。|||Cleaning agent residues may exist. Rinsing controls are in place (Q2=Yes). Proper operations prevent excessive residues (Q4=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Crushing pretreatment",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Fine grinding",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Homogenization",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Ultrasound disruption",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Precipitation",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留|||Pathogenic bacteria (Salmonella, E. coli O157:H7, Listeria, etc.) residue",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在生物危害风险（致病菌污染），热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。|||This step has biological hazard risk (pathogen contamination). Heat treatment is specifically designed to eliminate microbial hazards (Q3=Yes), therefore it is a CCP."
+        },
+        "chem": {
+          "hazardDesc": "清洗剂/消毒剂残留|||Cleaning agent/disinfectant residues",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。|||Cleaning agent residues may exist. Rinsing controls are in place (Q2=Yes). Proper operations prevent excessive residues (Q4=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Hot-water extraction",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Vacuum concentration",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Membrane filtration",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "过滤介质可能滋生微生物|||Filter media may harbor microorganisms",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP."
+        },
+        "phys": {
+          "hazardDesc": "过滤介质破损可能引入异物|||Damaged filter media may introduce foreign objects",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Flocculation",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "致病菌（沙门氏菌、大肠杆菌O157:H7、李斯特菌等）残留|||Pathogenic bacteria (Salmonella, E. coli O157:H7, Listeria, etc.) residue",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在生物危害风险（致病菌污染），热处理是专门设计用于消除微生物危害的控制措施（Q3=是），故判定为CCP。|||This step has biological hazard risk (pathogen contamination). Heat treatment is specifically designed to eliminate microbial hazards (Q3=Yes), therefore it is a CCP."
+        },
+        "chem": {
+          "hazardDesc": "加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP."
+        },
+        "phys": {
+          "hazardDesc": "过滤介质破损可能引入异物|||Damaged filter media may introduce foreign objects",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Centrifugal separation",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP."
+        },
+        "phys": {
+          "hazardDesc": "过滤介质破损可能引入异物|||Damaged filter media may introduce foreign objects",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Activated carbon decolorization",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Centrifugal carbon removal",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "过滤介质可能滋生微生物|||Filter media may harbor microorganisms",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP."
+        },
+        "phys": {
+          "hazardDesc": "过滤介质破损可能引入异物|||Damaged filter media may introduce foreign objects",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Resin deionization",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Secondary membrane filtration",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "过滤介质可能滋生微生物|||Filter media may harbor microorganisms",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "加工助剂残留、化学物质溶出|||Processing aid residues, chemical substance leaching",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在化学危害风险，过滤/脱色步骤专门设计用于去除化学物质（Q3=是），故判定为CCP。|||This step has chemical hazard risk. Filtration/decolorization is specifically designed to remove chemical substances (Q3=Yes), therefore it is a CCP."
+        },
+        "phys": {
+          "hazardDesc": "过滤介质破损可能引入异物|||Damaged filter media may introduce foreign objects",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Alcohol precipitation",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "清洗剂/消毒剂残留|||Cleaning agent/disinfectant residues",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。|||Cleaning agent residues may exist. Rinsing controls are in place (Q2=Yes). Proper operations prevent excessive residues (Q4=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Drying",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "清洗不彻底可能导致微生物残留和交叉污染|||Inadequate cleaning may cause microbial residue and cross-contamination",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "清洗剂/消毒剂残留|||Cleaning agent/disinfectant residues",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "可能存在清洗剂残留，有冲洗控制措施（Q2=是），规范操作下不会导致残留超标（Q4=否），故判定为非CCP。|||Cleaning agent residues may exist. Rinsing controls are in place (Q2=Yes). Proper operations prevent excessive residues (Q4=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Metal detection",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "可能存在的微生物污染风险|||Potential microbial contamination risk",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤可能存在生物危害，有基本控制措施（Q2=是），但该步骤不会导致污染升高至不可接受水平（Q4=否），故判定为非CCP。|||This step may have biological hazards. Basic controls exist (Q2=Yes), but this step does not increase contamination to unacceptable levels (Q4=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "金属碎片（设备磨损、刀片断裂等产生的铁、不锈钢碎片）|||Metal fragments (Fe, SUS from equipment wear, blade breakage, etc.)",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "该步骤存在物理危害（金属异物），金属检测/筛选步骤专门设计用于去除金属异物（Q3=是），故判定为CCP。|||This step has physical hazards (metal fragments). Metal detection/screening is specifically designed to remove metal foreign objects (Q3=Yes), therefore it is a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Packaging",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "包装环节在洁净环境下进行，无明显生物危害引入|||Packaging performed in clean environment, no significant biological hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "包装步骤在洁净环境下进行，无明显生物危害引入风险（Q1=否），故判定为非CCP。|||Packaging is performed in a clean environment. No significant biological hazard introduction risk (Q1=No), therefore NOT a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "包装材料碎片、封口不良导致异物侵入|||Packaging material fragments, foreign object intrusion from poor sealing",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "否",
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "可能存在包装材料碎片，有目视检查和设备维护控制（Q2=是），风险较低（Q4=否），故判定为非CCP。|||Packaging material fragments may exist. Visual inspection and equipment maintenance controls are in place (Q2=Yes). Risk is low (Q4=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    },
+    {
+      "stepName": "Storage",
+      "hazards": {
+        "bio": {
+          "hazardDesc": "储存条件不当可能导致微生物增殖|||Improper storage may cause microbial growth",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "q4": "是",
+          "q5": "否",
+          "q2_need": null,
+          "isCCP": true,
+          "aiReasoning": "储存条件不当可能导致微生物增殖，有温湿度控制措施（Q2=是），储存不当会导致危害升高（Q4=是），后续无杀菌步骤（Q5=否），故判定为CCP。|||Improper storage may cause microbial growth. Temperature/humidity controls exist (Q2=Yes). Improper storage increases hazard levels (Q4=Yes). No subsequent sterilization (Q5=No), therefore it is a CCP."
+        },
+        "chem": {
+          "hazardDesc": "无明显化学危害|||No significant chemical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及化学危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce chemical hazards (Q1=No), therefore NOT a CCP."
+        },
+        "phys": {
+          "hazardDesc": "无明显物理危害|||No significant physical hazard",
+          "q1": "否",
+          "q2": null,
+          "q3": null,
+          "q4": null,
+          "q5": null,
+          "q2_need": null,
+          "isCCP": false,
+          "aiReasoning": "该步骤通常不涉及物理危害引入（Q1=否），故判定为非CCP。|||This step typically does not introduce physical hazards (Q1=No), therefore NOT a CCP."
+        }
+      },
+      "completed": true
+    }
+  ],
   "ccpStepIndex": 0,
   "ccpHazardType": "bio",
   "ccpCurrentQ": 1,
   "ccpDecisionTreeVersion": "v1",
   "ccpCompleted": false,
+  "execStandard": "gb",
   "criticalLimits": "",
-  "criticalLimitsData": [],
-  "monitoring": [],
-  "correctiveActions": [],
+  "criticalLimitsData": [
+    {
+      "stepName": "Membrane filtration",
+      "limits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": "",
+          "basis": ""
+        }
+      ],
+      "operatingLimits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": ""
+        }
+      ]
+    },
+    {
+      "stepName": "Centrifugal separation",
+      "limits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": "",
+          "basis": ""
+        }
+      ],
+      "operatingLimits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": ""
+        }
+      ]
+    },
+    {
+      "stepName": "Centrifugal carbon removal",
+      "limits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": "",
+          "basis": ""
+        }
+      ],
+      "operatingLimits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": ""
+        }
+      ]
+    },
+    {
+      "stepName": "Secondary membrane filtration",
+      "limits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": "",
+          "basis": ""
+        }
+      ],
+      "operatingLimits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": ""
+        }
+      ]
+    },
+    {
+      "stepName": "Metal detection",
+      "limits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": "",
+          "basis": ""
+        }
+      ],
+      "operatingLimits": [
+        {
+          "param": "",
+          "value": "",
+          "unit": ""
+        }
+      ]
+    }
+  ],
+  "monitoring": [
+    {
+      "id": "f_1786732149093_zb5b0",
+      "ccp": "Membrane filtration",
+      "object": "膜孔径、过滤压力、滤液澄清度|||Membrane pore size, filtration pressure, filtrate clarity",
+      "method": "检查膜孔径规格（4-8 mm），在线压力表监控压力，目视检查滤液|||Check membrane pore size specification (4-8 mm), monitor pressure with online gauge, visually inspect filtrate",
+      "frequency": "每批次|||Each batch",
+      "personnel": "生产操作人员，经培训合格|||Production operator, trained and qualified",
+      "remark": "确保膜无破损，压力在正常范围，滤液无蛋白或纤维素残留|||Ensure membrane intact, pressure within normal range, filtrate free of protein or cellulose"
+    },
+    {
+      "id": "f_1786732149093_n3k3u",
+      "ccp": "Centrifugal separation",
+      "object": "离心时间、转速、上清液澄清度|||Centrifugation time, speed, supernatant clarity",
+      "method": "设定离心机参数并记录，目视检查上清液无沉淀|||Set and record centrifuge parameters, visually inspect supernatant for no precipitate",
+      "frequency": "每批次|||Each batch",
+      "personnel": "生产操作人员，经培训合格|||Production operator, trained and qualified",
+      "remark": "离心至澄清，无可见沉淀|||Centrifuge until clear, no visible precipitate"
+    },
+    {
+      "id": "f_1786732149093_mkthy",
+      "ccp": "Centrifugal carbon removal",
+      "object": "离心时间、转速、活性炭残留|||Centrifugation time, speed, activated carbon residue",
+      "method": "设定离心机参数并记录，目视检查溶液无黑色颗粒|||Set and record centrifuge parameters, visually inspect solution for no black particles",
+      "frequency": "每批次|||Each batch",
+      "personnel": "生产操作人员，经培训合格|||Production operator, trained and qualified",
+      "remark": "离心至无碳，溶液透明|||Centrifuge until carbon-free, solution clear"
+    },
+    {
+      "id": "f_1786732149093_rokec",
+      "ccp": "Secondary membrane filtration",
+      "object": "膜孔径、过滤压力、滤液澄清度|||Membrane pore size, filtration pressure, filtrate clarity",
+      "method": "检查膜孔径规格（4-8 mm），在线压力表监控压力，目视检查滤液|||Check membrane pore size specification (4-8 mm), monitor pressure with online gauge, visually inspect filtrate",
+      "frequency": "每批次|||Each batch",
+      "personnel": "生产操作人员，经培训合格|||Production operator, trained and qualified",
+      "remark": "确保膜无破损，滤液无杂质|||Ensure membrane intact, filtrate free of impurities"
+    },
+    {
+      "id": "f_1786732149093_z2e2r",
+      "ccp": "Metal detection",
+      "object": "金属异物（Fe和SUS）|||Metal foreign objects (Fe and SUS)",
+      "method": "使用金属检测仪在线检测，自动剔除超标产品|||Use metal detector for online inspection, automatically reject non-conforming products",
+      "frequency": "连续监控|||Continuous monitoring",
+      "personnel": "质检人员，经培训合格|||Quality inspector, trained and qualified",
+      "remark": "Fe≤1.5 mm，SUS≤2.0 mm，超出即剔除|||Fe≤1.5 mm, SUS≤2.0 mm, reject if exceeded"
+    },
+    {
+      "id": "f_1786732149093_ctczu",
+      "ccp": "Precipitation",
+      "object": "加热加压后静置时间、上清液澄清度|||Standing time after heating/pressurizing, clarity of supernatant",
+      "method": "目视检查上清液澄清度，计时器记录静置时间|||Visual inspection of supernatant clarity, timer to record standing time",
+      "frequency": "每批次|||Each batch",
+      "personnel": "生产操作人员，经培训合格|||Production operator, trained and qualified",
+      "remark": "确保静置5-20分钟，上清液无明显浑浊|||Ensure standing 5-20 min, supernatant not visibly turbid"
+    },
+    {
+      "id": "f_1786732149093_fribt",
+      "ccp": "Flocculation",
+      "object": "加热温度、搅拌转速、絮凝效果|||Heating temperature, stirring speed, flocculation effect",
+      "method": "使用温度计和转速计监控，目视检查絮凝物形成|||Use thermometer and tachometer to monitor, visually inspect floc formation",
+      "frequency": "每批次|||Each batch",
+      "personnel": "生产操作人员，经培训合格|||Production operator, trained and qualified",
+      "remark": "温度35-50℃，搅拌80-180 rpm，絮凝物明显|||Temperature 35-50°C, stirring 80-180 rpm, visible flocs"
+    },
+    {
+      "id": "f_1786732149093_yhqh5",
+      "ccp": "Storage",
+      "object": "仓库温度、湿度、产品包装完整性|||Warehouse temperature, humidity, product packaging integrity",
+      "method": "使用温湿度计连续监控，定期目视检查包装|||Use hygrometer/thermometer for continuous monitoring, periodic visual inspection of packaging",
+      "frequency": "每日|||Daily",
+      "personnel": "仓库管理员，经培训合格|||Warehouse keeper, trained and qualified",
+      "remark": "保持阴凉干燥，避免受潮|||Keep cool and dry, avoid moisture"
+    }
+  ],
+  "correctiveActions": [
+    {
+      "id": "f_1786732063888_xiqlr",
+      "ccp": "Membrane filtration",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_zdwgb",
+      "ccp": "Centrifugal separation",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_z7qts",
+      "ccp": "Centrifugal carbon removal",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_wwsqa",
+      "ccp": "Secondary membrane filtration",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_hhjo6",
+      "ccp": "Metal detection",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_ym5fs",
+      "ccp": "Precipitation",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_k1gmf",
+      "ccp": "Flocculation",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    },
+    {
+      "id": "f_1786732063888_t1t4y",
+      "ccp": "Storage",
+      "cl": "待定（未设置关键限值）|||TBD (no critical limit set)",
+      "personnel": "品控专员/生产主任|||QC Specialist/Production Supervisor",
+      "causeAnalysis": "待定（需结合工艺确定）|||TBD (to be determined based on process)",
+      "productHandling": "待定|||TBD",
+      "corrective": "待定|||TBD",
+      "verification": "待定|||TBD",
+      "record": "待定|||TBD"
+    }
+  ],
   "recordPeriod": "",
   "recordFormat": "",
   "verification": {
@@ -232,5 +2282,116 @@
     "reviewResult": "",
     "correctiveMeasures": "",
     "reVerification": ""
-  }
+  },
+  "ccpPageMode": "summary",
+  "currentEditingStep": -1,
+  "pd_rawProps": "Product: Food-grade Inulin. Category: Water-soluble dietary fibre food ingredient. Main component: Inulin polysaccharide. Appearance: White fine powder, soluble in water. Stable at normal storage temperature; low glycaemic index. Complies with national food safety standards.",
+  "pd_rawSupply": "Raw material: Fresh chicory root tuber; rich in inulin, carbohydrate, moisture. Packaging materials: Food-grade aluminium composite film and PE plastic bags. The packaging is non-toxic, moisture-proof, stable under normal temperature and avoids migration of harmful substances.",
+  "pd_rawUsage": "chicory root is purchased from qualified planting bases in Gansu Province. Food-grade packaging materials are sourced from certified food packaging manufacturers. Raw materials are transported in covered vehicles and stored in ventilated, dry warehouses. Packaging materials are kept away from moisture and contamination before use.",
+  "pd_productProps": "Raw material batches shall be inspected for pesticides, heavy metals and microbial indicators before acceptance. Random sampling inspection is adopted. Unqualified raw materials will be rejected. Packaging materials must provide qualification certificates; damaged packages are prohibited from production.",
+  "pd_productProcess": "Raw material cleaning and sorting → Crushing and homogenisation → Heating & pressurised extraction → Vacuum concentration → Multi-stage membrane filtration → Activated carbon decolourisation → Ion exchange desalination → Ethanol precipitation → Hot air drying → Finished product packaging.",
+  "pd_productStorage": "Finished products are sealed in food-grade aluminium foil packages. Store in cool, dry, dark environment (temperature ≤25℃). Avoid humidity and direct sunlight during transportation. Covered dry vehicles are used for delivery to prevent package breakage and moisture absorption.",
+  "pd_productSales": "Products are sold to food manufacturers and end consumers via domestic and international channels. Product labels include product name, ingredients, shelf life, storage conditions, manufacturer information and allergen statements, complying with food labelling regulations. ",
+  "iu_consumerExpect": "Consumers expect the inulin powder to be pure, free of hazardous contaminants, stable in quality, with good water solubility and neutral flavour. The product should meet food safety standards and deliver expected prebiotic benefits for intestinal health.",
+  "iu_intendedUse": "Intended use: Food raw material and water-soluble dietary fibre supplement. Storage: Sealed, kept in cool, dry and dark environment (≤25°C), protected from moisture. Shelf life: 24 months in intact original packaging.",
+  "iu_consumptionMethod": "Industrial application: Added into dairy, baked goods and beverages. Direct consumption: Dissolve the powder in warm water for daily drinking.",
+  "iu_targetCustomer": "Food processing manufacturers; general adult consumers who pay attention to gastrointestinal health.",
+  "iu_vulnerableGroups": "Elderly people and pregnant women can take moderate doses. Infants require reduced intake. Individuals with chicory root allergy shall not consume this product.",
+  "iu_unintendedUse": "Excessive consumption resulting in flatulence and abdominal discomfort; use of damp & deteriorated products; overfeeding infants; improper application for non-food purposes. ",
+  "iuExtraItems": [],
+  "_unmatchedSteps": [
+    "Precipitation",
+    "Centrifugal carbon removal",
+    "Alcohol precipitation"
+  ],
+  "_hazardLangTranslated": "en-v2",
+  "_hazardStepFingerprint": "Fresh chicory root,Ultrasonic cleaning and peeling,Crushing pretreatment,Fine grinding,Homogenization,Ultrasound disruption,Precipitation,Hot-water extraction,Vacuum concentration,Membrane filtration,Flocculation,Centrifugal separation,Activated carbon decolorization,Centrifugal carbon removal,Resin deionization,Secondary membrane filtration,Alcohol precipitation,Drying,Metal detection,Packaging,Storage",
+  "_haccpSignerName": "testing",
+  "_haccpSignDate": "2026-08-04",
+  "_haccpConfirmed": true,
+  "_haccpConfirmDate": "2026-08-14T18:32:32.288Z",
+  "_hazardFromAI": "mock",
+  "_matchedMaterials": [
+    {
+      "material": "菊芋|||chicory root",
+      "aliases": [
+        "chicory root",
+        "Chicory",
+        "Chicory root",
+        "chicory root tuber",
+        "sunroot"
+      ],
+      "hazards": {
+        "bio": {
+          "risk": "生物危害|||Biological hazard",
+          "q1": "是",
+          "q2": "是",
+          "q3": "是",
+          "isCCP": true,
+          "control": "后续通过有效的高温处理环节消除（如高温干燥）；如果接收区域和其他原料共用需彻底消毒设备|||Eliminated by subsequent effective high-temperature processing (e.g., high-temperature drying); thoroughly disinfect equipment if the receiving area is shared with other raw materials",
+          "detail": "菊芋原料常见的生物危害有真菌（霉菌）、害虫（蛴螬、地老虎，蚜虫）、细菌（大肠杆菌、鞘氨醇菌、假单胞菌、产碱杆菌、葡萄球菌、大肠杆菌和芽孢杆菌），后续它们可以通过有效的高温处理环节被消除（例如高温干燥）。如果接收区域和其他原料共用，且后续无法对设备进行彻底消毒，那就有交叉污染的风险。|||Common biological hazards in chicory root raw materials include fungi (molds), pests (white grubs, cutworms, aphids) and bacteria (E. coli, Sphingomonas, Pseudomonas, Alcaligenes, Staphylococcus, E. coli and Bacillus). They can be eliminated by effective subsequent high-temperature processing (e.g., high-temperature drying). If the receiving area is shared with other raw materials and equipment cannot be thoroughly disinfected, there is a risk of cross-contamination."
+        },
+        "chem": {
+          "risk": "化学危害|||Chemical hazard",
+          "q1": "是",
+          "q2": "否",
+          "q3": "\\",
+          "isCCP": true,
+          "control": "原料必须由实施良好农业规范（GAP）、信誉良好的供应商提供，需提供分析证书和相关检测报告|||Raw materials must be sourced from reputable suppliers implementing Good Agricultural Practices (GAP), with analysis certificates and relevant test reports",
+          "detail": "如果原料中的农药残留和金属残留不满足控制标准（如GB 2763农药残留、GB 2762重金属限量等）有机磷类农药≤0.01mg/kg拟除虫菊酯类≤0.05mg/kg，那么后续的操作是无法消除这些残留危害的，所以原料必须由实施良好农业规范（GAP）、信誉良好的供应商提供，同时还需提供分析证书和相关检测报告。|||If pesticide and heavy metal residues in raw materials fail to meet control standards (e.g., GB 2763 pesticide residues, GB 2762 heavy metal limits; organophosphates ≤0.01 mg/kg, pyrethroids ≤0.05 mg/kg), subsequent operations cannot eliminate these residues. Therefore, raw materials must be sourced from reputable GAP-implementing suppliers with analysis certificates and test reports."
+        },
+        "phys": {
+          "risk": "物理危害|||Physical hazard",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "isCCP": false,
+          "control": "后续加工可通过过滤等技术去除|||Removed by subsequent processing techniques such as filtration",
+          "detail": "在接收过程中，会检查灰尘、玻璃碎片、塑料碎片、毛发、土壤颗粒物以及昆虫尸体等，并且后续加工有一定的技术去除他们（例如过滤）。|||During receiving, dust, glass fragments, plastic pieces, hair, soil particles and insect remains are inspected and can be removed by subsequent processing techniques such as filtration."
+        }
+      }
+    },
+    {
+      "material": "活性炭|||Activated carbon",
+      "aliases": [
+        "Activated carbon",
+        "Activated charcoal",
+        "active carbon"
+      ],
+      "hazards": {
+        "bio": {
+          "risk": "生物危害|||Biological hazard",
+          "q1": "否",
+          "q2": "\\",
+          "q3": "\\",
+          "isCCP": false,
+          "control": "查验第三方检测报告确保符合GB 1886.255-2016或GB 1886.363-2022食用级活性炭要求；干燥存储|||Verify third-party test reports per GB 1886.255-2016 or GB 1886.363-2022 food-grade activated carbon requirements; store in a dry place",
+          "detail": "活性炭是多孔结构吸附大量有机物，在潮湿环境极易滋生细菌和霉菌；肉毒素是当革兰氏阴性菌在活性炭上繁殖并死亡裂解后产生的，在高温下也无法杀死。活性炭入厂时，必须查验并核对其第三方检测报告确保其符合GB 1886.255-2016 或GB 1886.363-2022中关于食用级活性炭的要求，否则后续操作无法去除这些危害。|||Activated carbon has a porous structure that adsorbs large amounts of organic matter and easily harbors bacteria and mold in humid environments; botulinum toxin is produced when Gram-negative bacteria grow and lyse on activated carbon and cannot be destroyed even at high temperatures. At receiving, third-party test reports must be verified per GB 1886.255-2016 or GB 1886.363-2022 food-grade activated carbon requirements; otherwise subsequent operations cannot remove these hazards."
+        },
+        "chem": {
+          "risk": "化学危害|||Chemical hazard",
+          "q1": "是",
+          "q2": "否",
+          "q3": "\\",
+          "isCCP": true,
+          "control": "入厂时查验第三方检测报告确保符合GB 1886.255-2016或GB 1886.363-2022食用级活性炭要求|||Verify third-party test reports at receiving per GB 1886.255-2016 or GB 1886.363-2022 food-grade activated carbon requirements",
+          "detail": "活性炭的生产可能含有重金属残留（如铅、砷）、工艺副产物（高级芳香烃、氰化物）残留等危害，活性炭入厂时，必须查验并核对其第三方检测报告确保其符合GB 1886.255-2016 或GB 1886.363-2022中关于食用级活性炭的要求，否则后续操作无法去除这些危害。|||Activated carbon production may leave heavy metal residues (e.g., lead, arsenic) and process by-products (higher aromatic hydrocarbons, cyanides). At receiving, third-party test reports must be verified per GB 1886.255-2016 or GB 1886.363-2022; otherwise subsequent operations cannot remove these hazards."
+        },
+        "phys": {
+          "risk": "物理危害|||Physical hazard",
+          "q1": "是",
+          "q2": "是",
+          "q3": "否",
+          "isCCP": false,
+          "control": "后续通过过滤操作有效去除|||Effectively removed by subsequent filtration",
+          "detail": "活性炭本身可能会混入其他颗粒杂质，例如包装破损可能引入塑料等异物，不过后续能通过过滤操作有效去除。|||Activated carbon itself may contain granular impurities; for example, damaged packaging may introduce plastic and other foreign matter, which can be effectively removed by subsequent filtration."
+        }
+      },
+      "_ai_matched": true,
+      "_user_input": "carbon"
+    }
+  ],
+  "_monitoringRemoved": [],
+  "_correctiveRemoved": [],
+  "_haccpSkipped": true
 }

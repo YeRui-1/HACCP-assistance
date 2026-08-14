@@ -10,7 +10,7 @@ var INULIN_DRAWIO_XML = '<mxfile host="HACCP-assistance" version="21.0.0">'
   + '<mxCell id="1" parent="0"/>'
 
   // ========== 左列主步骤 ==========
-  + '<mxCell id="L1" value="菊芋验收 (CQP-1)|||Jerusalem Artichoke Receiving (CQP-1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#43a047;fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="200" y="30" width="160" height="44" as="geometry"/></mxCell>'
+  + '<mxCell id="L1" value="菊芋验收 (CQP-1)|||Chicory Root Receiving (CQP-1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#43a047;fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="200" y="30" width="160" height="44" as="geometry"/></mxCell>'
   + '<mxCell id="L2" value="清洗 (OPRP-1)|||Washing (OPRP-1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1976d2;fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="200" y="130" width="160" height="44" as="geometry"/></mxCell>'
   + '<mxCell id="L3" value="粉碎 (OPRP-2)|||Crushing (OPRP-2)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1976d2;fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="200" y="230" width="160" height="44" as="geometry"/></mxCell>'
   + '<mxCell id="L4" value="匀浆|||Homogenization" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="200" y="330" width="160" height="44" as="geometry"/></mxCell>'

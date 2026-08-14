@@ -11,7 +11,7 @@ const INULIN_FLOWCHART = {
   classDef io fill:#f3e5f5,stroke:#8e24aa,stroke-width:1px;
 
   %% === 左侧流程（前处理与提取） ===
-  L1["1. 菊芋验收 (CQP-1)|||1. Jerusalem Artichoke Receiving (CQP-1)"]:::cqp
+  L1["1. 菊芋验收 (CQP-1)|||1. Chicory Root Receiving (CQP-1)"]:::cqp
   L2["2. 清洗 (OPRP-1)|||2. Washing (OPRP-1)"]:::oprp
   L3["3. 粉碎 (OPRP-2)|||3. Crushing (OPRP-2)"]:::oprp
   L4["4. 匀浆|||4. Homogenization"]

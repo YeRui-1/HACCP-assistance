@@ -22,6 +22,9 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-your-deepseek-api-key-here")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
+# 管理员密码（从 .env 读取，默认 admin123）
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+
 from fastapi import FastAPI, HTTPException, Depends
 from typing import List
 from fastapi.responses import FileResponse
@@ -47,6 +50,8 @@ from database import (
     list_plans,
     update_plan,
     delete_plan,
+    get_draft,
+    save_draft,
 )
 
 app = FastAPI(title="HACCP AI 助手后端")
@@ -286,6 +291,39 @@ async def api_me(user: dict = Depends(get_current_user)):
     if user is None:
         raise HTTPException(status_code=401, detail="未登录或 token 已过期")
     return {"user": user}
+
+
+# ===== 管理员验证（密码存后端，不再写死在前端）=====
+
+class AdminVerifyRequest(BaseModel):
+    password: str = ""
+
+
+@app.post("/api/admin/verify")
+async def api_admin_verify(req: AdminVerifyRequest):
+    return {"ok": bool(req.password) and req.password == ADMIN_PASSWORD}
+
+
+# ===== 问卷草稿（登录用户自动保存）=====
+
+class DraftSaveRequest(BaseModel):
+    data: dict
+
+
+@app.get("/api/drafts/{name}")
+async def api_get_draft(name: str, user: dict = Depends(get_current_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="未登录")
+    draft = get_draft(user["id"], name)
+    return {"ok": True, "draft": draft}
+
+
+@app.put("/api/drafts/{name}")
+async def api_save_draft(name: str, req: DraftSaveRequest, user: dict = Depends(get_current_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="未登录")
+    draft = save_draft(user["id"], name, req.data)
+    return {"ok": True, "draft": draft}
 
 
 # ===== 多模板管理接口 =====
@@ -593,6 +631,47 @@ def _load_raw_material_hazards() -> list:
         return []
 
 
+_STANDARDS_CACHE = None
+def _load_standards() -> list:
+    """加载 GB 国家标准知识库（双语）"""
+    global _STANDARDS_CACHE
+    if _STANDARDS_CACHE is not None:
+        return _STANDARDS_CACHE
+    std_path = PROJECT_ROOT / "data" / "standards.json"
+    if not std_path.exists():
+        _STANDARDS_CACHE = []
+        return _STANDARDS_CACHE
+    try:
+        with open(std_path, "r", encoding="utf-8") as f:
+            _STANDARDS_CACHE = json.load(f)
+    except Exception:
+        _STANDARDS_CACHE = []
+    return _STANDARDS_CACHE
+
+
+def _pick_standards_for(ccp_names: list, product_name: str = "") -> list:
+    """根据 CCP 步骤名与产品名，从标准库中挑选相关标准（按 applyKeywords 匹配）"""
+    standards = _load_standards()
+    if not standards:
+        return []
+    if not ccp_names:
+        return standards
+    haystack = " ".join([product_name] + ccp_names).lower()
+    picked = []
+    for std in standards:
+        kws = std.get("applyKeywords", [])
+        if any(kw and kw.lower() in haystack for kw in kws):
+            picked.append(std)
+    # 若无关键词命中，返回全部（通用参考）
+    return picked if picked else standards
+
+
+@app.get("/api/standards")
+async def api_standards():
+    """返回 GB 国家标准知识库（可选 ?q= 关键词过滤）"""
+    return {"ok": True, "standards": _load_standards()}
+
+
 def _ai_match_materials(user_materials: list, db: list) -> list:
     """使用 DeepSeek AI 将用户输入的原料名语义匹配到数据库中的原料名（批量处理）"""
     db_names = [entry["material"] for entry in db]
@@ -722,8 +801,11 @@ async def api_raw_material_hazards(req: RawMaterialHazardsRequest):
         if not m:
             continue
         found = False
+        m_lower = m.lower()
         for entry in db:
-            if entry["material"] == m:
+            # 精确匹配：材料名或其别名（支持中英文，大小写不敏感）
+            aliases = [str(a).strip().lower() for a in entry.get("aliases", [])]
+            if entry["material"].lower() == m_lower or m_lower in aliases:
                 results.append(entry)
                 found = True
                 break
@@ -1275,13 +1357,13 @@ def _mock_ccp_judgment(req: CcpJudgmentRequest) -> dict:
 
 # ===== AI 关键限值 / 监控 / 纠偏 / 验证 =====
 
-CRITICAL_LIMITS_PROMPT = """你是一位专业的HACCP关键限值专家。请根据用户提供的CCP信息和执行标准，为每个CCP制定科学合理的关键限值。
+CRITICAL_LIMITS_PROMPT = """你是一位专业的HACCP关键限值专家。请根据用户提供的CCP信息和执行标准，为每个CCP给出关键限值建议。
 
 要求：
-1. 每个CCP的关键限值必须有科学依据（法规标准、文献数据或实验验证）
-2. 关键限值必须具体、可测量（温度、时间、尺寸、浓度等数值）
-3. 标注每个限值的法规依据（如GB 14881-2013、GB 2762-2022等）
-4. 如果执行标准是国标，则参考GB系列标准
+1. 关键限值仅为AI建议，供HACCP小组参考，最终限值必须由企业依据标准原文和实际工艺确认
+2. 有明确法规/标准依据时给出具体、可测量的数值（温度、时间、尺寸、浓度等）并标注依据（如GB 7101-2022、GB 2762-2022等）
+3. 若没有合适的标准依据或无法给出可靠数值，limit 字段填写"待定（需企业依据标准原文确认）|||TBD (to be confirmed per standard) "，不要强行编造数值
+4. 如果执行标准是国标，优先参考注入的相关国家标准
 5. 所有文本字段必须使用双语格式（中文|||英文）
 
 请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
@@ -1309,25 +1391,32 @@ MONITORING_PROMPT = """你是一位专业的HACCP监控程序专家。请根据�
   ]
 }"""
 
-CORRECTIVE_ACTIONS_PROMPT = """你是一位专业的HACCP纠偏措施专家。请根据用户提供的CCP列表及其关键限值，为每个CCP制定科学合理的纠偏措施。
+CORRECTIVE_ACTIONS_PROMPT = """你是一位精通HACCP体系的食品安全专家。请依据国际通行的HACCP准则（Codex CAC/RCP 1-1969、GB/T 27341-2009、FDA NACMCF指南）以及用户提供的CCP列表、关键限值和监控信息，为每个CCP制定科学、具体、可落地的纠偏措施。
 
-纠偏措施应包含：
-1. 关键控制点(CCP)名称
-2. 关键限值(CL)的具体数值
-3. 当关键限值偏离时应采取的纠正措施
-4. 验证纠偏效果的方法
-5. 需要填写的记录表格
+【标准要求——纠偏措施必须满足三要素】
+1. 查明并纠正偏离原因，使CCP恢复受控（FDA要素a；GB/T 27341 7.4.4）
+2. 对偏离期间受影响产品进行评估与处置，防止不安全产品进入消费环节（FDA要素b）
+3. 明确纠偏责任人并完整记录纠偏过程（FDA要素c）
+
+【各字段编写要求】
+1. cl（关键限值）：引用该CCP设定的关键限值具体数值，与本工序监控指标一致
+2. personnel（实施人员）：写明执行纠偏的岗位（如"品控专员/生产主任"），紧急处置应由当班有权停线人员执行
+3. causeAnalysis（偏离原因）：结合该CCP的工艺特点，列举2~3种最可能的偏离原因（设备故障、操作失误、原料波动、环境因素等），并给出排查顺序
+4. productHandling（产品处置）：按"隔离→评估→处置"三步写，处置选项按严重程度分级：可返工/重新加工→降级使用→转作他用→销毁；写明隔离范围（如"报警前后各30分钟产品"）和放行须经HACCP小组批准
+5. corrective（纠偏措施）：写出立即采取的具体操作动作（停机、调参、检修、更换部件等），措施必须能消除偏离原因并使CCP恢复受控
+6. verification（验证方法）：写明如何验证纠偏有效（复查监控记录、重新检测、校准设备、后续批次跟踪等）
+7. record（记录表格）：给出纠偏记录表单名称（如《CCP偏差处理记录》《产品隔离处置记录》）
 
 要求：
-1. 纠偏措施必须具体可操作，不能是笼统的描述
-2. 明确谁来执行纠偏、如何记录
-3. 考虑最坏情况（如产品如何处理：隔离/重新加工/销毁）
-4. 所有文本字段必须使用双语格式（中文|||英文）
+1. 内容必须针对具体CCP定制，严禁套用通用模板
+2. 每个字段1~2句话，简洁具体、可直接执行
+3. 所有文本字段使用双语格式（中文|||英文）
+4. 纠偏措施仅为AI建议，供HACCP小组审核参考；若无足够依据，可填"待定|||TBD"，不得编造
 
 请严格按照以下JSON格式返回（只返回JSON，不要任何额外文字）：
 {
   "correctiveActions": [
-    {"ccp": "CCP名称|||CCP Name", "cl": "关键限值|||Critical Limit", "corrective": "纠偏措施|||Corrective Action", "verification": "验证方法|||Verification Method", "record": "记录表格名称|||Record Form Name"}
+    {"ccp": "CCP名称|||CCP Name", "cl": "关键限值|||Critical Limit", "personnel": "实施人员|||Personnel", "causeAnalysis": "偏离原因|||Cause of Deviation", "productHandling": "产品处置|||Product Handling", "corrective": "纠偏措施|||Corrective Action", "verification": "验证方法|||Verification Method", "record": "记录表格名称|||Record Form Name"}
   ]
 }"""
 
@@ -1375,34 +1464,22 @@ class CriticalLimitsRequest(BaseModel):
     exec_standard: str = "gb"
 
 
-def _call_deepseek(system_prompt: str, user_content: str, temperature: float = 0.3, max_tokens: int = 2048) -> dict:
-    """通用 DeepSeek API 调用函数"""
-    payload = {
-        "model": "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content}
-        ],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-    }
-    json_data_bytes = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    http_req = urllib.request.Request(DEEPSEEK_API_URL, data=json_data_bytes, headers=headers, method="POST")
-    with urllib.request.urlopen(http_req, timeout=90) as resp:
-        result = json.loads(resp.read().decode("utf-8"))
-        content = result["choices"][0]["message"]["content"].strip()
-    if content.startswith("```"):
-        lines = content.split("\n")
-        if lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines[-1].strip() == "```":
-            lines = lines[:-1]
-        content = "\n".join(lines)
-    return json.loads(content)
+def _parse_json_robust(text: str) -> dict:
+    """容错解析 AI 返回的 JSON：去围栏、提取大括号区间、清理字符串内非法控制字符"""
+    content = text.strip()
+    # 提取首尾大括号之间的内容（跳过AI可能附加的说明文字）
+    start = content.find("{")
+    end = content.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        content = content[start:end + 1]
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # 将字符串内部的非法控制字符（换行/制表符等）替换为空格后再解析
+        def _fix_str(m):
+            return re.sub(r'[\x00-\x1f\x7f]', ' ', m.group(0))
+        repaired = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', _fix_str, content)
+        return json.loads(repaired)
 
 
 def _is_mock_mode() -> bool:
@@ -1423,31 +1500,74 @@ async def api_ai_critical_limits(req: CriticalLimitsRequest):
     std_label = std_labels.get(req.exec_standard, "国标（GB）")
 
     ccp_text = "\n".join(f"- {s.get('stepName', '')}" for s in ccp_list)
-    user_content = f"产品名称：{req.product_name}\n执行标准：{std_label}\n\n确定的CCP：\n{ccp_text}\n\n请为以上CCP制定关键限值。"
+
+    # 注入相关国家标准知识（仅国标模式；AI据此设置限值，减少幻觉）
+    std_context = ""
+    if req.exec_standard == "gb":
+        picked = _pick_standards_for([s.get("stepName", "") for s in ccp_list], req.product_name or "")
+        if picked:
+            lines = []
+            for std in picked:
+                name_zh = std.get("name", "").split("|||")[0]
+                limits = std.get("keyLimits") or []
+                if limits:
+                    lines.append(f"- {std.get('number', '')}《{name_zh}》：{'；'.join(l.split('|||')[0] for l in limits)}")
+                else:
+                    lines.append(f"- {std.get('number', '')}《{name_zh}》")
+            std_context = "\n\n【相关国家标准参考（关键限值必须以此为依据设置）】\n" + "\n".join(lines)
+
+    user_content = f"产品名称：{req.product_name}\n执行标准：{std_label}\n\n确定的CCP：\n{ccp_text}{std_context}\n\n请为以上CCP制定关键限值。"
 
     if _is_mock_mode():
         limits_text = ""
         details = []
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            # _kw_match helper (bilingual keyword support)
-            def _kwm(kw, t): return kw.split("|||")[0] in t if "|||" in kw else kw in t
-            if any(_kwm(kw, name) for kw in ["杀菌|||Sterilization", "热处理", "灭菌", "消毒", "加热"]):
-                limits_text += f"1. **{s.get('stepName', '')}**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "中心温度≥85℃，保持时间≥15秒|||Core temp ≥85°C, hold ≥15s", "basis": "GB 14881-2013", "rationale": "充分杀灭致病菌|||Effectively kills pathogenic bacteria"})
-            elif any(_kwm(kw, name) for kw in ["金属检测|||Metal detection", "异物", "金属探测", "x光"]):
-                limits_text += f"2. **{s.get('stepName', '')}**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "basis": "GB/T 25346-2010", "rationale": "防止金属异物进入成品|||Prevent metal foreign objects in finished product"})
-            elif any(_kwm(kw, name) for kw in ["验收", "接收", "原料"]):
-                limits_text += f"3. **{s.get('stepName', '')}**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "basis": "GB 2763-2021、GB 2762-2022", "rationale": "原料安全是HACCP的基础|||Raw material safety is the foundation of HACCP"})
+            # 双语关键词匹配：任一语言段命中即算匹配
+            def _kwm(kw, t):
+                t = t.lower()
+                for part in kw.split("|||"):
+                    if part and part.strip().lower() in t:
+                        return True
+                return False
+            basis_keys = []
+            if any(_kwm(kw, name) for kw in ["杀菌|||Sterilization", "热处理|||heat treatment", "灭菌|||steriliz", "消毒|||disinfect", "加热|||heat", "cooking", "pasteuriz", "baking", "frying", "boiling"]):
+                basis_keys = ["GB 14881-2013"]
+                limit = "中心温度≥85℃，保持时间≥15秒|||Core temp ≥85°C, hold ≥15s"
+            elif any(_kwm(kw, name) for kw in ["金属检测|||Metal detection", "异物|||foreign", "金属探测|||metal detect", "x光|||x-ray", "metal", "detect", "magnet", "screen", "siev"]):
+                basis_keys = ["GB/T 25346-2010"]
+                limit = "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm"
+            elif any(_kwm(kw, name) for kw in ["验收|||receiving", "接收|||receiv", "原料|||raw material", "incoming", "inspection", "acceptance", "material"]):
+                basis_keys = ["GB 2763-2021", "GB 2762-2022"]
+                limit = "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits"
             else:
-                limits_text += f"**{s.get('stepName', '')}**：\n   - 需根据实际工艺参数确定\n   - 依据：企业内控标准\n\n"
-                details.append({"ccp": s.get("stepName", ""), "limit": "待定|||TBD", "basis": "企业内控标准", "rationale": "需根据实际工艺确定|||To be determined per actual process"})
+                limit = "待定|||TBD"
+            # 从数据库匹配本 CCP 相关标准，keyLimits 作为建议限值优先采用
+            picked = _pick_standards_for([s.get("stepName", "")], req.product_name or "")
+            db_limit = ""
+            for std in picked:
+                for l in (std.get("keyLimits") or []):
+                    db_limit += ("；" if db_limit else "") + l
+            if db_limit:
+                limit = db_limit
+                for std in picked:
+                    if std.get("keyLimits"):
+                        basis_keys.append(std.get("number", ""))
+            basis = "、".join(dict.fromkeys(basis_keys)) if basis_keys else "企业内控标准"
+            limits_text += f"**{s.get('stepName', '')}（AI建议，需HACCP小组确认）|||{s.get('stepName', '')} (AI suggestion, pending HACCP team confirmation)**：\n   - {limit}\n   - 依据：{basis}\n\n"
+            details.append({"ccp": s.get("stepName", ""), "limit": limit, "basis": basis, "rationale": "依据现有标准数据库匹配结果，最终限值需企业依据标准原文和实际工艺确认|||Based on matched standards database; final limits must be confirmed against standard texts and actual process"})
+        limits_text = "【AI建议】以下关键限值基于现有标准数据库自动生成，供HACCP小组参考，须经确认后生效。|||[AI SUGGESTION] The critical limits below are auto-generated from the standards database for HACCP team reference and take effect only after confirmation.\n\n" + limits_text
         return {"ok": True, "data": {"criticalLimits": limits_text.strip(), "details": details}}
 
     try:
-        data = _call_deepseek(CRITICAL_LIMITS_PROMPT, user_content)
+        data = _call_deepseek(CRITICAL_LIMITS_PROMPT, user_content, 2048)
+        # 统一标注：结果为 AI 建议，需 HACCP 小组确认
+        if isinstance(data, dict) and data.get("criticalLimits"):
+            data["criticalLimits"] = "【AI建议】以下关键限值为AI生成建议，供HACCP小组参考，须依据标准原文和实际工艺确认后生效。|||[AI SUGGESTION] The critical limits below are AI-generated suggestions for HACCP team reference and take effect only after confirmation against standard texts and actual process.\n\n" + data["criticalLimits"]
+        if isinstance(data, dict) and isinstance(data.get("details"), list):
+            for d in data["details"]:
+                if isinstance(d, dict) and not d.get("rationale"):
+                    d["rationale"] = "AI建议值，需企业依据标准原文和实际工艺确认|||AI suggestion; confirm against standard texts and actual process"
         return {"ok": True, "data": data}
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
@@ -1472,20 +1592,26 @@ async def api_ai_monitoring(req: MonitoringRequest):
 
     if _is_mock_mode():
         monitor = []
+        def _kwm(kw, t):
+            t = t.lower()
+            for part in kw.split("|||"):
+                if part and part.strip().lower() in t:
+                    return True
+            return False
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌", "消毒", "加热"]):
+            if any(_kwm(kw, name) for kw in ["杀菌|||Sterilization", "热处理|||heat treatment", "灭菌|||steriliz", "消毒|||disinfect", "加热|||heat", "cooking", "pasteuriz", "baking", "frying", "boiling"]):
                 monitor.append({"ccp": s.get("stepName", ""), "object": "温度、时间|||Temperature, time", "method": "在线温度传感器连续监控|||Online temperature sensor continuous monitoring", "frequency": "每批次实时记录|||Real-time recording per batch", "personnel": "经HACCP培训的品控专员|||HACCP-trained QC specialist", "remark": "温度偏差需≤±1℃|||Temperature deviation ≤±1°C"})
-            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["金属检测|||Metal detection", "异物", "金属探测", "x光"]):
+            elif any(_kwm(kw, name) for kw in ["金属检测|||Metal detection", "异物|||foreign", "金属探测|||metal detect", "x光|||x-ray", "metal", "detect", "magnet", "screen", "siev"]):
                 monitor.append({"ccp": s.get("stepName", ""), "object": "金属异物", "method": "在线金属检测仪自动检测|||Online metal detector automatic inspection", "frequency": "连续监控|||Continuous monitoring", "personnel": "设备维护人员+品控专员|||Equipment maintenance staff + QC specialist", "remark": "按GB/T 25346-2010执行|||Per GB/T 25346-2010"})
-            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["验收", "接收", "原料"]):
+            elif any(_kwm(kw, name) for kw in ["验收|||receiving", "接收|||receiv", "原料|||raw material", "incoming", "inspection", "acceptance", "material"]):
                 monitor.append({"ccp": s.get("stepName", ""), "object": "农药残留、重金属", "method": "供应商检测报告+抽检验证|||Supplier test reports + spot check verification", "frequency": "每批次审核", "personnel": "经培训的采购专员|||Trained procurement specialist", "remark": "依据GB 2763-2021、GB 2762-2022|||Per GB 2763-2021, GB 2762-2022"})
             else:
                 monitor.append({"ccp": s.get("stepName", ""), "object": "工艺参数|||Process parameters", "method": "在线/人工检测|||Online/manual inspection", "frequency": "按需确定|||Determine as needed", "personnel": "品控人员|||QC personnel", "remark": "依据企业标准|||Per enterprise standard"})
         return {"ok": True, "data": {"monitoring": monitor}}
 
     try:
-        data = _call_deepseek(MONITORING_PROMPT, user_content)
+        data = _call_deepseek(MONITORING_PROMPT, user_content, 2048)
         return {"ok": True, "data": data}
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
@@ -1505,25 +1631,43 @@ async def api_ai_corrective_actions(req: CorrectiveActionsRequest):
     if not ccp_list:
         return {"ok": True, "data": {"correctiveActions": []}}
 
-    ccp_text = "\n".join(f"- {s.get('stepName', '')}" for s in ccp_list)
+    ccp_text = "\n".join(
+        f"- {s.get('stepName', '')}"
+        + (f"（危害：{s.get('hazardDesc', '')}" if s.get('hazardDesc') else "")
+        + (f"；关键限值：{s.get('criticalLimit', '')}" if s.get('criticalLimit') else "")
+        + (f"；监控：{s.get('monitoring', '')}" if s.get('monitoring') else "")
+        + (")" if (s.get('hazardDesc') or s.get('criticalLimit') or s.get('monitoring')) else "")
+        for s in ccp_list
+    )
     user_content = f"产品名称：{req.product_name}\n\n确定的CCP：\n{ccp_text}\n\n已确定的关键限值：\n{req.critical_limits or '暂未设置'}\n\n请为以上CCP制定纠偏措施。"
 
     if _is_mock_mode():
         actions = []
+        # 双语关键词匹配：任一语言段命中即算匹配
+        def _kwm(kw, t):
+            t = t.lower()
+            for part in kw.split("|||"):
+                if part and part.strip().lower() in t:
+                    return True
+            return False
         for s in ccp_list:
             name = s.get("stepName", "").lower()
-            if any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["杀菌|||Sterilization", "热处理", "灭菌", "消毒", "加热"]):
-                actions.append({"ccp": s.get("stepName", ""), "cl": "中心温度≥85℃，保持≥15秒", "corrective": "温度不达标时：1)立即调整设备参数；2)对受影响产品隔离评估；3)重新杀菌或销毁不合格品|||When temp fails: 1) Immediately adjust equipment; 2) Isolate and assess affected products; 3) Re-sterilize or destroy non-conforming products", "verification": "1)复查温度记录曲线；2)对重新加工产品抽样检测微生物；3)校准温度传感器|||1) Review temp record curves; 2) Micro testing of reworked products; 3) Calibrate temp sensors", "record": "《杀菌工序温度异常记录表》《产品隔离处理记录》|||Sterilization Temp Deviation Record, Product Isolation Record"})
-            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["金属检测|||Metal detection", "异物", "金属探测", "x光"]):
-                actions.append({"ccp": s.get("stepName", ""), "cl": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "corrective": "检测仪报警时：1)立即将受影响产品隔离；2)用标准试块测试设备；3)对上一批次检出时段产品重新检测；4)查找异物来源|||When alarm triggers: 1) Isolate affected products; 2) Test equipment with standard blocks; 3) Re-inspect products from previous batch; 4) Identify foreign object source", "verification": "1)每小时用标准试块测试检测仪；2)对剔除产品进行确认；3)定期维护设备|||1) Test detector hourly with standard blocks; 2) Verify rejected products; 3) Regular equipment maintenance", "record": "《金属检测异常处理记录》《设备校验记录》|||Metal Detection Anomaly Record, Equipment Calibration Record"})
-            elif any(kw.split("|||")[0] in name if "|||" in kw else kw in name for kw in ["验收", "接收", "原料"]):
-                actions.append({"ccp": s.get("stepName", ""), "cl": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "corrective": "检测不合格时：1)拒收该批原料；2)通知供应商整改；3)如已入库则立即隔离标识；4)评估是否需要更换供应商|||When test fails: 1) Reject batch; 2) Notify supplier for corrective action; 3) Isolate and label if already received; 4) Evaluate supplier replacement", "verification": "1)每批查验供应商检测报告；2)定期送第三方检测；3)年度供应商审核|||1) Verify supplier reports per batch; 2) Periodic third-party testing; 3) Annual supplier audit", "record": "《原料验收不合格记录》《供应商整改通知单》|||Raw Material Rejection Record, Supplier Corrective Action Notice"})
+            if any(_kwm(kw, name) for kw in ["杀菌|||Sterilization", "热处理|||heat treatment", "灭菌|||steriliz", "消毒|||disinfect", "加热|||heat", "cooking", "pasteuriz", "baking", "frying", "boiling"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "中心温度≥85℃，保持≥15秒|||Core temp ≥85°C, hold ≥15s", "personnel": "当班生产主任 / 品控专员（有权停机）|||Shift production supervisor / QC specialist (authorized to stop line)", "causeAnalysis": "排查顺序：①蒸汽压力或锅炉供汽不足；②温度传感器失准/探头结垢；③操作时间不足或未记录。按此顺序逐一排查并排除|||Troubleshoot in order: ①insufficient steam pressure; ②sensor drift/scale buildup; ③insufficient holding time or missing records", "productHandling": "1) 立即隔离该批次及前后相邻产品；2) 评估杀菌不足范围，抽样做微生物检测；3) 可安全返工的重新杀菌，否则降级/转作他用/销毁；4) 放行须经HACCP小组书面批准|||1) Immediately isolate this batch and adjacent products; 2) Assess scope of under-sterilization, sample for micro testing; 3) Re-sterilize if feasible, otherwise downgrade/re-purpose/destroy; 4) Release only with written HACCP team approval", "corrective": "立即停机排查蒸汽/传感器/操作记录，修复后重新杀菌达标并连续验证2批正常方可恢复生产|||Stop line immediately; check steam, sensor, and records; after repair, re-sterilize to CL and verify 2 consecutive batches before resuming", "verification": "复查温度记录曲线；对返工品抽样检测微生物；校准温度传感器|||Review temperature charts; micro-test reworked product; calibrate temperature sensor", "record": "《杀菌工序温度异常记录表》《产品隔离处置记录》|||Sterilization Deviation Record, Product Isolation & Disposition Record"})
+            elif any(_kwm(kw, name) for kw in ["金属检测|||Metal detection", "异物|||foreign", "金属探测|||metal detect", "x光|||x-ray", "metal", "detect", "magnet", "screen", "siev"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "Fe≤1.5mm，SUS≤2.0mm|||Fe ≤1.5mm, SUS ≤2.0mm", "personnel": "当班品控 / 设备维护员（有权停机）|||Shift QC / equipment maintenance staff (authorized to stop line)", "causeAnalysis": "排查顺序：①检测仪灵敏度漂移或校验失效；②筛网/输送部件破损引入金属；③原料带入金属异物。用标准试块先验证设备|||Troubleshoot in order: ①detector sensitivity drift; ②broken screens/conveyor parts; ③metal from raw materials. Verify detector with test blocks first", "productHandling": "1) 立即停线；2) 隔离自上次合格校验后生产的所有产品；3) 全部重新过检，剔除品隔离评估；4) 无法确认安全的产品降级或销毁|||1) Stop line immediately; 2) Isolate all product since last valid calibration; 3) Re-inspect everything; isolate rejects; 4) Downgrade or destroy if safety cannot be confirmed", "corrective": "停机检修检测仪并重新校验，修复后以标准试块连续通过3次方可复产|||Stop line, service and re-calibrate detector; pass test blocks 3 consecutive times before resuming", "verification": "每小时用标准试块验证检测仪；对重新过检产品确认剔除效果；复核校验记录|||Verify detector hourly with test blocks; confirm rejection of re-inspected product; review calibration records", "record": "《金属检测异常处理记录》《设备校验记录》|||Metal Detection Anomaly Record, Equipment Calibration Record"})
+            elif any(_kwm(kw, name) for kw in ["膜滤|||membrane", "过滤|||filtration", "filter", "membrane", "ultrafiltr", "nanofiltr"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "滤膜孔径4-8mm；滤液澄清|||Membrane pore 4-8 mm; filtrate clear", "personnel": "当班工艺员 / 设备维护员（有权停机）|||Shift process operator / equipment maintenance staff (authorized to stop line)", "causeAnalysis": "排查顺序：①滤膜破损/堵塞导致滤液浑浊；②进料压力或温度异常；③料液含固量过高使膜通量骤降。按此顺序排查|||Troubleshoot in order: ①membrane damage/blockage causing cloudy filtrate; ②abnormal feed pressure or temperature; ③high solids content reducing flux", "productHandling": "1) 立即停线并隔离异常批次；2) 检查滤液浊度评估影响范围；3) 可重新过滤的返工处理，无法确认安全的降级/销毁；4) 放行须经HACCP小组批准|||1) Stop line immediately and quarantine the batch; 2) Check filtrate turbidity to assess impact; 3) Re-filter if feasible, otherwise downgrade/destroy; 4) Release only with HACCP team approval", "corrective": "停机更换/清洗滤膜并校正膜滤参数，试运行确认滤液澄清达标后方可恢复生产|||Stop line, replace/clean membrane and re-calibrate; confirm clear filtrate before resuming", "verification": "检查滤液澄清度与透过率；复核膜通量/压差记录；确认滤膜完整性|||Check filtrate clarity and flux; review throughput/pressure records; verify membrane integrity", "record": "《膜滤工序异常处理记录》《设备维护记录》|||Membrane Filtration Deviation Record, Equipment Maintenance Record"})
+            elif any(_kwm(kw, name) for kw in ["干燥|||drying", "烘干|||dryer", "脱水|||dehydrat", "dry", "bake"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "烘干温度120-180℃；成品水分达标|||Drying at 120-180℃; finished moisture content compliant", "personnel": "当班生产主任 / 设备维护员（有权停机）|||Shift production supervisor / equipment maintenance staff (authorized to stop line)", "causeAnalysis": "排查顺序：①烘干温度波动或加热元件故障；②物料铺层厚度/进料速度不当；③排湿系统失效导致湿度超标。按此顺序排查|||Troubleshoot in order: ①temperature fluctuation or heater fault; ②improper bed thickness/feed rate; ③failed moisture exhaust causing high humidity", "productHandling": "1) 立即隔离该批次；2) 检测水分含量评估影响；3) 水分超标可复烘至达标，严重变色/结块的降级或销毁|||1) Isolate the batch; 2) Test moisture content to assess impact; 3) Re-dry if slightly off; severely discolored/caked product downgraded or destroyed", "corrective": "停机检修加热/排湿系统，调整温度与进料参数，试烘验证水分达标后方可恢复生产|||Stop line, service heater/exhaust; adjust temperature and feed; verify moisture compliant before resuming", "verification": "检测成品水分含量；复核烘干温度曲线；确认设备校准记录|||Test moisture content; review drying temperature curves; confirm equipment calibration records", "record": "《干燥工序异常处理记录》《水分检测记录》|||Drying Deviation Record, Moisture Test Record"})
+            elif any(_kwm(kw, name) for kw in ["验收|||receiving", "接收|||receiv", "原料|||raw material", "incoming", "inspection", "acceptance", "material"]):
+                actions.append({"ccp": s.get("stepName", ""), "cl": "符合GB 2763/2762限量标准|||Comply with GB 2763/2762 limits", "personnel": "采购专员 / 品控专员|||Procurement specialist / QC specialist", "causeAnalysis": "排查顺序：①供应商质量波动或检验报告失真；②运输储存条件不当（受潮/混装/超期）；③验收标准执行不严。必要时追溯上游供应商|||Troubleshoot in order: ①supplier variability or false COA; ②improper transport/storage; ③loose acceptance practices. Trace back to supplier if needed", "productHandling": "1) 拒收该批次并隔离标记；2) 已接收的关联原料单独存放并评估；3) 启动备用供应商保证供应；4) 向供应商发出整改通知|||1) Reject and quarantine the batch; 2) Segregate and assess related accepted lots; 3) Activate backup suppliers; 4) Issue corrective action notice to supplier", "corrective": "拒收该批原料并通知供应商限期整改，复核供应商资质与检测报告，整改验证合格前暂停其供货资格|||Reject the batch and require supplier corrective action; verify supplier qualification and COA; suspend supply until remediation is verified", "verification": "逐批核查供应商检测报告；定期送第三方抽检；年度供应商审核|||Verify supplier reports per batch; periodic third-party testing; annual supplier audit", "record": "《原料验收不合格记录》《供应商整改通知单》|||Raw Material Rejection Record, Supplier Corrective Action Notice"})
             else:
-                actions.append({"ccp": s.get("stepName", ""), "cl": "待定|||TBD", "corrective": "偏离关键限值时：1)立即隔离受影响产品；2)查明原因并纠正；3)对受影响产品评估处理；4)记录处理过程|||On CL deviation: 1) Isolate affected products; 2) Identify and correct cause; 3) Assess and handle affected products; 4) Record the process", "verification": "复查纠正措施有效性|||Review effectiveness of corrective actions", "record": "《CCP偏差处理记录》|||CCP Deviation Handling Record"})
+                actions.append({"ccp": s.get("stepName", ""), "cl": "待定|||TBD", "personnel": "HACCP小组 / 当班工序负责人|||HACCP team / shift process supervisor", "causeAnalysis": "排查顺序：①设备运行参数异常；②操作人员执行偏差；③原料批次波动；④环境条件变化。按人员-设备-原料-环境顺序排查|||Troubleshoot in order: ①equipment parameter drift; ②operator execution error; ③raw material lot variation; ④environmental change", "productHandling": "1) 立即停止异常操作；2) 隔离受影响产品并评估偏离程度；3) 按严重程度选择返工/降级/销毁；4) 处置结果报HACCP小组批准并存档|||1) Stop abnormal operation immediately; 2) Isolate affected product and assess deviation; 3) Rework/downgrade/destroy per severity; 4) Report disposition to HACCP team for approval and archive", "corrective": "查明并消除偏离原因，纠正后连续监控确认CCP恢复受控方可恢复生产|||Identify and eliminate the cause; verify CCP back in control by continuous monitoring before resuming", "verification": "复查纠偏后监控记录，确认关键限值持续满足要求|||Review post-correction monitoring records to confirm CL consistently met", "record": "《CCP偏差处理记录》《产品隔离处置记录》|||CCP Deviation Handling Record, Product Isolation & Disposition Record"})
         return {"ok": True, "data": {"correctiveActions": actions}}
 
     try:
-        data = _call_deepseek(CORRECTIVE_ACTIONS_PROMPT, user_content)
+        data = _call_deepseek(CORRECTIVE_ACTIONS_PROMPT, user_content, 2048)
         return {"ok": True, "data": data}
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
@@ -1542,7 +1686,7 @@ async def api_ai_verification(req: VerificationRequest):
     ccp_list = [s for s in req.ccp_steps if s.get("isCCP")]
     ccp_text = "\n".join(f"- {s.get('stepName', '')}" for s in ccp_list) if ccp_list else "暂无CCP"
     monitor_text = "\n".join(f"- {m.get('ccp', '')}: {m.get('method', '')} ({m.get('frequency', '')})" for m in (req.monitoring or []))
-    corrective_text = "\n".join(f"- {c.get('ccp', '')}: {c.get('corrective', '')}" for c in (req.corrective_actions or []))
+    corrective_text = "\n".join(f"- {c.get('ccp', '')}: {c.get('corrective') or c.get('causeAnalysis') or ''}" for c in (req.corrective_actions or []))
     user_content = f"产品名称：{req.product_name}\n\nCCP列表：\n{ccp_text}\n\n监控方案：\n{monitor_text or '暂无'}\n\n纠偏措施：\n{corrective_text or '暂无'}\n\n请为以上HACCP体系制定验证程序。"
 
     if _is_mock_mode():
@@ -1553,7 +1697,7 @@ async def api_ai_verification(req: VerificationRequest):
         }}
 
     try:
-        data = _call_deepseek(VERIFICATION_PROMPT, user_content)
+        data = _call_deepseek(VERIFICATION_PROMPT, user_content, 2048)
         return {"ok": True, "data": data}
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
@@ -1732,6 +1876,144 @@ async def api_save_demo_data(body: dict):
             # 流程图数据 → 只写流程图文件
             with open(DEMO_DATA_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+        return {"ok": True, "message": "保存成功"}
+    except Exception as e:
+        raise HTTPException(500, f"保存失败: {str(e)}")
+
+# ===== 15-min 快速问卷演示数据 =====
+DEMO_PROFILE_FILE = pathlib.Path(__file__).resolve().parent.parent / "data" / "demo_profile.json"
+
+# ===== AI 步骤危害匹配（替代本地 mock 数据库）=====
+class StepHazardsRequest(BaseModel):
+    steps: List[str]
+    product_name: str = ""
+    raw_materials: str = ""
+
+STEP_HAZARDS_PROMPT = """你是食品安全HACCP专家。请根据给定的生产步骤，为每个步骤识别潜在的生物、化学、物理危害。
+要求：
+1. 为每个步骤返回危害，类别键为 bio（生物）、chem（化学）、phys（物理）
+2. 每类危害包含字段：desc（危害描述）、isSignificant（是否显著危害，布尔值）、basis（判断依据）、control（控制措施）、controlRelation（控制措施与危害的关系）
+3. desc、basis、control、controlRelation 必须使用双语格式：中文|||English
+4. 某个步骤没有某类危害时，该类别可以省略
+5. 只返回JSON，格式：{"data": [{"step": "步骤名", "hazards": {"bio": {...}, "chem": {...}, "phys": {...}}}]}
+6. 所有返回的JSON字段都必须完整"""
+
+def _call_deepseek(system_prompt: str, user_content: str, max_tokens: int = 8192) -> dict:
+    """调用 DeepSeek 并解析返回的 JSON"""
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ],
+        "temperature": 0.3,
+        "max_tokens": max_tokens,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+    }
+    json_data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    http_req = urllib.request.Request(
+        DEEPSEEK_API_URL,
+        data=json_data,
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(http_req, timeout=90) as resp:
+        result = json.loads(resp.read().decode("utf-8"))
+    content = result["choices"][0]["message"]["content"].strip()
+    if content.startswith("```"):
+        lines = content.split("\n")
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines[-1].strip() == "```":
+            lines = lines[:-1]
+        content = "\n".join(lines)
+    return _parse_json_robust(content)
+
+
+@app.post("/api/ai/step-hazards")
+async def api_ai_step_hazards(req: StepHazardsRequest):
+    """根据生产步骤AI匹配危害（双语输出），替代本地 mock 数据库"""
+    if not DEEPSEEK_API_KEY or DEEPSEEK_API_KEY == "sk-your-deepseek-api-key-here":
+        raise HTTPException(status_code=503, detail="AI 未配置，请设置 DEEPSEEK_API_KEY")
+    user_info = f"产品名称：{req.product_name}\n原料：{req.raw_materials}\n生产步骤：{' → '.join(req.steps)}"
+    try:
+        parsed = _call_deepseek(STEP_HAZARDS_PROMPT, f"请分析以下产品的每个生产步骤的潜在危害：\n\n{user_info}")
+        return {"ok": True, "data": parsed.get("data", []) if isinstance(parsed, dict) else []}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+# ===== AI 批量翻译（中文 → 英文，用于预存数据）=====
+class TranslateRequest(BaseModel):
+    texts: List[str]
+    target: str = "en"
+
+TRANSLATE_PROMPT = """你是专业的食品安全技术翻译。请将给定的每条文本翻译成英语，食品/药品安全术语必须准确。
+要求：
+1. 返回一个JSON数组，顺序和数量与输入完全一致
+2. 某条文本不含中文（或已是英文）时，原样返回
+3. 只返回JSON数组，不要任何其他内容"""
+
+@app.post("/api/ai/translate")
+async def api_ai_translate(req: TranslateRequest):
+    """批量翻译文本（当前仅支持翻译成英文）"""
+    if not DEEPSEEK_API_KEY or DEEPSEEK_API_KEY == "sk-your-deepseek-api-key-here":
+        raise HTTPException(status_code=503, detail="AI 未配置，请设置 DEEPSEEK_API_KEY")
+    texts = [t for t in (req.texts or []) if isinstance(t, str)]
+    if not texts:
+        return {"ok": True, "data": []}
+    try:
+        numbered = [f"{i+1}. {t}" for i, t in enumerate(texts)]
+        parsed = _call_deepseek(TRANSLATE_PROMPT, "\n".join(numbered))
+
+        def _clean(s: str) -> str:
+            # 去掉 AI 可能回显的序号前缀，如 "1. xxx" / "2、xxx"
+            import re as _re
+            return _re.sub(r"^\s*\d+[\.、:：]\s*", "", str(s)).strip()
+
+        if isinstance(parsed, list) and len(parsed) == len(texts):
+            return {"ok": True, "data": [_clean(x) for x in parsed]}
+        # 兼容 AI 返回 key-value 对象
+        if isinstance(parsed, dict):
+            result = []
+            for i, t in enumerate(texts):
+                result.append(_clean(parsed.get(str(i + 1)) or parsed.get(t) or t))
+            return {"ok": True, "data": result}
+        return {"ok": True, "data": texts}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"AI 返回格式解析失败: {str(e)}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"调用 DeepSeek API 失败: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+@app.get("/api/demo/profile-data")
+async def api_get_demo_profile_data():
+    """读取 15-min 快速问卷演示数据 JSON"""
+    try:
+        if DEMO_PROFILE_FILE.exists():
+            with open(DEMO_PROFILE_FILE, "r", encoding="utf-8") as f:
+                return {"ok": True, "data": json.load(f)}
+        return {"ok": True, "data": None}
+    except Exception as e:
+        raise HTTPException(500, f"读取失败: {str(e)}")
+
+@app.put("/api/demo/profile-data")
+async def api_save_demo_profile_data(body: dict):
+    """保存 15-min 快速问卷演示数据 JSON → data/demo_profile.json"""
+    try:
+        data = body.get("data", body)
+        DEMO_PROFILE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEMO_PROFILE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
         return {"ok": True, "message": "保存成功"}
     except Exception as e:
         raise HTTPException(500, f"保存失败: {str(e)}")

@@ -9,7 +9,29 @@ const Questionnaire15min = (() => {
   }
   const SECTION_COMPLETED_KEY = 'haccp_15min_completed';
 
+  // ===== 全局历史名称迁移：扫描 localStorage 全部 key，替换旧名称（大小写不敏感）=====
+  function migrateAllLegacyNames() {
+    try {
+      var re = /Jerusalem artichoke/gi;
+      var any = false;
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        var val = localStorage.getItem(key);
+        if (!val || typeof val !== 'string' || val.indexOf('Jerusalem') === -1) continue;
+        var newVal = val.replace(re, 'chicory root');
+        if (newVal !== val) {
+          localStorage.setItem(key, newVal);
+          any = true;
+        }
+      }
+      if (any) console.log('[migrate] localStorage 历史名称已迁移: Jerusalem artichoke -> chicory root');
+    } catch (e) { console.warn('[migrate] 迁移失败:', e); }
+  }
+  migrateAllLegacyNames();
+
   function genId() { return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+  // 是/否 → 当前语言（用于CCP判定路径等显示存储值）
+  function yn(v) { return v === '是' ? I18n.t('common.yes') : (v === '否' ? I18n.t('common.no') : (v || '')); }
     function esc(str) {
     if (!str) return '';
     var s = String(str);
@@ -82,14 +104,81 @@ const Questionnaire15min = (() => {
         Object.keys(def).forEach(k => {
           if (data[k] === undefined) data[k] = def[k];
         });
+        // 数据迁移：旧名称 Jerusalem artichoke → chicory root（遍历全部字符串字段）
+        migrateLegacyNames(data);
         return data;
       }
     } catch (e) { /* ignore */ }
     return getDefaultData();
   }
 
+  // 迁移旧数据中的历史名称（localStorage 中可能残留旧文本）
+  function migrateLegacyNames(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    var replaced = false;
+    var re = /Jerusalem artichoke/gi;
+    function fix(v) {
+      if (typeof v === 'string' && v.indexOf('Jerusalem') !== -1) {
+        replaced = true;
+        return v.replace(re, 'chicory root');
+      }
+      return v;
+    }
+    (function walk(o) {
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      if (o && typeof o === 'object') {
+        Object.keys(o).forEach(function(k) { o[k] = fix(o[k]); if (o[k] && typeof o[k] === 'object') walk(o[k]); });
+      }
+    })(obj);
+    if (replaced) saveData(obj);
+  }
+
   function saveData(data) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+    scheduleDraftSync(data);
+  }
+
+  // ===== 草稿自动保存到后端（登录用户，15秒节流）=====
+  var _draftTimer = null;
+  function scheduleDraftSync(data) {
+    var token = null;
+    try { token = localStorage.getItem('haccp_token'); } catch(e) {}
+    if (!token) return;
+    if (_draftTimer) clearTimeout(_draftTimer);
+    _draftTimer = setTimeout(function() {
+      _draftTimer = null;
+      var payload;
+      try { payload = JSON.stringify(data); } catch(e) { return; }
+      fetch(API_HOST + '/api/drafts/questionnaire', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ data: JSON.parse(payload) }),
+      }).catch(function() { /* 后端不可用时静默跳过，本地已保存 */ });
+    }, 15000);
+  }
+
+  // 本地无数据时，从后端草稿恢复
+  function loadDraftFromBackendIfNeeded() {
+    try {
+      if (localStorage.getItem(STORAGE_KEY)) return;
+      var token = localStorage.getItem('haccp_token');
+      if (!token) return;
+      fetch(API_HOST + '/api/drafts/questionnaire', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d && d.ok && d.draft && d.draft.content) {
+            var parsed = JSON.parse(d.draft.content);
+            if (parsed && typeof parsed === 'object') {
+              localStorage.setItem(STORAGE_KEY, d.draft.content);
+              renderActiveSection();
+              renderSectionNav();
+            }
+          }
+        })
+        .catch(function() { /* 忽略 */ });
+    } catch(e) {}
   }
 
   function isCompleted() {
@@ -101,6 +190,10 @@ const Questionnaire15min = (() => {
   let _uploadedFileSize = 0;
 
   async function init() {
+    // 从15min问卷(档案)自动补充产品/原料信息到问卷（须在渲染前，避免被旧数据覆盖）
+    syncProfileToQuestionnaireIfNeeded();
+    // 本地无数据时，尝试从后端草稿恢复
+    loadDraftFromBackendIfNeeded();
     const container = getContainer();
     container.innerHTML = `
       <a class="back-link" href="javascript:App.navigateTo('home')">← ${I18n.t('nav.back')}</a>
@@ -110,13 +203,167 @@ const Questionnaire15min = (() => {
         <p class="q15-desc">${I18n.t('q15.desc')}</p>
         <div class="q15-progress" id="q15Progress"></div>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+        <span style="font-size:12px;color:var(--gray-400);flex:1;">📦 ${I18n.t('q.demoSave')} / ${I18n.t('q.demoLoad')}</span>
+        <button class="btn btn-xs btn-secondary" id="q15DemoSaveBtn">${I18n.t('q.demoSave')}</button>
+        <button class="btn btn-xs btn-secondary" id="q15DemoLoadBtn">${I18n.t('q.demoLoad')}</button>
+        <span id="q15DemoStatus" style="font-size:12px;color:var(--gray-400);"></span>
+      </div>
       <div id="q15Content"></div>
     `;
     renderSectionNav();
     renderActiveSection();
+    bindDemoEvents();
     
     // 清除旧版本的导航标记（验证程序已独立）
     try { localStorage.removeItem('haccp_navigate_to_verification'); } catch(e) { console.warn('Failed to remove localStorage haccp_navigate_to_verification:', e); }
+  }
+
+  // 从15min问卷(档案)自动补充产品/原料信息到问卷
+  function syncProfileToQuestionnaireIfNeeded() {
+    try {
+      var pRaw = localStorage.getItem('haccp_profile_data');
+      if (!pRaw) return;
+      var p = JSON.parse(pRaw);
+      var qRaw = localStorage.getItem(STORAGE_KEY);
+      var q = qRaw ? JSON.parse(qRaw) : null;
+      if (!q) return;
+      var changed = false;
+      function fillIfEmpty(k) { if (!q[k] && p[k]) { q[k] = p[k]; changed = true; } }
+      ['companyName', 'deptName', 'auditor', 'productName', 'rawMaterials', 'additives', 'intendedUse', 'storageCondition', 'packagingMethod', 'targetConsumer', 'shelfLife'].forEach(fillIfEmpty);
+      if ((!q.formula || q.formula.length === 0 || (q.formula.length === 1 && !q.formula[0].material)) && p.formula && p.formula.length > 0) {
+        q.formula = JSON.parse(JSON.stringify(p.formula));
+        changed = true;
+      }
+      if (!q.rawMaterials) {
+        var mats = [];
+        (p.formula || []).forEach(function(f) { if (f.material && f.material.trim() && mats.indexOf(f.material.trim()) === -1) mats.push(f.material.trim()); });
+        if (mats.length > 0) { q.rawMaterials = mats.join('、'); changed = true; }
+      }
+      ['pd_rawProps','pd_rawSupply','pd_rawUsage','pd_productProps','pd_productProcess','pd_productStorage','pd_productSales'].forEach(fillIfEmpty);
+      ['iu_consumerExpect','iu_intendedUse','iu_consumptionMethod','iu_targetCustomer','iu_vulnerableGroups','iu_unintendedUse'].forEach(fillIfEmpty);
+      if ((!q.productExtraItems || q.productExtraItems.length === 0) && p.productExtraItems) { q.productExtraItems = p.productExtraItems; changed = true; }
+      if ((!q.iuExtraItems || q.iuExtraItems.length === 0) && p.iuExtraItems) { q.iuExtraItems = p.iuExtraItems; changed = true; }
+      if ((!q.haccpTeam || q.haccpTeam.length === 0) && p.haccpTeam) { q.haccpTeam = p.haccpTeam; changed = true; }
+      if (changed) localStorage.setItem(STORAGE_KEY, JSON.stringify(q));
+    } catch (e) { console.warn('Failed to sync profile data to questionnaire:', e); }
+  }
+
+  // ===== 危害识别前的工艺流程步骤确认（填写/编辑/删除步骤后再做危害识别）=====
+  function renderStepManagerBlock(data) {
+    autoFillStepsFromFlowchart(data);
+    var editIdx = parseInt(data.currentEditingStep);
+    if (isNaN(editIdx)) editIdx = -1;
+    var stepData = (editIdx >= 0 && editIdx < data.processSteps.length) ? data.processSteps[editIdx] : { stepName: '', equipmentName: '', operationMethod: '', parameters: '' };
+    var savedSteps = data.processSteps || [];
+    var html = '<div class="q15-step-manager" style="margin-bottom:16px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">';
+    html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px;">' + I18n.t('q.hwStepsTitle') + '</div>';
+    html += '<p class="q15-table-hint" style="margin-bottom:10px;">' + I18n.t('q.hwStepsHint') + '</p>';
+    html += '<div class="q15-step-form">';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.stepName') + '</label><input type="text" id="stepFormName" value="' + esc(stepData.stepName || '') + '" placeholder="' + I18n.t('q.stepNamePh') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.equipment') + '</label><input type="text" id="stepFormEquipment" value="' + esc(stepData.equipmentName || '') + '" placeholder="' + I18n.t('q.equipmentPh') + '"></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.method') + '</label><textarea id="stepFormMethod" rows="2" placeholder="' + I18n.t('q.methodPh') + '">' + esc(stepData.operationMethod || '') + '</textarea></div>';
+    html += '<div class="q15-field-group"><label>' + I18n.t('q.params') + '</label><input type="text" id="stepFormParams" value="' + esc(stepData.parameters || '') + '" placeholder="' + I18n.t('q.paramsPh') + '"></div>';
+    html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">';
+    html += '<button class="btn btn-primary btn-sm" id="stepFormSaveBtn">' + I18n.t('q.saveStep') + '</button>';
+    html += '<button class="btn btn-secondary btn-sm" id="addNewStepBtn">' + I18n.t('q.addStep') + '</button>';
+    html += '</div></div>';
+    if (savedSteps.length > 0) {
+      html += '<div style="margin-top:14px;"><div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--gray-700);">' + I18n.t('q.addedSteps') + '</div><ul style="list-style:none;padding:0;margin:0;">';
+      savedSteps.forEach(function(s, i) {
+        html += '<li style="padding:8px 10px;margin:4px 0;background:#fff;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;" data-step-edit="' + i + '">';
+        html += '<span><strong>' + (i + 1) + '. ' + esc(s.stepName || I18n.t('q.unnamed')) + '</strong>';
+        if (s.equipmentName) html += ' | ' + I18n.t('flow.equipment') + esc(s.equipmentName);
+        if (s.operationMethod) html += ' | ' + I18n.t('flow.method') + esc(s.operationMethod);
+        if (s.parameters) html += ' | ' + I18n.t('flow.params') + esc(s.parameters);
+        html += '</span><button class="btn btn-xs btn-secondary" data-step-delete="' + i + '" style="color:#dc2626;border-color:#fecaca;padding:2px 8px;font-size:12px;flex-shrink:0;">' + I18n.t('q.delete') + '</button></li>';
+      });
+      html += '</ul></div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ===== 演示数据：保存当前填写内容到后端 / 载入展示 =====
+  function setDemoStatus(msg, ok) {
+    var el = document.getElementById('q15DemoStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok ? '#16a34a' : '#dc2626';
+  }
+
+  function applyDemoData(demo) {
+    const def = getDefaultData();
+    Object.keys(def).forEach(k => { if (demo[k] === undefined) demo[k] = def[k]; });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(demo));
+    localStorage.setItem('haccp_submitted', 'true');
+    localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
+    if (demo.processSteps && Array.isArray(demo.processSteps)) {
+      try {
+        localStorage.setItem('haccp_fc_steps', JSON.stringify(demo.processSteps.map(function(s) { return s.stepName || ''; })));
+        localStorage.setItem('haccp_fc_ccp', JSON.stringify(demo.processSteps.map(function(s) { return s.controlPoint && s.controlPoint.toUpperCase().indexOf('CCP') !== -1 ? 1 : 0; })));
+        localStorage.setItem('haccp_fc_leftNotes', '[]');
+        localStorage.setItem('haccp_fc_rightNotes', '[]');
+        localStorage.setItem('haccp_fc_rework', '[]');
+      } catch(e) {}
+    }
+    currentStep = 0;
+    renderSectionNav();
+    renderActiveSection();
+    if (typeof App !== 'undefined' && App.updateVerificationBtn) App.updateVerificationBtn();
+  }
+
+  function saveDemoData() {
+    const data = loadData();
+    var hasContent = JSON.stringify(data) !== JSON.stringify(getDefaultData());
+    if (!hasContent) { setDemoStatus(I18n.t('q.demoEmpty'), false); return; }
+    // 1. 本地备份（离线兜底）
+    try { localStorage.setItem('haccp_demo_backup', JSON.stringify(data)); } catch(e) {}
+    // 2. 保存到后端（写入 data/demo_inulin_full.json）
+    fetch(API_HOST + '/api/demo/data', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: data }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) setDemoStatus(I18n.t('q.demoSaved'), true);
+        else setDemoStatus(I18n.t('q.demoFailed') + (d.message || ''), false);
+      })
+      .catch(function(e) { setDemoStatus(I18n.t('q.demoSavedLocal'), false); });
+  }
+
+  function loadDemoData() {
+    var backup = null;
+    try { backup = localStorage.getItem('haccp_demo_backup'); } catch(e) {}
+    fetch(API_HOST + '/api/demo/data')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok && d.data && (d.data.processSteps || d.data.haccpTeam)) {
+          applyDemoData(d.data);
+          setDemoStatus(I18n.t('q.demoLoaded'), true);
+        } else {
+          throw new Error('no data');
+        }
+      })
+      .catch(function(e) {
+        if (backup) {
+          try { applyDemoData(JSON.parse(backup)); setDemoStatus(I18n.t('q.demoLoaded'), true); }
+          catch(e2) { setDemoStatus(I18n.t('q.demoFailed') + e2.message, false); }
+        } else {
+          setDemoStatus(I18n.t('q.demoFailed') + (e.message || ''), false);
+        }
+      });
+  }
+
+  function bindDemoEvents() {
+    var saveBtn = document.getElementById('q15DemoSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveDemoData);
+    var loadBtn = document.getElementById('q15DemoLoadBtn');
+    if (loadBtn) loadBtn.addEventListener('click', function() {
+      if (!confirm(I18n.t('q.demoConfirm'))) return;
+      loadDemoData();
+    });
   }
 
   // ==================== 文件上传区域 ====================
@@ -394,7 +641,7 @@ const Questionnaire15min = (() => {
     if (content) collectSectionData(content, data);
     aiBtn.disabled = true; aiBtn.textContent = '\u23F3 AI分析中...';
     try {
-      const res = await fetch('/api/ai/fill-from-text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: _uploadedText }) });
+      const res = await fetchWithTimeout('/api/ai/fill-from-text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: _uploadedText }) }, 60000);
       const result = await res.json();
       if (!res.ok) throw new Error(result.detail || 'AI 分析失败');
       if (result.ok && result.data) applyAiFillResult(result.data, aiBtn);
@@ -550,19 +797,6 @@ const Questionnaire15min = (() => {
     if (productExtraBody) { data.productExtraItems = []; productExtraBody.querySelectorAll('tr').forEach(function(tr) { var inputs = tr.querySelectorAll('input'); if (inputs.length >= 2) { data.productExtraItems.push({ id: genId(), key: inputs[0].value, value: inputs[1].value }); } }); }
   }
 
-  // ==================== 渲染各章节 ====================
-  function renderCompanyInfo(data) {
-    var extraHtml = '';
-    if (data.extraItems && data.extraItems.length > 0) { extraHtml = data.extraItems.map(function(e, i) { return '<tr data-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%"></td><td><button class="q15-del-row" data-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
-    return '<div class="q15-field-group"><label>' + I18n.t('q.companyName') + ' <span class="required">*</span></label><input type="text" data-q15-field="companyName" value="' + esc(data.companyName) + '" placeholder="' + I18n.t('q.companyNamePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.deptName') + ' <span class="required">*</span></label><input type="text" data-q15-field="deptName" value="' + esc(data.deptName) + '" placeholder="' + I18n.t('q.deptNamePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.auditor') + '</label><input type="text" data-q15-field="auditor" value="' + esc(data.auditor) + '" placeholder="' + I18n.t('q.auditorPh') + '"></div><div class="q15-table-section"><h3>' + I18n.t('q.teamTitle') + ' <span class="required">*</span></h3><p class="q15-table-hint">' + I18n.t('q.teamHint') + '</p><table class="q15-table" id="teamTable"><thead><tr><th>' + I18n.t('q.teamName') + '</th><th>' + I18n.t('q.teamDept') + '</th><th>' + I18n.t('q.teamPosition') + '</th><th>' + I18n.t('q.teamRole') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="teamBody">' + data.haccpTeam.map(function(m, i) { return '<tr data-team-idx="' + i + '"><td><input type="text" value="' + esc(m.name) + '" placeholder="' + I18n.t('q.teamName') + '"></td><td><input type="text" value="' + esc(m.dept) + '" placeholder="' + I18n.t('q.teamDept') + '"></td><td><input type="text" value="' + esc(m.position) + '" placeholder="' + I18n.t('q.teamPosition') + '"></td><td><input type="text" value="' + esc(m.role) + '" placeholder="' + I18n.t('q.teamRolePh') + '"></td><td><input type="text" value="' + esc(m.remark) + '" placeholder="' + I18n.t('q.monAddRemark') + '"></td><td><button class="q15-del-row" data-team-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addTeamRow">' + I18n.t('q.addMember') + '</button></div><div class="q15-table-section" style="margin-top:16px;"><h3>' + I18n.t('q.extraItems') + ' <span style="font-weight:400;font-size:13px;color:var(--gray-400);">' + I18n.t('q.extraHint') + '</span></h3><p class="q15-table-hint">' + I18n.t('q.extraDesc') + '</p><table class="q15-table" id="extraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="extraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addExtraItemRow">' + I18n.t('q.addExtra') + '</button></div>';
-  }
-
-  function renderProductInfo(data) {
-    var extraHtml = '';
-    if (data.productExtraItems && data.productExtraItems.length > 0) { extraHtml = data.productExtraItems.map(function(e, i) { return '<tr data-p-ex-idx="' + i + '"><td><input type="text" value="' + esc(e.key) + '" placeholder="' + I18n.t('q.verExtraKey') + '" style="width:100%"></td><td><input type="text" value="' + esc(e.value) + '" placeholder="' + I18n.t('q.verExtraVal') + '" style="width:100%"></td><td><button class="q15-del-row" data-p-ex-idx="' + i + '">&times;</button></td></tr>'; }).join(''); }
-    return '<div class="q15-field-group"><label>' + I18n.t('q.productName') + ' <span class="required">*</span></label><input type="text" data-q15-field="productName" value="' + esc(data.productName) + '" placeholder="' + I18n.t('q.productNamePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.rawMaterials') + '</label><textarea data-q15-field="rawMaterials" placeholder="' + I18n.t('q.rawMaterialsPh') + '">' + esc(data.rawMaterials) + '</textarea></div><div class="q15-field-group"><label>' + I18n.t('q.additives') + '</label><textarea data-q15-field="additives" placeholder="' + I18n.t('q.additivesPh') + '">' + esc(data.additives) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>' + I18n.t('q.ph') + '</label><input type="number" step="0.01" data-q15-field="productPH" value="' + esc(data.productPH) + '" placeholder="' + I18n.t('q.phPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.waterActivity') + '</label><input type="number" step="0.01" data-q15-field="waterActivity" value="' + esc(data.waterActivity) + '" placeholder="' + I18n.t('q.awPh') + '"></div></div><div class="q15-field-group"><label>' + I18n.t('q.intendedUse') + '</label><textarea data-q15-field="intendedUse" placeholder="' + I18n.t('q.intendedUsePh') + '">' + esc(data.intendedUse) + '</textarea></div><div class="q15-row"><div class="q15-field-group"><label>' + I18n.t('q.storageCondition') + '</label><input type="text" data-q15-field="storageCondition" value="' + esc(data.storageCondition) + '" placeholder="' + I18n.t('q.storagePh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.packagingMethod') + '</label><input type="text" data-q15-field="packagingMethod" value="' + esc(data.packagingMethod) + '" placeholder="' + I18n.t('q.packagingPh') + '"></div></div><div class="q15-row"><div class="q15-field-group"><label>' + I18n.t('q.targetConsumer') + '</label><input type="text" data-q15-field="targetConsumer" value="' + esc(data.targetConsumer) + '" placeholder="' + I18n.t('q.targetPh') + '"></div><div class="q15-field-group"><label>' + I18n.t('q.shelfLife') + '</label><input type="text" data-q15-field="shelfLife" value="' + esc(data.shelfLife) + '" placeholder="' + I18n.t('q.shelfPh') + '"></div></div><div class="q15-table-section" style="margin-top:16px;"><h3>' + I18n.t('q.extraItems') + ' <span style="font-weight:400;font-size:13px;color:var(--gray-400);">' + I18n.t('q.extraHint') + '</span></h3><p class="q15-table-hint">' + I18n.t('q.extraProductDesc') + '</p><table class="q15-table" id="productExtraItemsTable"><thead><tr><th>' + I18n.t('q.verExtraKey') + '</th><th>' + I18n.t('q.verExtraVal') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="productExtraItemsBody">' + extraHtml + '</tbody></table><button class="btn btn-sm btn-secondary" id="addProductExtraItemRow">' + I18n.t('q.addExtra') + '</button></div>';
-  }
-
   // ===== 精简版文件上传区域（仅用于"进行危害分析"步骤内部）=====
   function renderCompactUploadArea() {
     if (!_uploadedText && !_uploadedFileName) {
@@ -695,6 +929,8 @@ const Questionnaire15min = (() => {
       if (data.currentEditingStep === undefined || data.currentEditingStep === null) data.currentEditingStep = -1;
       if (!data.ccpHazardType || ['bio', 'chem', 'phys'].indexOf(data.ccpHazardType) === -1) data.ccpHazardType = 'bio';
       if (!data.ccpCurrentQ) data.ccpCurrentQ = 1;
+      // 问卷步骤为空时，自动加载流程图/档案中已填写的步骤
+      autoFillStepsFromFlowchart(data);
       normalizeCcpSteps(data);
       saveData(data);
       if (data.ccpPageMode === 'judging') return renderCCPJudgingPage(data);
@@ -793,8 +1029,8 @@ const Questionnaire15min = (() => {
     var label = hazard.isCCP===true?I18n.t('q.ccpYes'):(hazard.isCCP==='modify'?I18n.t('q.ccpNeedModifyReEval'):I18n.t('q.ccpNoNonCcp'));
     var c = hazard.isCCP===true?'#dc2626':(hazard.isCCP==='modify'?'#d97706':'#16a34a');
     var bg = hazard.isCCP===true?'#fef2f2':(hazard.isCCP==='modify'?'#fffbeb':'#f0fdf4');
-    var path=[];[1,2,3,4,5].forEach(function(qn){if(hazard['q'+qn]!==undefined)path.push('Q'+qn+':'+hazard['q'+qn]);});
-    if(hazard.q2_need!==undefined)path.push('Q2' + I18n.t('q.cont') + ''+hazard.q2_need);
+    var path=[];[1,2,3,4,5].forEach(function(qn){if(hazard['q'+qn]!==undefined)path.push('Q'+qn+':'+yn(hazard['q'+qn]));});
+    if(hazard.q2_need!==undefined)path.push('Q2' + I18n.t('q.cont') + ''+yn(hazard.q2_need));
     var h='<div style="margin-top:16px;padding:12px;background:'+bg+';border:1px solid '+c+';border-radius:8px;color:'+c+';">';
     h+='<div style="font-weight:600;margin-bottom:6px;">'+I18n.t('ccp.result')+label+'</div>';
     h+='<div style="font-size:13px;color:#475569;">'+I18n.b('判定路径：|||Decision Path: ')+(path.length?path.join(' → '):'—')+'</div>';
@@ -820,7 +1056,7 @@ const Questionnaire15min = (() => {
     if(!data.ccpSteps[idx].hazards[ht])data.ccpSteps[idx].hazards[ht]={};
     var ch=data.ccpSteps[idx].hazards[ht];
     var html='<div class="ccp-judging-flow"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">';
-    html+='<span style="color:var(--gray-500);font-size:13px;">'+I18n.b('步骤 {a}/{b}：{c} — {d}（{e}/3）|||Step {a}/{b}: {c} — {d} ({e}/3)').replace('{a}',idx+1).replace('{b}',steps.length).replace('{c}',esc(step.stepName||I18n.t('q.unnamed'))).replace('{d}',hf[ht]).replace('{e}',hti+1)+'</span>';
+    html+='<span style="color:var(--gray-500);font-size:13px;">'+I18n.b('步骤 {a}/{b}：{c} — {d}（{e}/3）|||Step {a}/{b}: {c} — {d} ({e}/3)').replace('{a}',idx+1).replace('{b}',steps.length).replace('{c}',esc(I18n.b(step.stepName||'')||I18n.t('q.unnamed'))).replace('{d}',hf[ht]).replace('{e}',hti+1)+'</span>';
     html+='<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;">'+{bio:'B',chem:'C',phys:'P'}[ht]+'</span></div>';
     if(ch.isCCP!==undefined&&ch.isCCP!==null){
       html+=renderCcpResultBlock(data,ch,ht);
@@ -845,23 +1081,23 @@ const Questionnaire15min = (() => {
     html += '<div style="font-weight:500;margin-bottom:6px;">' + I18n.t('ccp.path') + '</div>';
     var resultText = '';
     if (hazard.q1 !== undefined) {
-      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1: ' + hazard.q1 + '</span>';
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1: ' + yn(hazard.q1) + '</span>';
       if (hazard.q1 === '否') {
         if (hazard.q1_need === '否') resultText = I18n.t('q.ccpNonCcpQ1NoControl');
         else if (hazard.q1_need === '是') resultText = I18n.t('q.ccpNeedModifyReEval');
-        html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1.1: ' + (hazard.q1_need || '—') + '</span>';
+        html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q1.1: ' + yn(hazard.q1_need) + '</span>';
       }
     }
     if (hazard.q2 !== undefined) {
-      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q2: ' + hazard.q2 + '</span>';
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q2: ' + yn(hazard.q2) + '</span>';
       if (hazard.q2 === '是') resultText = I18n.t('q.ccpCCPQ2Yes');
     }
     if (hazard.q3 !== undefined) {
-      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q3: ' + hazard.q3 + '</span>';
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q3: ' + yn(hazard.q3) + '</span>';
       if (hazard.q3 === '否') resultText = I18n.t('q.ccpNonCcpQ3');
     }
     if (hazard.q4 !== undefined) {
-      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q4: ' + hazard.q4 + '</span>';
+      html += '<span style="display:inline-block;padding:2px 8px;margin:2px 4px 2px 0;background:#e2e8f0;border-radius:4px;">Q4: ' + yn(hazard.q4) + '</span>';
       if (hazard.q4 === '是') resultText = I18n.t('q.ccpNonCcpQ4');
       else if (hazard.q4 === '否') resultText = I18n.t('q.ccpCCPQ4No');
     }
@@ -957,7 +1193,7 @@ const Questionnaire15min = (() => {
         var hData = data.ccpSteps[si].hazards[ht] || {};
         var rowClass = (hi === 0) ? '' : '';
         if (hi === 0) {
-          html += '<tr class="step-group-header"><td colspan="10">' + I18n.t('q.ccpStepTitle').replace('{n}', si + 1) + esc(step.stepName || I18n.t('q.unnamed')) + '</td></tr>';
+          html += '<tr class="step-group-header"><td colspan="10">' + I18n.t('q.ccpStepTitle').replace('{n}', si + 1) + esc(I18n.b(step.stepName || '') || I18n.t('q.unnamed')) + '</td></tr>';
         }
         
         // 危害描述 
@@ -981,7 +1217,7 @@ const Questionnaire15min = (() => {
         
         html += '<tr data-ut-row="' + si + '-' + ht + '">';
         // ' + I18n.t('q.stepName') + '
-        html += '<td class="ccp-ut-step">' + (hi === 1 ? '' : esc(step.stepName || '')) + '</td>';
+        html += '<td class="ccp-ut-step">' + (hi === 1 ? '' : esc(I18n.b(step.stepName || ''))) + '</td>';
         // 危害类型
         html += '<td><span class="ccp-ut-hazard-badge ' + ht + '">' + hazardLabels[ht] + '</span><span class="ccp-ut-hazard-label">' + hazardFull[ht] + '</span></td>';
         // 危害描述 (Q1文本域)
@@ -1112,7 +1348,7 @@ const Questionnaire15min = (() => {
 
     var qHtml = '<div class="ccp-decision-tree">';
     qHtml += '<div class="ccp-dt-header">';
-    qHtml += '<span class="ccp-dt-step">' + I18n.t('q.ccpDtStepNum') + (idx + 1) + '：' + esc(step.stepName || I18n.t('q.unnamed')) + '</span>';
+    qHtml += '<span class="ccp-dt-step">' + I18n.t('q.ccpDtStepNum') + (idx + 1) + '：' + esc(I18n.b(step.stepName || '') || I18n.t('q.unnamed')) + '</span>';
     qHtml += '<span class="ccp-dt-hazard-type">' + hazardLabels[hazardType] + I18n.t('q.ccpDtJudging') + ' (' + (hazardTypeIdx + 1) + '/3)</span>';
     qHtml += '</div>';
     qHtml += '<div class="ccp-dt-hazard-desc">' + I18n.t('q.ccpHazardHint') + '' + stepHazardDesc + '</div>';
@@ -1171,7 +1407,7 @@ const Questionnaire15min = (() => {
         var qn = qVals[qi];
         var qv = currentHazard['q' + qn];
         if (qv !== undefined) {
-          pathItems.push('<span class="ccp-dt-path-step">' + I18n.b('Q{n}：|||Q{n}: ').replace('{n}', qn) + qv + '</span>');
+          pathItems.push('<span class="ccp-dt-path-step">' + I18n.b('Q{n}：|||Q{n}: ').replace('{n}', qn) + yn(qv) + '</span>');
           // 根据决策树显示分支结果
           if (qn === 1 && qv === '否') {
             pathItems.push('<span class="ccp-dt-path-result no-ccp">' + I18n.t('q.ccpNonCcpQ1') + '</span>');
@@ -1240,7 +1476,7 @@ const Questionnaire15min = (() => {
     if (!step) return '<p>' + I18n.t('q.ccpNoStepData') + '</p>';
     
     var html = '<div class="ccp-step-editor">';
-    html += '<h3>' + I18n.t('q.ccpEditStepN') + (editIdx + 1) + I18n.b('：|||: ') + esc(step.stepName || I18n.t('q.unnamed')) + '</h3>';
+    html += '<h3>' + I18n.t('q.ccpEditStepN') + (editIdx + 1) + I18n.b('：|||: ') + esc(I18n.b(step.stepName || '') || I18n.t('q.unnamed')) + '</h3>';
     html += '<p class="q15-table-hint">' + I18n.t('q.ccpEditHint') + '</p>';
     
     // 步骤卡片编辑器
@@ -1295,11 +1531,11 @@ const Questionnaire15min = (() => {
       var displayReasoning = h.aiReasoning ? I18n.b(h.aiReasoning) : '';
       var reasoningCell = h.aiReasoning ? '<td style="font-size:11px;color:#6b7280;">' + esc(displayReasoning.length > 40 ? displayReasoning.substring(0, 40) + '...' : displayReasoning) + '</td>' : '<td></td>';
       var displayDesc = h.hazardDesc ? I18n.b(h.hazardDesc) : '';
-      rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(step.stepName||I18n.t('q.ccpStepDefault').replace('{n}',si+1))+'</td>':'')+
+      rows.push('<tr>'+(hi===0?'<td rowspan="3" style="text-align:center;vertical-align:middle;font-weight:600;">'+esc(I18n.b(step.stepName||'')||I18n.t('q.ccpStepDefault').replace('{n}',si+1))+'</td>':'')+
       '<td>'+hf[ht]+(displayDesc?'<br><span style="font-size:12px;color:#64748b;">'+esc(displayDesc)+'</span>':'')+'</td>'+
-      '<td style="text-align:center;">'+esc(h.q1||'—')+'</td>'+
-      '<td style="text-align:center;">'+esc(h.q2||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">' + I18n.t('q.cont') + ''+esc(h.q2_need)+'</span>':'')+'</td>'+
-      '<td style="text-align:center;">'+esc(h.q3||'—')+'</td><td style="text-align:center;">'+esc(h.q4||'—')+'</td><td style="text-align:center;">'+esc(h.q5||'—')+'</td><td style="text-align:center;">'+ccp+aiTag+'</td>'+
+      '<td style="text-align:center;">'+esc(yn(h.q1)||'—')+'</td>'+
+      '<td style="text-align:center;">'+esc(yn(h.q2)||'—')+(h.q2_need?'<br><span style="font-size:11px;color:#64748b;">' + I18n.t('q.cont') + ''+esc(yn(h.q2_need))+'</span>':'')+'</td>'+
+      '<td style="text-align:center;">'+esc(yn(h.q3)||'—')+'</td><td style="text-align:center;">'+esc(yn(h.q4)||'—')+'</td><td style="text-align:center;">'+esc(yn(h.q5)||'—')+'</td><td style="text-align:center;">'+ccp+aiTag+'</td>'+
       (hasAI ? reasoningCell : '') + '</tr>');
     });});
     var html = '';
@@ -1382,7 +1618,10 @@ const Questionnaire15min = (() => {
         var li = data.criticalLimitsData.indexOf(clData);
         
         html += '<div class="q15-cl-card" style="margin-bottom:16px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
-        html += '<div style="background:#fef2f2;padding:10px 16px;font-weight:600;color:#dc2626;border-bottom:1px solid #fecaca;">' + esc(c.stepName) + '</div>';
+        html += '<div style="background:#fef2f2;padding:10px 16px;font-weight:600;color:#dc2626;border-bottom:1px solid #fecaca;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
+          '<span>' + esc(c.stepName) + '</span>' +
+          '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;font-size:11px;font-weight:500;color:#92400e;flex-shrink:0;">' + I18n.t('q.clSuggestionBadge') + '</span>' +
+          '</div>';
         
         // 关键限值表
         html += '<div style="padding:12px 16px;">';
@@ -1429,6 +1668,7 @@ const Questionnaire15min = (() => {
 
     // 执行标准和AI按钮
     html += '<p class="q15-table-hint">' + I18n.t('q.clDesc') + '</p>' +
+      '<div style="margin-bottom:10px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e;">' + I18n.t('q.clSuggestion') + '</div>' +
       '<div class="q15-field-group"><label>' + I18n.t('q.clSelectStd') + ' <span class="required">*</span></label>' +
       '<select data-q15-field="execStandard">' +
         '<option value="">' + I18n.t('q.verSelectOption') + '</option>' +
@@ -1437,6 +1677,10 @@ const Questionnaire15min = (() => {
         '<option value="enterprise"' + (data.execStandard === 'enterprise' ? ' selected' : '') + '>' + I18n.t('q.clStdEnterprise') + '</option>' +
         '<option value="international"' + (data.execStandard === 'international' ? ' selected' : '') + '>' + I18n.t('q.clStdInternational') + '</option>' +
       '</select></div>' +
+      '<div class="q15-field-group"><label>' + I18n.t('q.clStdRef') + '</label>' +
+        '<p class="q15-table-hint" style="margin-bottom:6px;">' + I18n.t('q.clStdRefHint') + '</p>' +
+        '<div id="clStandardsPanel" style="max-height:200px;overflow-y:auto;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:var(--gray-600);">' + I18n.t('common.loading') + '</div>' +
+      '</div>' +
       '<div class="q15-ai-btn-wrapper">' +
         '<button class="btn btn-secondary btn-sm" id="aiCriticalBtn">' + I18n.t('q.clAIBtn') + '</button>' +
         '<span id="aiCriticalHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span>' +
@@ -1444,6 +1688,51 @@ const Questionnaire15min = (() => {
       '<div id="aiCriticalResult" style="margin-top:12px;"></div>';
 
     return html;
+  }
+
+  // ===== 标准参考面板：从 /api/standards 拉取并与当前CCP/产品匹配 =====
+  function loadStandardsPanel(data) {
+    var panel = document.getElementById('clStandardsPanel');
+    if (!panel) return;
+    // 从 ccpSteps 提取被判定为CCP的步骤名
+    var names = [];
+    (data.ccpSteps || []).forEach(function(cs, si) {
+      var isCCP = false;
+      ['bio', 'chem', 'phys'].forEach(function(ht) {
+        var h = cs && cs.hazards && cs.hazards[ht];
+        if (h && h.isCCP === true) isCCP = true;
+      });
+      if (isCCP) names.push(cs.stepName || ((data.processSteps[si] || {}).stepName || ''));
+    });
+    var haystack = (data.productName || '') + ' ' + names.join(' ');
+    fetchWithTimeout(API_HOST + '/api/standards', {}, 10000)
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (!(res && res.ok && Array.isArray(res.standards))) throw new Error('bad');
+        var all = res.standards;
+        var picked = all.filter(function(s) {
+          var kws = s.applyKeywords || [];
+          return kws.some(function(k) { return k && haystack.toLowerCase().indexOf(k.toLowerCase()) !== -1; });
+        });
+        var list = picked.length > 0 ? picked : all;
+        if (list.length === 0) {
+          panel.innerHTML = I18n.t('q.clStdRefEmpty');
+          return;
+        }
+        panel.innerHTML = list.slice(0, 12).map(function(s) {
+          var name = I18n.b(s.name || s.number || '');
+          var limits = s.keyLimits || [];
+          var limitHtml = limits.length > 0
+            ? '<div style="margin-top:4px;padding-left:10px;border-left:2px solid #bfdbfe;color:var(--gray-500);">' +
+              limits.slice(0, 4).map(function(l) { return '<div>• ' + esc(I18n.b(l)) + '</div>'; }).join('') +
+              (limits.length > 4 ? '<div>…</div>' : '') + '</div>'
+            : '';
+          return '<div style="margin-bottom:6px;"><strong style="color:#1e40af;">' + esc(s.number || '') + '</strong> <span>' + esc(name) + '</span>' + limitHtml + '</div>';
+        }).join('');
+      })
+      .catch(function() {
+        panel.style.display = 'none';
+      });
   }
 
   // ===== CCP 判定结果自动同步到监控程序和' + I18n.t('q.verCorrective') + ' =====
@@ -1464,9 +1753,21 @@ const Questionnaire15min = (() => {
 
     if (ccpStepNames.length === 0) return;
 
-    // 同步到 monitoring（仅当该 CCP 尚未存在时追加）
+    // 双语感知匹配：AI 返回的 ccp 可能是 "步骤名|||Step Name" 格式
+    function ccpMatches(existing, name) {
+      if (!existing) return false;
+      var zh = String(existing).split('|||')[0].trim();
+      return zh === name || existing === name;
+    }
+
+    // 用户手动删除过的 CCP 不再自动补回（记录在 _monitoringRemoved / _correctiveRemoved）
+    if (!Array.isArray(data._monitoringRemoved)) data._monitoringRemoved = [];
+    if (!Array.isArray(data._correctiveRemoved)) data._correctiveRemoved = [];
+
+    // 同步到 monitoring（仅当该 CCP 尚未存在且未被用户删除时追加）
     ccpStepNames.forEach(function(name) {
-      var exists = data.monitoring.some(function(m) { return m.ccp === name; });
+      if (data._monitoringRemoved.indexOf(name) !== -1) return;
+      var exists = data.monitoring.some(function(m) { return ccpMatches(m.ccp, name); });
       if (!exists) {
         data.monitoring.push({
           id: genId(), ccp: name, object: '',
@@ -1475,9 +1776,10 @@ const Questionnaire15min = (() => {
       }
     });
 
-    // 同步到 correctiveActions（仅当该 CCP 尚未存在时追加）
+    // 同步到 correctiveActions（仅当该 CCP 尚未存在且未被用户删除时追加）
     ccpStepNames.forEach(function(name) {
-      var exists = data.correctiveActions.some(function(c) { return c.ccp === name; });
+      if (data._correctiveRemoved.indexOf(name) !== -1) return;
+      var exists = data.correctiveActions.some(function(c) { return ccpMatches(c.ccp, name); });
       if (!exists) {
         data.correctiveActions.push({
           id: genId(), ccp: name,
@@ -1487,9 +1789,75 @@ const Questionnaire15min = (() => {
     });
   }
 
+  // 将 AI 生成的监控方案合并进已有行（按 CCP 中英段任一匹配、大小写不敏感，填充原步骤而非新增）
+  function applyAiMonitoringToRows(data, aiRows) {
+    if (!aiRows || aiRows.length === 0) return;
+    var mapped = aiRows.map(function(m) {
+      return { id: genId(), ccp: m.ccp || '', object: m.object || '', method: m.method || '', frequency: m.frequency || '', personnel: m.personnel || '', remark: m.remark || '' };
+    });
+    function keys(v) { return String(v || '').split('|||').map(function(x) { return x.trim().toLowerCase(); }).filter(Boolean); }
+    function share(aKeys, bKeys) { return aKeys.some(function(a) { return bKeys.indexOf(a) !== -1; }); }
+    var existing = (data.monitoring || []).slice();
+    var used = {};
+    mapped.forEach(function(ai) {
+      var aiKeys = keys(ai.ccp);
+      if (aiKeys.length === 0) { existing.push(ai); return; }
+      var idx = -1;
+      for (var i = 0; i < existing.length; i++) {
+        if (!used[i] && share(keys(existing[i].ccp), aiKeys)) { idx = i; break; }
+      }
+      if (idx !== -1) {
+        ai.ccp = existing[idx].ccp; // 保留原步骤名
+        existing[idx] = ai;
+        used[idx] = true;
+      } else {
+        existing.push(ai);
+      }
+    });
+    data.monitoring = existing;
+  }
+
+  // 将 AI 生成的纠偏方案合并进已有行（同上：填充原步骤）
+  function applyAiCorrectiveToRows(data, aiRows) {
+    if (!aiRows || aiRows.length === 0) return;
+    var mapped = aiRows.map(function(a) {
+      return {
+        id: genId(),
+        ccp: a.ccp || '',
+        cl: a.cl || '',
+        personnel: a.personnel || '',
+        causeAnalysis: a.causeAnalysis || '',
+        productHandling: a.productHandling || '',
+        corrective: a.corrective || '',
+        verification: a.verification || '',
+        record: a.record || ''
+      };
+    });
+    function keys(v) { return String(v || '').split('|||').map(function(x) { return x.trim().toLowerCase(); }).filter(Boolean); }
+    function share(aKeys, bKeys) { return aKeys.some(function(a) { return bKeys.indexOf(a) !== -1; }); }
+    var existing = (data.correctiveActions || []).slice();
+    var used = {};
+    mapped.forEach(function(ai) {
+      var aiKeys = keys(ai.ccp);
+      if (aiKeys.length === 0) { existing.push(ai); return; }
+      var idx = -1;
+      for (var i = 0; i < existing.length; i++) {
+        if (!used[i] && share(keys(existing[i].ccp), aiKeys)) { idx = i; break; }
+      }
+      if (idx !== -1) {
+        ai.ccp = existing[idx].ccp; // 保留原步骤名
+        existing[idx] = ai;
+        used[idx] = true;
+      } else {
+        existing.push(ai);
+      }
+    });
+    data.correctiveActions = existing;
+  }
+
   function renderMonitoring(data) {
     syncCCPToMonitoringAndCorrective(data);
-    return '<h3>' + I18n.t('q.monitorTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.monitorHint') + '</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">' + I18n.t('q.monitorAI') + '</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.monitorObject') + '</th><th>' + I18n.t('q.monitorMethod') + '</th><th>' + I18n.t('q.monitorFreq') + '</th><th>' + I18n.t('q.monitorPersonnel') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(m.ccp) + '" placeholder="' + I18n.t('q.monitorPhCCP') + '" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhObject') + '">' + esc(m.object) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhMethod') + '">' + esc(m.method) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhFreq') + '">' + esc(m.frequency) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhPersonnel') + '">' + esc(m.personnel) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhRemark') + '">' + esc(m.remark) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>'; }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">' + I18n.t('q.monitorAdd') + '</button>';
+    return '<h3>' + I18n.t('q.monitorTitle') + '</h3><p class="q15-table-hint">' + I18n.t('q.monitorHint') + '</p><div class="q15-ai-btn-wrapper" style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" id="aiMonitorBtn">' + I18n.t('q.monitorAI') + '</button><span id="aiMonitorHint" style="font-size:12px;color:var(--gray-400);margin-left:10px;"></span></div><table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.monitorObject') + '</th><th>' + I18n.t('q.monitorMethod') + '</th><th>' + I18n.t('q.monitorFreq') + '</th><th>' + I18n.t('q.monitorPersonnel') + '</th><th>' + I18n.t('q.monAddRemark') + '</th><th style="width:50px">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="monitorBody">' + data.monitoring.map(function(m, i) { return '<tr data-mn-idx="' + i + '"><td><input type="text" value="' + esc(I18n.b(m.ccp || '')) + '" placeholder="' + I18n.t('q.monitorPhCCP') + '" style="width:100%;"></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhObject') + '">' + esc(I18n.b(m.object || '')) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhMethod') + '">' + esc(I18n.b(m.method || '')) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhFreq') + '">' + esc(I18n.b(m.frequency || '')) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhPersonnel') + '">' + esc(I18n.b(m.personnel || '')) + '</textarea></td><td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.monitorPhRemark') + '">' + esc(I18n.b(m.remark || '')) + '</textarea></td><td><button class="q15-del-row" data-mn-idx="' + i + '">&times;</button></td></tr>';       }).join('') + '</tbody></table><button class="btn btn-sm btn-secondary" id="addMonitorRow">' + I18n.t('q.monitorAdd') + '</button> <button class="btn btn-sm btn-secondary" id="monitorDedupBtn" style="color:#92400e;border-color:#fde68a;">' + I18n.t('q.monitorDedup') + '</button>';
   }
 
   function renderCorrective(data) {
@@ -1511,15 +1879,15 @@ const Questionnaire15min = (() => {
       '<table class="q15-table"><thead><tr><th>' + I18n.t('q.monitorCCP') + '</th><th>' + I18n.t('q.corPersonnel') + '</th><th>' + I18n.t('q.corCause') + '</th><th>' + I18n.t('q.corProduct') + '</th><th style="width:50px;">' + I18n.t('form.colAction') + '</th></tr></thead><tbody id="correctiveBody">' +
       data.correctiveActions.map(function(c, i) {
         return '<tr data-ca-idx="' + i + '">' +
-          '<td><input type="text" value="' + esc(c.ccp) + '" placeholder="' + I18n.t('q.correctivePhCCP') + '" style="width:100%;"></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhPersonnel') + '">' + esc(c.personnel) + '</textarea></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhCause') + '">' + esc(c.causeAnalysis) + '</textarea></td>' +
-          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhProduct') + '">' + esc(c.productHandling) + '</textarea></td>' +
+          '<td><input type="text" value="' + esc(I18n.b(c.ccp || '')) + '" placeholder="' + I18n.t('q.correctivePhCCP') + '" style="width:100%;"></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhPersonnel') + '">' + esc(I18n.b(c.personnel || '')) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhCause') + '">' + esc(I18n.b(c.causeAnalysis || '')) + '</textarea></td>' +
+          '<td><textarea rows="2" style="width:100%;resize:vertical;" placeholder="' + I18n.t('q.correctivePhProduct') + '">' + esc(I18n.b(c.productHandling || '')) + '</textarea></td>' +
           '<td><button class="q15-del-row" data-ca-idx="' + i + '">&times;</button></td>' +
         '</tr>';
       }).join('') +
       '</tbody></table>' +
-      '<button class="btn btn-sm btn-secondary" id="addCorrectiveRow">' + I18n.t('q.correctiveAdd') + '</button>' +
+      '<button class="btn btn-sm btn-secondary" id="addCorrectiveRow">' + I18n.t('q.correctiveAdd') + '</button> <button class="btn btn-sm btn-secondary" id="correctiveDedupBtn" style="color:#92400e;border-color:#fde68a;">' + I18n.t('q.monitorDedup') + '</button>' +
       footerTips;
   }
 
@@ -1642,10 +2010,6 @@ const Questionnaire15min = (() => {
     content.querySelectorAll('#productExtraItemsBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.pExIdx); if (data.productExtraItems.length > 0) { data.productExtraItems.splice(idx, 1); saveData(data); renderActiveSection(); renderSectionNav(); } }); });
     content.querySelectorAll('#productExtraItemsBody input').forEach(function(el) { el.addEventListener('input', function() { collectSectionData(content, data); saveData(data); }); });
 
-    const addFormulaBtn = content.querySelector('#addFormulaRow');
-    if (addFormulaBtn) { addFormulaBtn.addEventListener('click', function() { data.formula.push({ id: genId(), material: '', dosage: '', func: '' }); saveData(data); renderActiveSection(); }); }
-    content.querySelectorAll('#formulaBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.fmIdx); if (data.formula.length > 1) { data.formula.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
-    content.querySelectorAll('#formulaBody input').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.fmIdx), inputs = row.querySelectorAll('input'); if (data.formula[idx]) { data.formula[idx].material = inputs[0].value; data.formula[idx].dosage = inputs[1].value; data.formula[idx].func = inputs[2].value; saveData(data); } }); });
 
     const addStepBtn = content.querySelector('#addProcessStep');
     if (addStepBtn) { addStepBtn.addEventListener('click', function() { data.processSteps.push({ id: genId(), stepName: '', operationMethod: '', parameters: '', controlPoint: '', equipmentName: '' }); saveData(data); renderActiveSection(); }); }
@@ -1657,7 +2021,7 @@ const Questionnaire15min = (() => {
       aiBtn.addEventListener('click', async function() {
         aiBtn.disabled = true;
         var hint = content.querySelector('#aiHazardHint');
-        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
+        if (hint) hint.textContent = I18n.t('q.aiWaitHint');
         // 收集产品信息
         collectSectionData(content, data);
         saveData(data);
@@ -1674,6 +2038,24 @@ const Questionnaire15min = (() => {
           var addParts = data.additives.split(/[,，、\s]+/).filter(Boolean);
           addParts.forEach(function(p) { if (materials.indexOf(p) === -1) materials.push(p); });
         }
+        // 补充：从15min问卷(档案)读取配方/产品描述中的原料
+        if (materials.length === 0) {
+          try {
+            var pRaw2 = localStorage.getItem('haccp_profile_data');
+            if (pRaw2) {
+              var pd2 = JSON.parse(pRaw2);
+              if (pd2.formula && pd2.formula.length) {
+                pd2.formula.forEach(function(f) { if (f.material && f.material.trim() && materials.indexOf(f.material.trim()) === -1) materials.push(f.material.trim()); });
+              }
+              if (pd2.pd_rawProps && materials.length === 0) {
+                pd2.pd_rawProps.split(/[\n，,、;；]/).forEach(function(seg) {
+                  seg = seg.trim();
+                  if (seg && seg.length <= 20 && materials.indexOf(seg) === -1) materials.push(seg);
+                });
+              }
+            }
+          } catch(e) {}
+        }
         // 如果没有原料数据，直接提示
         if (materials.length === 0) {
           if (hint) hint.textContent = I18n.t('hazard.needMaterials');
@@ -1685,7 +2067,7 @@ const Questionnaire15min = (() => {
         // 调用后端原料危害数据库API
         try {
           var hazardBio = [], hazardChem = [], hazardPhys = [], matchedMaterials = [];
-          const resp = await fetch(API_HOST + '/api/ai/raw-material-hazards', {
+          const resp = await fetchWithTimeout(API_HOST + '/api/ai/raw-material-hazards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ materials: materials })
@@ -1754,9 +2136,14 @@ const Questionnaire15min = (() => {
             data.hazardBio = hazardBio;
             data.hazardChem = hazardChem;
             data.hazardPhys = hazardPhys;
+            data._matchedMaterials = matchedMaterials;
+            // 新增了中文危害数据，重置翻译标记以便重新翻译
+            data._hazardLangTranslated = '';
             saveData(data);
             if (hint) hint.textContent = I18n.b('✓ 原料危害分析完成，已匹配 {n} 种原料|||✓ Hazard analysis complete. Matched {n} material(s)').replace('{n}', matchedMaterials.length);
             renderAiHazardResult(hazardBio, hazardChem, hazardPhys, matchedMaterials);
+            // 英文模式下自动翻译原料名与风险详情为双语
+            maybeTranslateHazardsForLang(data);
           } else {
             // 没有匹配到任何原料：显示未匹配信息，不填充数据
             var unmatchedList = materials.join('、');
@@ -1781,15 +2168,13 @@ const Questionnaire15min = (() => {
         aiBtn.disabled = false;
       });
     }
-    ['Bio', 'Chem', 'Phys'].forEach(function(type) { var body = content.querySelector('#hazard' + type + 'Body'); if (body) { body.querySelectorAll('input, select').forEach(function(el) { el.addEventListener('change', function() { collectHazardTableData(content, data); saveData(data); }); el.addEventListener('input', function() { collectHazardTableData(content, data); saveData(data); }); }); } });
 
     // AI建议关键限制按钮
     var aiCriticalBtn = content.querySelector('#aiCriticalBtn');
     if (aiCriticalBtn) {
-      aiCriticalBtn.addEventListener('click', async function() {
-        aiCriticalBtn.disabled = true;
+      aiCriticalBtn.addEventListener('click', async function() {        aiCriticalBtn.disabled = true;
         var hint = content.querySelector('#aiCriticalHint');
-        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
+        if (hint) hint.textContent = I18n.t('q.aiWaitHint');
         var resultEl = content.querySelector('#aiCriticalResult');
         
         // 收集当前数据
@@ -1821,7 +2206,7 @@ const Questionnaire15min = (() => {
         }
         
         try {
-          var resp = await fetch(API_HOST + '/api/ai/critical-limits', {
+          var resp = await fetchWithTimeout(API_HOST + '/api/ai/critical-limits', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1846,15 +2231,16 @@ const Questionnaire15min = (() => {
           ccpList.forEach(function(s) {
             var name = (s.stepName || '').toLowerCase();
             if (name.indexOf('杀菌') !== -1 || name.indexOf('热处理') !== -1 || name.indexOf('灭菌') !== -1) {
-              limitsText += '1. **' + s.stepName + '**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n';
+              limitsText += '**' + s.stepName + '（AI建议，需HACCP小组确认）**：\n   - 中心温度：≥85℃\n   - 保持时间：≥15秒\n   - 依据：GB 14881-2013 第5.2.1条\n\n';
             } else if (name.indexOf('金属') !== -1 || name.indexOf('异物') !== -1) {
-              limitsText += '2. **' + s.stepName + '**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n';
+              limitsText += '**' + s.stepName + '（AI建议，需HACCP小组确认）**：\n   - Fe：≤1.5mm\n   - SUS：≤2.0mm\n   - 依据：GB/T 25346-2010\n\n';
             } else if (name.indexOf('验收') !== -1 || name.indexOf('接收') !== -1) {
-              limitsText += '3. **' + s.stepName + '**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n';
+              limitsText += '**' + s.stepName + '（AI建议，需HACCP小组确认）**：\n   - 农药残留：符合GB 2763-2021\n   - 重金属：符合GB 2762-2022\n   - 依据：GB 2763-2021、GB 2762-2022\n\n';
             } else {
-              limitsText += '**' + s.stepName + '**：\n   - 需根据实际' + I18n.t('q.params') + '确定\n   - 依据：企业内控标准\n\n';
+              limitsText += '**' + s.stepName + '（AI建议，需HACCP小组确认）**：\n   - 需根据实际' + I18n.t('q.params') + '确定\n   - 依据：企业内控标准\n\n';
             }
           });
+          limitsText = '【AI建议】以下关键限值为系统建议，供HACCP小组参考，须确认后生效。\n\n' + limitsText;
           if (resultEl) resultEl.innerHTML = '<div class="q15-ai-result"><pre style="white-space:pre-wrap;font-size:13px;">' + limitsText + '</pre></div>';
           if (hint) hint.textContent = '✅ 前端模拟建议已生成（后端API不可用时）';
         }
@@ -1862,14 +2248,60 @@ const Questionnaire15min = (() => {
       });
     }
 
+    // 加载标准参考面板（DOM 已就绪后调用）
+    if (content.querySelector('#clStandardsPanel')) loadStandardsPanel(data);
+
     const addMonitorBtn = content.querySelector('#addMonitorRow');
     if (addMonitorBtn) { addMonitorBtn.addEventListener('click', function() { data.monitoring.push({ id: genId(), ccp: '', object: '', method: '', frequency: '', personnel: '', remark: '' }); saveData(data); renderActiveSection(); }); }
-    content.querySelectorAll('#monitorBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.mnIdx); if (data.monitoring.length > 1) { data.monitoring.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
+    content.querySelectorAll('#monitorBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.mnIdx); if (!isNaN(idx) && data.monitoring[idx]) { var removed = String(data.monitoring[idx].ccp || '').split('|||')[0].trim(); data.monitoring.splice(idx, 1); if (removed && !Array.isArray(data._monitoringRemoved)) data._monitoringRemoved = []; if (removed && data._monitoringRemoved.indexOf(removed) === -1) data._monitoringRemoved.push(removed); saveData(data); renderActiveSection(); } }); });
     content.querySelectorAll('#monitorBody input, #monitorBody textarea').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.mnIdx), cells = row.querySelectorAll('input, textarea'); if (data.monitoring[idx]) { data.monitoring[idx].ccp = cells[0].value; data.monitoring[idx].object = cells[1].value; data.monitoring[idx].method = cells[2].value; data.monitoring[idx].frequency = cells[3].value; data.monitoring[idx].personnel = cells[4].value; data.monitoring[idx].remark = cells[5].value; saveData(data); } }); });
 
     const addCorrectiveBtn = content.querySelector('#addCorrectiveRow');
     if (addCorrectiveBtn) { addCorrectiveBtn.addEventListener('click', function() { data.correctiveActions.push({ id: genId(), ccp: '', personnel: '', causeAnalysis: '', productHandling: '' }); saveData(data); renderActiveSection(); }); }
-    content.querySelectorAll('#correctiveBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.caIdx); if (data.correctiveActions.length > 1) { data.correctiveActions.splice(idx, 1); saveData(data); renderActiveSection(); } }); });
+    content.querySelectorAll('#correctiveBody .q15-del-row').forEach(function(btn) { btn.addEventListener('click', function() { var idx = parseInt(this.dataset.caIdx); if (!isNaN(idx) && data.correctiveActions[idx]) { var removed = String(data.correctiveActions[idx].ccp || '').split('|||')[0].trim(); data.correctiveActions.splice(idx, 1); if (removed && !Array.isArray(data._correctiveRemoved)) data._correctiveRemoved = []; if (removed && data._correctiveRemoved.indexOf(removed) === -1) data._correctiveRemoved.push(removed); saveData(data); renderActiveSection(); } }); });
+    // 清除重复行：同一CCP只保留一行（有内容优先：已填内容 > AI双语行 > 空行）
+    function dedupRows(arr, getCcp) {
+      function hasContent(row) {
+        if (!row) return false;
+        return Object.keys(row).some(function(k) {
+          if (k === 'id' || k === 'ccp') return false;
+          var v = row[k];
+          return v && String(v).trim().length > 0;
+        });
+      }
+      var seen = {};
+      var keep = [];
+      arr.forEach(function(row) {
+        var key = String(getCcp(row) || '').split('|||')[0].trim();
+        if (!key) { keep.push(row); return; }
+        if (seen[key] === undefined) {
+          seen[key] = keep.length;
+          keep.push(row);
+        } else {
+          var prev = keep[seen[key]];
+          if (hasContent(row) && !hasContent(prev)) {
+            keep[seen[key]] = row;
+          }
+        }
+      });
+      return keep;
+    }
+    var monitorDedupBtn = content.querySelector('#monitorDedupBtn');
+    if (monitorDedupBtn) {
+      monitorDedupBtn.addEventListener('click', function() {
+        var before = data.monitoring.length;
+        data.monitoring = dedupRows(data.monitoring, function(m) { return m.ccp; });
+        saveData(data); renderActiveSection();
+      });
+    }
+    var correctiveDedupBtn = content.querySelector('#correctiveDedupBtn');
+    if (correctiveDedupBtn) {
+      correctiveDedupBtn.addEventListener('click', function() {
+        var before = data.correctiveActions.length;
+        data.correctiveActions = dedupRows(data.correctiveActions, function(c) { return c.ccp; });
+        saveData(data); renderActiveSection();
+      });
+    }
     content.querySelectorAll('#correctiveBody input, #correctiveBody textarea').forEach(function(el) { el.addEventListener('input', function() { var row = this.closest('tr'), idx = parseInt(row.dataset.caIdx), cells = row.querySelectorAll('input, textarea'); if (data.correctiveActions[idx]) { data.correctiveActions[idx].ccp = cells[0].value; data.correctiveActions[idx].personnel = cells[1].value; data.correctiveActions[idx].causeAnalysis = cells[2].value; data.correctiveActions[idx].productHandling = cells[3].value; saveData(data); } }); });
 
     const aiMonitorBtn = content.querySelector('#aiMonitorBtn');
@@ -1877,7 +2309,7 @@ const Questionnaire15min = (() => {
       aiMonitorBtn.addEventListener('click', async function() {
         aiMonitorBtn.disabled = true;
         var hint = content.querySelector('#aiMonitorHint');
-        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
+        if (hint) hint.textContent = I18n.t('q.aiWaitHint');
         collectSectionData(content, data);
         
         // 构建CCP列表
@@ -1896,20 +2328,32 @@ const Questionnaire15min = (() => {
         if (ccpList.length === 0) { if (hint) hint.textContent = '⚠️ 请先完成CCP判定'; aiMonitorBtn.disabled = false; return; }
         
         try {
-          var resp = await fetch(API_HOST + '/api/ai/monitoring', {
+          var resp = await fetchWithTimeout(API_HOST + '/api/ai/monitoring', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_name: data.productName || '', ccp_steps: ccpList, process_description: '' })
           });
           if (!resp.ok) throw new Error('API响应异常: ' + resp.status);
           var result = await resp.json();
           if (result.ok && result.data && result.data.monitoring) {
-            data.monitoring = result.data.monitoring.map(function(m) { return { id: genId(), ccp: m.ccp || '', object: m.object || '', method: m.method || '', frequency: m.frequency || '', personnel: m.personnel || '', remark: m.remark || '' }; });
+            // 合并进已有行（填充原步骤，不新增重复行）
+            applyAiMonitoringToRows(data, result.data.monitoring);
+            data._monitoringRemoved = []; // AI重新生成，恢复用户删除的CCP
             if (hint) hint.textContent = '✅ AI方案已生成';
             saveData(data); renderActiveSection();
           } else throw new Error('返回数据格式异常');
         } catch (err) {
           console.warn('后端不可用，使用前端模拟:', err.message);
-          setTimeout(function() { data.monitoring = [{ id: genId(), ccp: '杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013' }, { id: genId(), ccp: '金属检测', object: '金属异物', method: '在线金属检测仪自动检测', frequency: '连续监控', personnel: '品控专员', remark: '依据GB/T 25346-2010' }]; saveData(data); if (hint) hint.textContent = '✅ 前端模拟完成（后端不可用时）'; aiMonitorBtn.disabled = false; renderActiveSection(); }, 800);
+          setTimeout(function() {
+            applyAiMonitoringToRows(data, [
+              { ccp: '杀菌工序', object: '杀菌温度、时间', method: '在线温度传感器连续监控', frequency: '每批次实时记录', personnel: '经HACCP培训的品控专员', remark: '依据GB 14881-2013' },
+              { ccp: '金属检测', object: '金属异物', method: '在线金属检测仪自动检测', frequency: '连续监控', personnel: '品控专员', remark: '依据GB/T 25346-2010' }
+            ]);
+            data._monitoringRemoved = [];
+            saveData(data);
+            if (hint) hint.textContent = '✅ 前端模拟完成（后端不可用时）';
+            aiMonitorBtn.disabled = false;
+            renderActiveSection();
+          }, 800);
           aiMonitorBtn.disabled = false;
         }
       });
@@ -1921,7 +2365,7 @@ const Questionnaire15min = (() => {
       aiCorrectiveBtn.addEventListener('click', async function() {
         aiCorrectiveBtn.disabled = true;
         var hint = content.querySelector('#aiCorrectiveHint');
-        if (hint) hint.textContent = I18n.t('q.aiAnalyzing');
+        if (hint) hint.textContent = I18n.t('q.aiWaitHint');
         collectSectionData(content, data);
         
         // 构建CCP列表（从ccpSteps中获取被判定为CCP的步骤）
@@ -1960,6 +2404,7 @@ const Questionnaire15min = (() => {
             });
             ccpList.push({
               stepName: stepName,
+              isCCP: true,
               hazardDesc: hazardDescs.join('; '),
               criticalLimit: clInfo,
               monitoring: monitorInfo,
@@ -1974,60 +2419,131 @@ const Questionnaire15min = (() => {
           aiCorrectiveBtn.disabled = false;
           return;
         }
-        
-        // 前端模拟生成纠偏方案（不依赖后端API）
-        setTimeout(function() {
+
+        // 合并新生成的纠偏方案：填充已有行（双语感知、大小写不敏感），未匹配的CCP追加
+        function mergeCorrectiveActions(newActions) {
+          if (!newActions || newActions.length === 0) {
+            if (hint) hint.textContent = '⚠️ 未生成纠偏方案，请确认CCP判定后重试';
+            aiCorrectiveBtn.disabled = false;
+            return;
+          }
+          applyAiCorrectiveToRows(data, newActions);
+          data._correctiveRemoved = []; // AI重新生成，恢复用户删除的CCP
+          saveData(data);
+          if (hint) hint.textContent = '✅ AI纠偏方案已生成（' + newActions.length + '个CCP）';
+          aiCorrectiveBtn.disabled = false;
+          renderActiveSection();
+          renderSectionNav();
+        }
+
+        // 后端不可用时的前端模拟（关键词模板，中英文均可匹配）
+        function mockCorrectiveFallback() {
           var newActions = [];
           ccpList.forEach(function(ccp) {
             var name = ccp.stepName.toLowerCase();
+            // 双语关键词匹配：任一语言段命中即算匹配
+            function kwm(kw) {
+              return kw.split('|||').some(function(p) { return p && name.indexOf(p.toLowerCase()) !== -1; });
+            }
             var personnel = '';
             var causeAnalysis = '';
             var productHandling = '';
-            
-            if (name.indexOf('杀菌') !== -1 || name.indexOf('热处理') !== -1 || name.indexOf('灭菌') !== -1) {
-              personnel = '品控专员 / 生产主任';
-              causeAnalysis = '杀菌温度未达到关键限值(' + (ccp.criticalLimit || '≥85℃') + ')，可能原因：蒸汽压力不足、温度传感器故障、操作时间不足';
-              productHandling = '1. 立即隔离该批次产品\n2. 评估杀菌不足的产品范围\n3. 重新杀菌或降级处理\n4. 记录偏差详情并分析原因';
-            } else if (name.indexOf('金属') !== -1 || name.indexOf('检测') !== -1 || name.indexOf('异物') !== -1) {
-              personnel = '品控专员 / 设备维护员';
-              causeAnalysis = '金属检测仪报警，关键限值Fe≤' + (ccp.criticalLimit || '1.5mm') + '超标，可能原因：设备筛网破损、原料带入金属异物';
-              productHandling = '1. 立即停止生产线\n2. 隔离报警前后各30分钟产品\n3. 检查金属检测仪灵敏度\n4. 对隔离产品重新过检\n5. 查找并清除金属来源';
-            } else if (name.indexOf('验收') !== -1 || name.indexOf('接收') !== -1 || name.indexOf('原料') !== -1) {
+            var corrective = '';
+            var verification = '';
+            var record = '';
+            if (['杀菌|||Sterilization', '热处理|||heat treatment', '灭菌|||steriliz', '消毒|||disinfect', '加热|||heat', 'cooking', 'pasteuriz', 'baking', 'frying', 'boiling'].some(kwm)) {
+              personnel = '当班生产主任 / 品控专员（有权停机）';
+              causeAnalysis = '排查顺序：①蒸汽压力或供汽不足；②温度传感器失准/探头结垢；③操作时间不足或未记录。按此顺序逐一排查并排除';
+              productHandling = '1. 立即隔离该批次及前后相邻产品\n2. 评估杀菌不足范围，抽样做微生物检测\n3. 可安全返工的重新杀菌，否则降级/转作他用/销毁\n4. 放行须经HACCP小组书面批准';
+              corrective = '立即停机排查蒸汽/传感器/操作记录，修复后重新杀菌达标，并连续验证2批正常方可恢复生产';
+              verification = '复查温度记录曲线；对返工品抽样检测微生物；校准温度传感器';
+              record = '《杀菌工序温度异常记录表》《产品隔离处置记录》';
+            } else if (['金属检测|||Metal detection', '异物|||foreign', '金属探测|||metal detect', 'x光|||x-ray', 'metal', 'detect', 'magnet', 'screen', 'siev'].some(kwm)) {
+              personnel = '当班品控 / 设备维护员（有权停机）';
+              causeAnalysis = '排查顺序：①检测仪灵敏度漂移或校验失效；②筛网/输送部件破损引入金属；③原料带入金属异物。先用标准试块验证设备';
+              productHandling = '1. 立即停线\n2. 隔离自上次合格校验后生产的所有产品\n3. 全部重新过检，剔除品隔离评估\n4. 无法确认安全的产品降级或销毁';
+              corrective = '停机检修检测仪并重新校验，修复后以标准试块连续通过3次方可复产';
+              verification = '每小时用标准试块验证检测仪；对重新过检产品确认剔除效果；复核校验记录';
+              record = '《金属检测异常处理记录》《设备校验记录》';
+            } else if (['膜滤|||membrane', '过滤|||filtration', 'filter', 'membrane', 'ultrafiltr', 'nanofiltr'].some(kwm)) {
+              personnel = '当班工艺员 / 设备维护员（有权停机）';
+              causeAnalysis = '排查顺序：①滤膜破损/堵塞导致滤液浑浊；②进料压力或温度异常；③料液含固量过高使膜通量骤降。按此顺序排查';
+              productHandling = '1. 立即停线并隔离异常批次\n2. 检查滤液浊度评估影响范围\n3. 可重新过滤的返工处理，无法确认安全的降级/销毁\n4. 放行须经HACCP小组批准';
+              corrective = '停机更换/清洗滤膜并校正膜滤参数，试运行确认滤液澄清达标后方可恢复生产';
+              verification = '检查滤液澄清度与透过率；复核膜通量/压差记录；确认滤膜完整性';
+              record = '《膜滤工序异常处理记录》《设备维护记录》';
+            } else if (['干燥|||drying', '烘干|||dryer', '脱水|||dehydrat', 'dry', 'bake'].some(kwm)) {
+              personnel = '当班生产主任 / 设备维护员（有权停机）';
+              causeAnalysis = '排查顺序：①烘干温度波动或加热元件故障；②物料铺层厚度/进料速度不当；③排湿系统失效导致湿度超标。按此顺序排查';
+              productHandling = '1. 立即隔离该批次\n2. 检测水分含量评估影响\n3. 水分超标可复烘至达标，严重变色/结块的降级或销毁';
+              corrective = '停机检修加热/排湿系统，调整温度与进料参数，试烘验证水分达标后方可恢复生产';
+              verification = '检测成品水分含量；复核烘干温度曲线；确认设备校准记录';
+              record = '《干燥工序异常处理记录》《水分检测记录》';
+            } else if (['验收|||receiving', '接收|||receiv', '原料|||raw material', 'incoming', 'inspection', 'acceptance', 'material'].some(kwm)) {
               personnel = '采购专员 / 品控专员';
-              causeAnalysis = '原料验收指标不符合关键限值要求，可能原因：供应商质量波动、运输储存条件不当';
-              productHandling = '1. 拒收该批次原料\n2. 通知供应商并要求整改\n3. 评估已接收原料的使用情况\n4. 启动备用供应商';
+              causeAnalysis = '排查顺序：①供应商质量波动或检验报告失真；②运输储存条件不当（受潮/混装/超期）；③验收标准执行不严。必要时追溯上游供应商';
+              productHandling = '1. 拒收该批次并隔离标记\n2. 已接收的关联原料单独存放并评估\n3. 启动备用供应商保证供应\n4. 向供应商发出整改通知';
+              corrective = '拒收该批原料并通知供应商限期整改，复核供应商资质与检测报告，整改验证合格前暂停其供货资格';
+              verification = '逐批核查供应商检测报告；定期送第三方抽检；年度供应商审核';
+              record = '《原料验收不合格记录》《供应商整改通知单》';
             } else {
-              personnel = 'HACCP小组 / 相关工序负责人';
-              causeAnalysis = ccp.stepName + '环节出现偏离，关键限值(' + (ccp.criticalLimit || '未设定') + ')未满足，可能原因：操作不规范、设备异常、原料波动';
-              productHandling = '1. 立即停止异常操作\n2. 隔离受影响产品\n3. 评估偏离程度和影响范围\n4. 采取' + I18n.t('q.verCorrective') + '\n5. 加强后续' + I18n.t('q.monitorFreq') + '';
+              personnel = 'HACCP小组 / 当班工序负责人';
+              causeAnalysis = '排查顺序：①设备运行参数异常；②操作人员执行偏差；③原料批次波动；④环境条件变化。按人员-设备-原料-环境顺序排查';
+              productHandling = '1. 立即停止异常操作\n2. 隔离受影响产品并评估偏离程度\n3. 按严重程度选择返工/降级/销毁\n4. 处置结果报HACCP小组批准并存档';
+              corrective = '查明并消除偏离原因，纠正后连续监控确认CCP恢复受控方可恢复生产';
+              verification = '复查纠偏后监控记录，确认关键限值持续满足要求';
+              record = '《CCP偏差处理记录》《产品隔离处置记录》';
             }
-            
             newActions.push({
               id: genId(),
               ccp: ccp.stepName,
+              cl: '',
               personnel: personnel,
               causeAnalysis: causeAnalysis,
-              productHandling: productHandling
+              productHandling: productHandling,
+              corrective: corrective,
+              verification: verification,
+              record: record
             });
           });
-          
-          // 合并新生成的纠偏方案，覆盖已有的同CCP条目
-          if (newActions.length > 0) {
-            // 保留已有但不在新列表中的条目
-            var existingCCPs = {};
-            newActions.forEach(function(a) { existingCCPs[a.ccp] = true; });
-            var keptOld = [];
-            data.correctiveActions.forEach(function(old) {
-              if (!existingCCPs[old.ccp]) keptOld.push(old);
+          mergeCorrectiveActions(newActions);
+          if (hint) hint.textContent = '✅ 前端模拟完成（后端不可用时）';
+        }
+
+        // 调用后端AI生成纠偏方案；后端不可用时使用前端模拟
+        try {
+          var resp = await fetchWithTimeout(API_HOST + '/api/ai/corrective-actions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_name: data.productName || '',
+              ccp_steps: ccpList,
+              critical_limits: data.criticalLimits || ''
+            })
+          }, 60000);
+          if (!resp.ok) throw new Error('API响应异常: ' + resp.status);
+          var result = await resp.json();
+          if (result.ok && result.data && result.data.correctiveActions) {
+            var newActions = result.data.correctiveActions.map(function(a) {
+              return {
+                id: genId(),
+                ccp: a.ccp || '',
+                cl: a.cl || '',
+                personnel: a.personnel || '',
+                causeAnalysis: a.causeAnalysis || '',
+                productHandling: a.productHandling || '',
+                corrective: a.corrective || '',
+                verification: a.verification || '',
+                record: a.record || ''
+              };
             });
-            data.correctiveActions = keptOld.concat(newActions);
-            saveData(data);
-            if (hint) hint.textContent = '✅ AI纠偏方案已生成（' + newActions.length + '个CCP）';
-            aiCorrectiveBtn.disabled = false;
-            renderActiveSection();
-            renderSectionNav();
-          }
-        }, 600);
+            mergeCorrectiveActions(newActions);
+          } else throw new Error('返回数据格式异常');
+        } catch (err) {
+          console.warn('后端不可用，使用前端模拟:', err.message);
+          mockCorrectiveFallback();
+          aiCorrectiveBtn.disabled = false;
+        }
       });
     }
 
@@ -2122,6 +2638,22 @@ const Questionnaire15min = (() => {
         }, 1000);
       });
     }
+
+    // AI 失败回退后的"重试AI分析"按钮
+    var aiRetryBtn = content.querySelector('#aiHazardRetryBtn');
+    if (aiRetryBtn) {
+      aiRetryBtn.addEventListener('click', function() {
+        this.disabled = true;
+        this.textContent = '\u23F3 ' + I18n.t('q.aiAnalyzing');
+        // 清除缓存标记，强制重新走AI匹配
+        data.hazardWorksheet = [];
+        data._hazardStepFingerprint = '';
+        data._hazardFromAI = '';
+        saveData(data);
+        autoMatchStepHazards(data);
+      });
+    }
+
 
     // CCP页面按钮事件绑定（新 + 旧兼容）
     // 只有在使用旧的CCP视图时才绑定旧按钮，避免冲突
@@ -3153,10 +3685,6 @@ const Questionnaire15min = (() => {
     }
   }
 
-  function collectHazardTableData(content, data) {
-    [{ bodyId: 'hazardBioBody', key: 'hazardBio' }, { bodyId: 'hazardChemBody', key: 'hazardChem' }, { bodyId: 'hazardPhysBody', key: 'hazardPhys' }].forEach(function(_a) { var body = content.querySelector('#' + _a.bodyId); if (!body) return; var rows = body.querySelectorAll('tr:not(.q15-empty-row)'); data[_a.key] = []; rows.forEach(function(row) { var inputs = row.querySelectorAll('input'), selects = row.querySelectorAll('select'); if (inputs.length > 0) data[_a.key].push({ desc: inputs[0]?.value || '', severity: selects[0]?.value || '中', likelihood: selects[1]?.value || '中', control: inputs[1]?.value || '' }); }); }); 
-  }
-
   // ==================== 渲染AI危害结果到按钮下方 ====================
   function renderAiHazardResult(bio, chem, phys, matchedMaterials) {
     var resultEl = document.getElementById('aiHazardResult');
@@ -3172,14 +3700,16 @@ const Questionnaire15min = (() => {
     if (matchedMaterials && matchedMaterials.length > 0) {
       html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
       html += I18n.b('匹配到 {n} 种原料的危害数据：|||Matched {n} material(s) with hazard data: ').replace('{n}', matchedMaterials.length);
-      html += matchedMaterials.map(function(e) { return '<strong>' + e.material + '</strong>'; }).join('、');
+      html += matchedMaterials.map(function(e) { return '<strong>' + esc(I18n.b(e.material || '')) + '</strong>'; }).join('、');
       html += '</div>';
     }
     if (allHazards.length > 0) {
       html += '<div class="q15-hazard-preview" style="overflow-x:auto;"><table class="q15-table" style="min-width:900px;"><thead><tr><th style="min-width:70px;">' + I18n.t('r15.rawMaterial') + '</th><th style="min-width:70px;">' + I18n.t('r15.risk') + '</th><th style="width:50px;">Q1</th><th style="width:50px;">Q2</th><th style="width:50px;">Q3</th><th style="width:70px;">' + I18n.t('r15.ccpJudgment') + '</th><th style="min-width:300px;">' + I18n.t('r15.riskDetail') + '</th></tr></thead><tbody>';
       allHazards.forEach(function(h) {
         var riskColor = (h.hazardType === '生物危害' || h.hazardType === 'Biological Hazard') ? '#dc2626' : ((h.hazardType === '化学危害' || h.hazardType === 'Chemical Hazard') ? '#d97706' : '#6b7280');
-        html += '<tr><td><strong>' + esc(h.material || '') + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + esc(h.hazardType || '') + '</td><td>' + esc(h.q1 || '') + '</td><td>' + esc(h.q2 || '') + '</td><td>' + esc(h.q3 || '') + '</td><td>' + esc(h.ccpResult || '') + '</td><td style="font-size:13px;line-height:1.5;">' + esc(h.detail || h.desc || '') + '</td></tr>';
+        var htDisp = (h.hazardType === '生物危害' || h.hazardType === 'Biological Hazard') ? I18n.t('q.ccpHazardBio') : (h.hazardType === '化学危害' || h.hazardType === 'Chemical Hazard') ? I18n.t('q.ccpHazardChem') : (h.hazardType === '物理危害' || h.hazardType === 'Physical Hazard') ? I18n.t('q.ccpHazardPhys') : h.hazardType;
+        function yn(v) { return v === '是' ? I18n.t('common.yes') : (v === '否' ? I18n.t('common.no') : (v || '')); }
+        html += '<tr><td><strong>' + esc(I18n.b(h.material || '')) + '</strong></td><td style="color:' + riskColor + ';font-weight:500;">' + esc(htDisp) + '</td><td>' + esc(yn(h.q1)) + '</td><td>' + esc(yn(h.q2)) + '</td><td>' + esc(yn(h.q3)) + '</td><td>' + esc(yn(h.ccpResult)) + '</td><td style="font-size:13px;line-height:1.5;">' + esc(I18n.b(h.detail || h.desc || '')) + '</td></tr>';
       });
       html += '</tbody></table></div>';
       html += '<div style="margin-top:10px;font-size:12px;color:var(--gray-400);text-align:right;">' + I18n.t('hazard.synced') + '</div>';
@@ -3202,7 +3732,7 @@ const Questionnaire15min = (() => {
   function renderFlowchartPreview(data) {
     var hasSteps = data.processSteps && data.processSteps.some(function(s) { return s.stepName && s.stepName.trim(); });
     if (data.flowchartXml) return '<div class="q15-flowchart-preview"><div class="q15-flowchart-info"><span class="q15-flowchart-icon">\u{1F4CA}</span><span>' + I18n.t('q.fcCreated') + '</span><span class="q15-flowchart-size">' + (data.flowchartXml.length / 1024).toFixed(1) + ' KB</span></div><div class="q15-flowchart-actions"><button class="btn btn-primary btn-sm" id="editDrawioBtn">\u270F\uFE0F draw.io' + I18n.t('q.fcDrawioEdit') + '</button><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> ' + I18n.t('q.fcInulinBtn') + '</button><button class="btn btn-secondary btn-sm" id="clearFlowchartBtn">\u{1F5D1}\uFE0F ' + I18n.t('q.fcClear') + '</button></div></div>';
-    if (hasSteps) return '<div class="q15-vf-wrapper"><div class="q15-vf-actions"><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> ' + I18n.t('q.fcInulinBtn') + '</button><button class="btn btn-secondary btn-sm" id="openDrawioBtn">\u{1F4DD} ' + I18n.t('q.fcDrawioAdvanced') + '</button><a class="btn btn-secondary btn-sm" href="flowchart-preview.html" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">\u{1F4CA} ' + I18n.t('q.fcTemplatePreview') + '</a></div><div id="q15VfContainer">' + renderVisualFlowchart(data.processSteps) + '</div></div>';
+    if (hasSteps) return '<div class="q15-vf-wrapper"><div class="q15-vf-actions"><button class="btn-flowchart" id="q15InulinBtn" style="font-size:13px;padding:6px 18px"><span class="fc-nav-icon">\u{1F4CA}</span> ' + I18n.t('q.fcInulinBtn') + '</button><button class="btn btn-secondary btn-sm" id="openDrawioBtn">\u{1F4DD} ' + I18n.t('q.fcDrawioAdvanced') + '</button><a class="btn btn-secondary btn-sm" href="flowchart-preview.html?v=' + Date.now() + '" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">\u{1F4CA} ' + I18n.t('q.fcTemplatePreview') + '</a></div><div id="q15VfContainer">' + renderVisualFlowchart(data.processSteps) + '</div></div>';
     return '<div class="q15-flowchart-empty"><div class="q15-flowchart-empty-icon">\u{1F4CA}</div><p>' + I18n.t('q.fcEmptyHint') + '</p><p style="font-size:12px;color:var(--gray-400);margin-top:8px;">' + I18n.t('q.fcEmptySubHint') + '</p></div>';
   }
 
@@ -3444,7 +3974,7 @@ const Questionnaire15min = (() => {
     if (_stepHazardsCache && !forceRefresh) return Promise.resolve(_stepHazardsCache);
     // 如果强制刷新，清除缓存
     if (forceRefresh) { _stepHazardsCache = null; _stepHazardsMap = null; }
-    var url = 'data/step_hazards.json';
+    var url = 'data/step_hazards.json?t=' + Date.now();
     // 使用 AbortController 实现 5 秒超时
     var controller = new AbortController();
     var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
@@ -3474,7 +4004,7 @@ const Questionnaire15min = (() => {
     saveData(data);
     
     // 强制重新加载并匹配
-    var fcSteps = getFcStepsFromProfile();
+    var fcSteps = getAllFcSteps();
     if (fcSteps.length === 0) {
       renderActiveSection();
       renderSectionNav();
@@ -3527,6 +4057,8 @@ const Questionnaire15min = (() => {
       
       data.hazardWorksheet = ws;
       data._unmatchedSteps = unmatchedSteps;
+      data._hazardStepFingerprint = fcSteps.join(',');
+      data._hazardFromAI = 'mock';
       saveData(data);
       
       renderActiveSection();
@@ -3544,19 +4076,24 @@ const Questionnaire15min = (() => {
     }, 50);
   }
 
-  // ' + I18n.t('q.stepName') + '模糊匹配（优先使用Map索引）
+  // 步骤模糊匹配（优先使用Map索引，支持 exclude 排除词避免误匹配）
   function matchStepName(userStepName, stepDb) {
     if (!userStepName) return null;
     var name = userStepName.trim().toLowerCase();
+    function excluded(entry) {
+      if (!entry || !entry.exclude || entry.exclude.length === 0) return false;
+      return entry.exclude.some(function(x) { return x && name.indexOf(String(x).toLowerCase()) !== -1; });
+    }
     // 优先使用Map索引（O(1)精确匹配）
     if (_stepHazardsMap) {
       var mapEntry = _stepHazardsMap.get(name);
-      if (mapEntry) return mapEntry;
+      if (mapEntry && !excluded(mapEntry)) return mapEntry;
     }
     if (!stepDb) return null;
     // 回退：包含匹配（用户步骤名包含数据库步骤名，或反之）
     for (var i = 0; i < stepDb.length; i++) {
       var entry = stepDb[i];
+      if (excluded(entry)) continue;
       if (name.indexOf(entry.step.toLowerCase()) !== -1 || entry.step.toLowerCase().indexOf(name) !== -1) return entry;
       if (entry.aliases) {
         for (var k = 0; k < entry.aliases.length; k++) {
@@ -3588,21 +4125,282 @@ const Questionnaire15min = (() => {
     return [];
   }
 
-  // 自动匹配步骤危害（从档案的流程图编辑器读取步骤）
+  // 汇总所有步骤来源：问卷 processSteps（用户确认）→ 档案流程图 → 流程图编辑器(haccp_fc_steps)
+  function getAllFcSteps() {
+    var steps = [];
+    try {
+      var qRaw = localStorage.getItem('haccp_15min_data');
+      if (qRaw) {
+        var qd = JSON.parse(qRaw);
+        if (qd.processSteps && qd.processSteps.length > 0) {
+          qd.processSteps.forEach(function(s) {
+            if (s.stepName && s.stepName.trim()) steps.push(s.stepName.trim());
+          });
+        }
+      }
+    } catch (e) {}
+    if (steps.length === 0) {
+      steps = getFcStepsFromProfile();
+    }
+    if (steps.length === 0) {
+      try {
+        var fcRaw = localStorage.getItem('haccp_fc_steps');
+        if (fcRaw) {
+          var arr = JSON.parse(fcRaw);
+          if (Array.isArray(arr)) arr.forEach(function(n) { if (n && n.trim()) steps.push(n.trim()); });
+        }
+      } catch (e) {}
+    }
+    return steps;
+  }
+
+  // 流程图步骤自动加载到 CCP 判定步骤表（当问卷步骤为空时）
+  function autoFillStepsFromFlowchart(data) {
+    if (data.processSteps && data.processSteps.some(function(s) { return s.stepName && s.stepName.trim(); })) return;
+    var names = getAllFcSteps();
+    if (names.length === 0) return;
+    var ccpArr = [];
+    try {
+      var ccpRaw = localStorage.getItem('haccp_fc_ccp');
+      if (ccpRaw) { ccpArr = JSON.parse(ccpRaw); }
+    } catch (e) {}
+    data.processSteps = names.map(function(n, i) {
+      return {
+        id: genId(),
+        stepName: n,
+        operationMethod: '',
+        parameters: '',
+        controlPoint: (ccpArr[i] === 1) ? 'CCP' : '',
+        equipmentName: ''
+      };
+    });
+    saveData(data);
+  }
+
+  // 自动匹配步骤危害（从档案/问卷/流程图中读取步骤）— 关键词匹配优先（确定性、可复现），全部未命中时回退 AI
   function autoMatchStepHazards(data) {
-    var fcSteps = getFcStepsFromProfile();
+    var fcSteps = getAllFcSteps();
     if (fcSteps.length === 0) {
       renderActiveSection();
       renderSectionNav();
       return;
     }
-    
+    keywordMatchStepHazards(data, fcSteps);
+  }
+
+  // 关键词匹配（内置双语知识库，确定性输出）；匹配不到任何步骤时回退 AI
+  function keywordMatchStepHazards(data, fcSteps) {
+    loadStepHazards().then(function(stepDb) {
+      var re = /Jerusalem artichoke/gi;
+      function fixText(v) { return (typeof v === 'string' && v.indexOf('Jerusalem') !== -1) ? v.replace(re, 'chicory root') : v; }
+      var ws = [];
+      var matchedCount = 0;
+      var unmatchedSteps = [];
+      fcSteps.forEach(function(stepName) {
+        stepName = fixText(stepName);
+        var matched = matchStepName(stepName, stepDb);
+        var stepEntry = { stepId: genId(), stepName: stepName || '', hazards: [] };
+        if (matched) {
+          matchedCount++;
+          var h = matched.hazards;
+          ['bio', 'chem', 'phys'].forEach(function(ht, hi) {
+            var hd = h[ht];
+            if (!hd || !hd.desc) return;
+            var isNone = hd.desc.indexOf('无显著') !== -1 || hd.desc === '无';
+            if (isNone && hd.desc.indexOf('|||') !== -1) {
+              // 双语"无显著"标记同样跳过
+              if (hd.desc.split('|||')[0].indexOf('无显著') !== -1 || hd.desc.split('|||')[0] === '无') return;
+            } else if (isNone) return;
+            stepEntry.hazards.push({
+              id: genId(),
+              category: ht === 'bio' ? 'biological' : (ht === 'chem' ? 'chemical' : 'physical'),
+              hazardDesc: fixText(hd.desc),
+              source: fixText(matched.step || stepName),
+              isSignificant: !!hd.isSignificant,
+              severity: hd.isSignificant ? '高' : '中',
+              likelihood: hd.isSignificant ? '高' : '中',
+              basis: fixText(hd.basis || ''),
+              controlMeasure: fixText(hd.control || ''),
+              controlRelation: fixText(hd.controlRelation || '')
+            });
+          });
+        } else {
+          unmatchedSteps.push(stepName);
+        }
+        ws.push(stepEntry);
+      });
+      if (matchedCount > 0) {
+        // 关键词匹配成功：确定性结果，直接应用
+        data.hazardWorksheet = ws;
+        data._unmatchedSteps = unmatchedSteps;
+        data._hazardStepFingerprint = fcSteps.join(',');
+        data._hazardFromAI = 'keyword';
+        saveData(data);
+        maybeTranslateHazardsForLang(data);
+        renderActiveSection();
+        renderSectionNav();
+      } else {
+        // 关键词完全未命中 → 回退 AI 匹配
+        aiMatchStepHazards(data, fcSteps);
+      }
+    });
+  }
+
+  // ===== AI 步骤危害结果缓存 =====
+  function getAiStepHazardsCacheKey(fcSteps, data) {
+    return 'aih|v2|' + fcSteps.join('|') + '|' + (data.productName || '') + '|' + (data.rawMaterials || '');
+  }
+  function loadAiStepHazardsCache(key) {
+    try {
+      var raw = localStorage.getItem('haccp_ai_step_cache');
+      if (!raw) return null;
+      var obj = JSON.parse(raw);
+      // 迁移旧缓存中的历史名称
+      var cacheDirty = false;
+      Object.keys(obj).forEach(function(k) {
+        var entry = obj[k];
+        if (entry && entry.data) {
+          var txt = JSON.stringify(entry.data);
+          if (txt.indexOf('Jerusalem') !== -1) {
+            try { entry.data = JSON.parse(txt.replace(/Jerusalem artichoke/gi, 'chicory root')); cacheDirty = true; } catch(e2) {}
+          }
+        }
+      });
+      if (cacheDirty) localStorage.setItem('haccp_ai_step_cache', JSON.stringify(obj));
+      var hit = obj[key];
+      if (hit && hit.data && hit.data.length) return hit.data;
+    } catch(e) {}
+    return null;
+  }
+  function saveAiStepHazardsCache(key, results) {
+    try {
+      var raw = localStorage.getItem('haccp_ai_step_cache');
+      var obj = raw ? JSON.parse(raw) : {};
+      obj[key] = { data: results, time: Date.now() };
+      var keys = Object.keys(obj);
+      if (keys.length > 10) {
+        keys.sort(function(a, b) { return (obj[a].time || 0) - (obj[b].time || 0); });
+        keys.slice(0, keys.length - 10).forEach(function(k) { delete obj[k]; });
+      }
+      localStorage.setItem('haccp_ai_step_cache', JSON.stringify(obj));
+    } catch(e) {}
+  }
+
+  // 把 AI 返回的危害条目应用到 worksheet（写入前迁移旧名称）
+  function applyAiStepResults(data, fcSteps, entries, source) {
+    var re = /Jerusalem artichoke/gi;
+    function fixText(v) { return (typeof v === 'string' && v.indexOf('Jerusalem') !== -1) ? v.replace(re, 'chicory root') : v; }
+    var ws = [];
+    var unmatched = [];
+    var byStep = {};
+    entries.forEach(function(entry) { byStep[fixText((entry.step || '').trim())] = entry; });
+    fcSteps.forEach(function(stepName) {
+      stepName = fixText(stepName);
+      var entry = byStep[stepName.trim()];
+      var hazards = [];
+      if (entry) {
+        ['bio', 'chem', 'phys'].forEach(function(ht) {
+          var h = (entry.hazards || {})[ht];
+          if (h && h.desc) {
+            hazards.push({
+              id: genId(),
+              category: ht === 'bio' ? 'biological' : (ht === 'chem' ? 'chemical' : 'physical'),
+              hazardDesc: fixText(h.desc),
+              source: fixText(entry.step || stepName),
+              isSignificant: !!h.isSignificant,
+              severity: h.isSignificant ? '高' : '中',
+              likelihood: h.isSignificant ? '高' : '中',
+              basis: fixText(h.basis || ''),
+              controlMeasure: fixText(h.control || ''),
+              controlRelation: fixText(h.controlRelation || '')
+            });
+          }
+        });
+      }
+      if (hazards.length === 0) unmatched.push(stepName);
+      ws.push({ stepId: genId(), stepName: stepName || '', hazards: hazards });
+    });
+    data.hazardWorksheet = ws;
+    data._unmatchedSteps = unmatched;
+    data._hazardStepFingerprint = fcSteps.join(',');
+    data._hazardFromAI = source; // true=AI, 'cache'=AI缓存, 'mock'=内置示例数据
+    saveData(data);
+    // AI 数据可能为纯中文，英文模式下补充翻译
+    maybeTranslateHazardsForLang(data);
+    renderActiveSection();
+    renderSectionNav();
+  }
+
+  // 带超时的 fetch（防止后端卡住导致界面一直转圈）
+  function fetchWithTimeout(url, options, timeoutMs) {
+    var controller = new AbortController();
+    var timer = setTimeout(function() { try { controller.abort(); } catch(e) {} }, timeoutMs || 60000);
+    options = options || {};
+    options.signal = controller.signal;
+    return fetch(url, options).finally(function() { clearTimeout(timer); });
+  }
+
+  // AI 匹配：优先读缓存，未命中时并行分批调用后端 /api/ai/step-hazards（双语输出），失败时回退本地数据库
+  function aiMatchStepHazards(data, fcSteps) {
+    var cacheKey = getAiStepHazardsCacheKey(fcSteps, data);
+    var cached = loadAiStepHazardsCache(cacheKey);
+    if (cached) {
+      applyAiStepResults(data, fcSteps, cached, 'cache');
+      return;
+    }
+    var CHUNK = 4; // 每批最多4个步骤，避免AI返回过长被截断
+    var chunks = [];
+    for (var i = 0; i < fcSteps.length; i += CHUNK) chunks.push(fcSteps.slice(i, i + CHUNK));
+    var results = [];
+    var remaining = chunks.length;
+    var hasSuccess = false;
+    var done = false;
+
+    function finish() {
+      if (done) return;
+      done = true;
+      if (hasSuccess) {
+        applyAiStepResults(data, fcSteps, results, true);
+        saveAiStepHazardsCache(cacheKey, results);
+      } else {
+        fallbackMockStepHazards(data, fcSteps);
+      }
+    }
+
+    // 总超时看门狗：90秒后强制结束（部分成功用部分结果，全部失败回退内置数据）
+    setTimeout(function() { finish(); }, 90000);
+
+    chunks.forEach(function(chunk) {
+      var payload = { steps: chunk, product_name: data.productName || '', raw_materials: data.rawMaterials || '' };
+      fetchWithTimeout(API_HOST + '/api/ai/step-hazards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }, 60000)
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (done) return;
+          if (res.ok && res.data && res.data.length > 0) {
+            hasSuccess = true;
+            res.data.forEach(function(e) { results.push(e); });
+          }
+        })
+        .catch(function() { /* 单批失败/超时不中断其他批次 */ })
+        .finally(function() {
+          remaining--;
+          if (remaining === 0) finish();
+        });
+    });
+  }
+
+  function fallbackMockStepHazards(data, fcSteps) {
     loadStepHazards().then(function(stepDb) {
       // 无论 stepDb 是否为空，都要重新渲染页面（移除"正在匹配中"状态）
       if (!stepDb || stepDb.length === 0) {
         data.hazardWorksheet = [];
-        data._hazardStepFingerprint = 'none';
+        data._hazardStepFingerprint = fcSteps.join(',');
         data._unmatchedSteps = fcSteps;
+        data._hazardFromAI = 'mock';
         saveData(data);
         renderActiveSection();
         renderSectionNav();
@@ -3673,28 +4471,171 @@ const Questionnaire15min = (() => {
       
       data.hazardWorksheet = ws;
       data._unmatchedSteps = unmatchedSteps;
-      // 保存步骤指纹，下次进入时无需重新匹配
-      var currentFcSteps = getFcStepsFromProfile();
-      data._hazardStepFingerprint = currentFcSteps.join(',');
+      // 保存步骤指纹（与匹配所用步骤来源一致，避免指纹不匹配导致无限循环），下次进入时无需重新匹配
+      data._hazardStepFingerprint = fcSteps.join(',');
+      data._hazardFromAI = 'mock';
       saveData(data);
+      
+      // 回退数据为纯中文，英文模式下补充翻译
+      maybeTranslateHazardsForLang(data);
       
       // 重新渲染
       renderActiveSection();
       renderSectionNav();
     });
   }
+  // ===== 英文模式下，将中文危害数据批量翻译为双语（中文|||English），带本地缓存 =====
+  var TRANS_CACHE_KEY = 'haccp_trans_cache';
+  var _transCache = null;
+  function getTransCache() {
+    if (_transCache) return _transCache;
+    try {
+      var raw = localStorage.getItem(TRANS_CACHE_KEY);
+      _transCache = raw ? JSON.parse(raw) : {};
+    } catch(e) { _transCache = {}; }
+    return _transCache;
+  }
+  function saveTransCache() {
+    try {
+      var obj = getTransCache();
+      var keys = Object.keys(obj);
+      if (keys.length > 500) {
+        keys.slice(0, keys.length - 500).forEach(function(k) { delete obj[k]; });
+      }
+      localStorage.setItem(TRANS_CACHE_KEY, JSON.stringify(obj));
+    } catch(e) {}
+  }
+
+  function maybeTranslateHazardsForLang(data) {
+    if (typeof I18n === 'undefined' || I18n.getLang() !== 'en') return false;
+    if (data._hazardLangTranslated === 'en-v2') return false;
+    var texts = [], seen = {};
+    function collect(v) {
+      if (v && typeof v === 'string' && v.indexOf('|||') === -1 && /[\u4e00-\u9fff]/.test(v) && !seen[v]) {
+        seen[v] = true;
+        texts.push(v);
+      }
+    }
+    (data.hazardWorksheet || []).forEach(function(s) {
+      collect(s.stepName);
+      (s.hazards || []).forEach(function(h) {
+        collect(h.hazardDesc); collect(h.basis); collect(h.controlMeasure); collect(h.controlRelation);
+      });
+    });
+    ['hazardBio', 'hazardChem', 'hazardPhys'].forEach(function(k) {
+      (data[k] || []).forEach(function(h) {
+        collect(h.material); collect(h.desc); collect(h.control); collect(h.detail);
+      });
+    });
+    if (texts.length === 0) {
+      // 仅当确实存在危害数据且无需翻译时才标记完成；
+      // 数据为空时先不标记，等待AI匹配完成后若回退到中文数据仍可触发翻译
+      var hasHazardData = (data.hazardWorksheet || []).length > 0
+        || ['hazardBio', 'hazardChem', 'hazardPhys'].some(function(k) { return (data[k] || []).length > 0; });
+      if (hasHazardData) {
+        try { data._hazardLangTranslated = 'en-v2'; saveData(data); } catch(e) {}
+      }
+      return false;
+    }
+
+    function applyMap(map) {
+      function applyBilingual(v) { if (!v || v.indexOf('|||') !== -1) return v; return map[v] ? v + '|||' + map[v] : v; }
+      (data.hazardWorksheet || []).forEach(function(s) {
+        s.stepName = applyBilingual(s.stepName);
+        (s.hazards || []).forEach(function(h) {
+          h.hazardDesc = applyBilingual(h.hazardDesc);
+          h.basis = applyBilingual(h.basis);
+          h.controlMeasure = applyBilingual(h.controlMeasure);
+          h.controlRelation = applyBilingual(h.controlRelation);
+        });
+      });
+      ['hazardBio', 'hazardChem', 'hazardPhys'].forEach(function(k) {
+        (data[k] || []).forEach(function(h) {
+          h.material = applyBilingual(h.material);
+          h.desc = applyBilingual(h.desc);
+          h.control = applyBilingual(h.control);
+          h.detail = applyBilingual(h.detail);
+        });
+      });
+      if (Array.isArray(data._matchedMaterials)) {
+        data._matchedMaterials.forEach(function(e) { e.material = applyBilingual(e.material); });
+      }
+    }
+
+    function markDoneIfClean() {
+      // 只有所有危害数据都变为双语后才标记完成，否则下次继续翻译剩余中文
+      var remaining = false;
+      function chk(v) { if (v && typeof v === 'string' && v.indexOf('|||') === -1 && /[\u4e00-\u9fff]/.test(v)) remaining = true; }
+      (data.hazardWorksheet || []).forEach(function(s) {
+        chk(s.stepName);
+        (s.hazards || []).forEach(function(h) {
+          chk(h.hazardDesc); chk(h.basis); chk(h.controlMeasure); chk(h.controlRelation);
+        });
+      });
+      ['hazardBio', 'hazardChem', 'hazardPhys'].forEach(function(k) {
+        (data[k] || []).forEach(function(h) {
+          chk(h.material); chk(h.desc); chk(h.control); chk(h.detail);
+        });
+      });
+      if (!remaining) data._hazardLangTranslated = 'en-v2';
+      saveData(data);
+      renderActiveSection();
+      renderSectionNav();
+      // 重新渲染AI原料危害结果表（翻译后）
+      if ((data.hazardBio || []).length || (data.hazardChem || []).length || (data.hazardPhys || []).length) {
+        renderAiHazardResult(data.hazardBio || [], data.hazardChem || [], data.hazardPhys || [], data._matchedMaterials || []);
+      }
+    }
+
+    // 1. 先用本地缓存翻译
+    var cache = getTransCache();
+    var map = {};
+    var uncached = [];
+    texts.forEach(function(t) {
+      if (cache[t]) map[t] = cache[t];
+      else uncached.push(t);
+    });
+    if (Object.keys(map).length > 0) applyMap(map);
+    if (uncached.length === 0) { markDoneIfClean(); return true; }
+
+    // 2. 未命中的调用后端翻译
+    fetchWithTimeout(API_HOST + '/api/ai/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: uncached, target: 'en' }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.ok && Array.isArray(res.data) && res.data.length === uncached.length) {
+          uncached.forEach(function(t, i) {
+            var tr = String(res.data[i] || '').replace(/^\s*\d+[\.、:：]\s*/, '').trim();
+            if (tr && tr !== t) { map[t] = tr; cache[t] = tr; }
+          });
+          saveTransCache();
+          applyMap(map);
+          markDoneIfClean();
+        }
+        // 翻译接口异常时不标记，下次进入时重试
+      })
+      .catch(function() {
+        // 网络失败时不标记，下次进入时重试
+      });
+    return true;
+  }
+
   function renderHazardIdentify(data) {
     // 检查是否有hazardWorksheet数据；如果为空则检查档案中是否有流程图步骤
     var ws = data.hazardWorksheet || [];
-    var fcSteps = getFcStepsFromProfile();
+    var fcSteps = getAllFcSteps();
     var autoTriggered = false;
     
     // 计算当前步骤的版本指纹（用于判断步骤是否变更）
     var currentStepFingerprint = fcSteps.join(',');
     var cachedFingerprint = data._hazardStepFingerprint || '';
     
-    // 如果worksheet为空，或步骤指纹不匹配（步骤已变更），触发自动匹配
-    if ((ws.length === 0 || currentStepFingerprint !== cachedFingerprint) && fcSteps.length > 0) {
+    // 步骤指纹变化（含首次访问）时触发自动匹配；
+    // 注意：不能仅因 worksheet 为空就重复触发，否则匹配结果为空时会无限循环
+    if (currentStepFingerprint !== cachedFingerprint && fcSteps.length > 0) {
       // 如果数据已存在但步骤变更，先清空旧数据
       if (ws.length > 0 && currentStepFingerprint !== cachedFingerprint) {
         data.hazardWorksheet = [];
@@ -3707,7 +4648,15 @@ const Questionnaire15min = (() => {
       }, 100);
     }
 
-    var html = '<h3>' + I18n.t('q.hwIdentify') + '</h3><p class="q15-table-hint">' + I18n.t('q.hwIdentifyHint') + '</p>';
+    var html = renderStepManagerBlock(data) + '<h3>' + I18n.t('q.hwIdentify') + '</h3><p class="q15-table-hint">' + I18n.t('q.hwIdentifyHint') + '</p>';
+
+    // AI 不可用回退到示例数据时的提示 + 重试
+    if (data._hazardFromAI === 'mock') {
+      html += '<div style="margin-bottom:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+        '<span style="flex:1;">' + I18n.t('q.hwAiFallback') + '</span>' +
+        '<button class="btn btn-xs btn-secondary" id="aiHazardRetryBtn" style="color:#92400e;border-color:#fde68a;">' + I18n.t('q.hwAiRetry') + '</button>' +
+      '</div>';
+    }
 
     // 自动匹配中或匹配结果显示
     if (autoTriggered) {
@@ -3724,6 +4673,9 @@ const Questionnaire15min = (() => {
       });
       html += '<div class="q15-ai-summary" style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;">';
       html += '' + I18n.t('q.hwMatchedSteps').replace('{0}', matchedCount).replace('{1}', ws.length) + '';
+      if (data._hazardFromAI === 'keyword') html += I18n.t('q.hwKeywordMatched');
+      else if (data._hazardFromAI === 'cache') html += I18n.t('q.hwAiCached');
+      else if (data._hazardFromAI === true) html += I18n.t('q.hwAiMatched');
       html += '</div>';
 
       // 未匹配步骤提示
@@ -3743,7 +4695,7 @@ const Questionnaire15min = (() => {
         var catFull = { biological: I18n.t('q.ccpHazardBio'), chemical: I18n.t('q.ccpHazardChem'), physical: I18n.t('q.ccpHazardPhys') };
 
         html += '<div class="q15-step-hazard-card" style="margin-bottom:12px;padding:12px 16px;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius-sm);">';
-        html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px;">' + esc(step.stepName) + '</div>';
+        html += '<div style="font-weight:600;font-size:14px;margin-bottom:8px;">' + esc(I18n.b(step.stepName || '')) + '</div>';
         
         step.hazards.forEach(function(h, hi) {
           var catLabel = catLabels[h.category] || '';
@@ -3753,7 +4705,7 @@ const Questionnaire15min = (() => {
             '<input type="checkbox" class="hw-hazard-checkbox" data-ws-si="' + si + '" data-ws-hi="' + hi + '" checked style="margin-top:3px;">' +
             '<span style="display:inline-block;padding:0 6px;border-radius:3px;font-size:11px;font-weight:700;color:#fff;background:' + catColor + ';flex-shrink:0;">' + catLabel + '</span>' +
             '<div style="flex:1;font-size:13px;">' +
-              '<div>' + esc(h.hazardDesc) + '</div>' +
+              '<div>' + esc(I18n.b(h.hazardDesc || '')) + '</div>' +
               '<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">' + catFullName + (h.isSignificant ? ' | <span style="color:#dc2626;">' + I18n.t('q.hwSignificant') + '</span>' : ' | <span style="color:var(--gray-400);">' + I18n.t('q.hwNonSignificant') + '</span>') + '</div>' +
             '</div>' +
           '</label>';
@@ -3793,8 +4745,8 @@ const Questionnaire15min = (() => {
         var catLabel = h.category === 'biological' ? I18n.t('q.ccpHazardBio') : (h.category === 'chemical' ? I18n.t('q.ccpHazardChem') : I18n.t('q.ccpHazardPhys'));
         var catColor = h.category === 'biological' ? '#dc2626' : (h.category === 'chemical' ? '#d97706' : '#6b7280');
         html += '<tr>' +
-          (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;"><strong>' + esc(step.stepName) + '</strong></td>' : '') +
-          '<td>' + esc(h.hazardDesc) + '</td>' +
+          (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;"><strong>' + esc(I18n.b(step.stepName || '')) + '</strong></td>' : '') +
+          '<td>' + esc(I18n.b(h.hazardDesc || '')) + '</td>' +
           '<td style="color:' + catColor + ';">' + catLabel + '</td>' +
           '<td><select class="hw-select" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="severity">' +
             '<option value="高"' + (h.severity === '高' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityHigh') + '</option>' +
@@ -3807,7 +4759,7 @@ const Questionnaire15min = (() => {
             '<option value="低"' + (h.likelihood === '低' ? ' selected' : '') + '>' + I18n.t('q.hwSeverityLow') + '</option>' +
           '</select></td>' +
           '<td id="ws-risk-si' + si + '-hi' + hi + '" style="font-weight:500;">' + calcRiskLevel(h.severity || '中', h.likelihood || '中') + '</td>' +
-          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="basis" rows="2" placeholder="' + I18n.t('q.hwBasisPh') + '">' + esc(h.basis || '') + '</textarea></td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="basis" rows="2" placeholder="' + I18n.t('q.hwBasisPh') + '">' + esc(I18n.b(h.basis || '')) + '</textarea></td>' +
           '<td style="text-align:center;"><input type="checkbox" class="hw-significant" data-ws-si="' + si + '" data-ws-hi="' + hi + '"' + (h.isSignificant ? ' checked' : '') + '></td>' +
         '</tr>';
       });
@@ -3848,10 +4800,10 @@ const Questionnaire15min = (() => {
       step.hazards.forEach(function(h, hi) {
         if (!h.isSignificant) return;
         html += '<tr>' +
-          '<td><strong>' + esc(step.stepName) + '</strong></td>' +
-          '<td>' + esc(h.hazardDesc) + '</td>' +
-          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlMeasure" rows="2" placeholder="' + I18n.t('q.hwControlPh') + '">' + esc(h.controlMeasure || '') + '</textarea></td>' +
-          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlRelation" rows="2" placeholder="' + I18n.t('q.hwControlRelationPh') + '">' + esc(h.controlRelation || '') + '</textarea></td>' +
+          '<td><strong>' + esc(I18n.b(step.stepName || '')) + '</strong></td>' +
+          '<td>' + esc(I18n.b(h.hazardDesc || '')) + '</td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlMeasure" rows="2" placeholder="' + I18n.t('q.hwControlPh') + '">' + esc(I18n.b(h.controlMeasure || '')) + '</textarea></td>' +
+          '<td><textarea class="hw-textarea" data-ws-si="' + si + '" data-ws-hi="' + hi + '" data-ws-field="controlRelation" rows="2" placeholder="' + I18n.t('q.hwControlRelationPh') + '">' + esc(I18n.b(h.controlRelation || '')) + '</textarea></td>' +
         '</tr>';
       });
     });
@@ -3869,6 +4821,9 @@ const Questionnaire15min = (() => {
     if (data.hazardWorksheet.length === 0 && (data.hazardBio.length > 0 || data.hazardChem.length > 0 || data.hazardPhys.length > 0)) {
       convertHazardsToWorksheet(data);
     }
+
+    // 英文模式下翻译预存的危害数据（AI批量翻译为双语格式）
+    maybeTranslateHazardsForLang(data);
 
     var subNav = renderHazardSubNav(data);
     var stepContent = '';
@@ -4010,7 +4965,11 @@ const Questionnaire15min = (() => {
       var hi = parseInt(ta.dataset.wsHi);
       var field = ta.dataset.wsField;
       if (!isNaN(si) && !isNaN(hi) && data.hazardWorksheet[si] && data.hazardWorksheet[si].hazards[hi]) {
-        data.hazardWorksheet[si].hazards[hi][field] = ta.value;
+        var rawVal = data.hazardWorksheet[si].hazards[hi][field];
+        // 双语原文未修改时保留原文（避免导航后丢失另一种语言）
+        if (!(ta.value === I18n.b(rawVal || '') && rawVal && rawVal.indexOf('|||') !== -1)) {
+          data.hazardWorksheet[si].hazards[hi][field] = ta.value;
+        }
       }
     });
     content.querySelectorAll('.hw-significant').forEach(function(cb) {
@@ -4119,19 +5078,19 @@ const Questionnaire15min = (() => {
 
     ws.forEach(function(step, si) {
       if (!step.hazards || step.hazards.length === 0) {
-        html += '<tr><td>' + esc(step.stepName) + '</td><td colspan="6" style="color:var(--gray-400);text-align:center;">' + I18n.t('q.hwNoData') + '</td></tr>';
+        html += '<tr><td>' + esc(I18n.b(step.stepName || '')) + '</td><td colspan="6" style="color:var(--gray-400);text-align:center;">' + I18n.t('q.hwNoData') + '</td></tr>';
         return;
       }
       step.hazards.forEach(function(h, hi) {
         var catLabel = h.category === 'biological' ? I18n.t('q.ccpHazardBio') : (h.category === 'chemical' ? I18n.t('q.ccpHazardChem') : I18n.t('q.ccpHazardPhys'));
         html += '<tr>' +
-          (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;font-weight:500;">' + esc(step.stepName) + '</td>' : '') +
-          '<td>' + esc(h.hazardDesc) + '</td>' +
+          (hi === 0 ? '<td rowspan="' + step.hazards.length + '" style="text-align:center;vertical-align:middle;font-weight:500;">' + esc(I18n.b(step.stepName || '')) + '</td>' : '') +
+          '<td>' + esc(I18n.b(h.hazardDesc || '')) + '</td>' +
           '<td>' + catLabel + '</td>' +
           '<td>' + (h.isSignificant ? '<span style="color:#dc2626;font-weight:500;">' + I18n.t('common.yes') + '</span>' : '<span style="color:var(--gray-400);">' + I18n.t('common.no') + '</span>') + '</td>' +
-          '<td>' + esc(h.basis || '—') + '</td>' +
-          '<td>' + esc(h.controlMeasure || '—') + '</td>' +
-          '<td>' + esc(h.controlRelation || '—') + '</td>' +
+          '<td>' + esc(I18n.b(h.basis || '')) + '</td>' +
+          '<td>' + esc(I18n.b(h.controlMeasure || '')) + '</td>' +
+          '<td>' + esc(I18n.b(h.controlRelation || '')) + '</td>' +
         '</tr>';
       });
     });
@@ -4201,6 +5160,7 @@ const Questionnaire15min = (() => {
         '</div>' +
         '<div style="display:flex;gap:10px;">' +
           '<button class="btn btn-secondary" id="haccpSaveDraftBtn" style="flex:1;padding:10px 16px;font-size:14px;">' + I18n.t('q.btnSaveDraft') + '</button>' +
+          '<button class="btn btn-secondary" id="haccpSkipBtn" style="flex:1;padding:10px 16px;font-size:14px;color:#b45309;border-color:#fde68a;background:#fffbeb;">' + I18n.t('q.btnSkipHACCP') + '</button>' +
           '<button class="btn btn-primary" id="haccpConfirmBtn" style="flex:1;padding:10px 16px;font-size:14px;' + (getReviewedCount() < HACCP_CHECK_ITEMS.length ? 'opacity:.5;cursor:not-allowed;' : '') + '">' + I18n.t('q.btnConfirmHACCP') + '</button>' +
         '</div>' +
       '</div>' +
@@ -4333,6 +5293,37 @@ const Questionnaire15min = (() => {
       if (dateEl) data._haccpSignDate = dateEl.value;
       saveData(data);
       overlay.remove();
+    });
+
+    // 跳过确认按钮：免逐项预览，直接生成计划
+    document.getElementById('haccpSkipBtn')?.addEventListener('click', function() {
+      if (!confirm(I18n.t('q.alertSkipCheck'))) return;
+      var nameEl = document.getElementById('haccpSignerName');
+      var dateEl = document.getElementById('haccpSignerDate');
+      if (nameEl && nameEl.value.trim()) data._haccpSignerName = nameEl.value.trim();
+      if (dateEl && dateEl.value) data._haccpSignDate = dateEl.value;
+      // 标记全部检查项为已预览（跳过逐项确认）
+      HACCP_CHECK_ITEMS.forEach(function(item) { _haccpReviewMap[item.key] = true; });
+      try { localStorage.setItem('haccp_review_status', JSON.stringify(_haccpReviewMap)); } catch(e) { console.warn('Failed to write localStorage haccp_review_status:', e); }
+      data._haccpConfirmed = true;
+      data._haccpConfirmDate = new Date().toISOString();
+      data._haccpSkipped = true;
+      saveData(data);
+
+      // 保存到后端
+      savePlanToBackend(data).then(function(savedPlan) {
+        if (savedPlan) {
+          console.log('Plan saved to backend, id:', savedPlan.id);
+        }
+        // localStorage 仍然保存作为离线兜底
+        localStorage.setItem('haccp_submitted', 'true');
+        localStorage.setItem(SECTION_COMPLETED_KEY, 'true');
+        try { localStorage.removeItem('haccp_review_status'); } catch(e) { console.warn('Failed to remove localStorage haccp_review_status:', e); }
+      });
+
+      overlay.remove();
+      alert(I18n.t('q.alertHACCPGenerated') + '\n\n' + I18n.t('q.alertSkipDone'));
+      App.navigateTo('results');
     });
 
     // 确认HACCP生成按钮

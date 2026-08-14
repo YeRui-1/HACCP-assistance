@@ -1,6 +1,6 @@
 // 应用入口：页面路由、密码验证、语言切换、用户认证
 const App = (() => {
-  const ADMIN_PASSWORD = 'admin123';
+  const ADMIN_PASSWORD = 'admin123'; // 离线兜底密码（在线时以 backend/.env 的 ADMIN_PASSWORD 为准）
   let isAdmin = false;
   let currentUser = null;
 
@@ -30,6 +30,12 @@ const App = (() => {
     getEl('htmlRoot').setAttribute('lang', I18n.getLang() === 'en' ? 'en' : 'zh-CN');
     const btnLang = getEl('btnLang');
     if (btnLang) btnLang.textContent = I18n.getLang() === 'zh' ? 'EN' : '中文';
+    // 管理员按钮：根据状态显示"管理/退出管理"（避免被翻译覆盖）
+    const btnAdmin = getEl('btnAdmin');
+    if (btnAdmin) {
+      btnAdmin.textContent = isAdmin ? I18n.t('nav.exitAdmin') : I18n.t('nav.admin');
+      btnAdmin.classList.toggle('is-admin', isAdmin);
+    }
   }
 
   function toggleLang() {
@@ -111,20 +117,42 @@ const App = (() => {
     getEl('passwordModal').classList.remove('show');
   }
 
-  function confirmPassword() {
+  async function confirmPassword() {
     const input = getEl('passwordInput');
     const error = getEl('passwordError');
-    if (input.value === ADMIN_PASSWORD) {
-      isAdmin = true;
-      hidePasswordModal();
-      getEl('btnAdmin').textContent = I18n.t('nav.exitAdmin');
-      getEl('btnAdmin').classList.add('is-admin');
-      navigateTo('admin');
-    } else {
-      error.style.display = 'block';
-      input.value = '';
-      input.focus();
+    const pwd = input.value;
+    if (!pwd) { error.style.display = 'block'; input.value = ''; input.focus(); return; }
+
+    // 管理员密码由后端校验（backend/.env 中 ADMIN_PASSWORD）
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd }),
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        isAdmin = true;
+        hidePasswordModal();
+        getEl('btnAdmin').textContent = I18n.t('nav.exitAdmin');
+        getEl('btnAdmin').classList.add('is-admin');
+        navigateTo('admin');
+        return;
+      }
+    } catch (e) {
+      // 后端未启动：离线兜底使用内置密码（仅本地开发用）
+      if (pwd === ADMIN_PASSWORD) {
+        isAdmin = true;
+        hidePasswordModal();
+        getEl('btnAdmin').textContent = I18n.t('nav.exitAdmin');
+        getEl('btnAdmin').classList.add('is-admin');
+        navigateTo('admin');
+        return;
+      }
     }
+    error.style.display = 'block';
+    input.value = '';
+    input.focus();
   }
 
   function exitAdmin() {

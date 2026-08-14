@@ -206,7 +206,7 @@ const I18n = (() => {
 
     // ===== 流程图查看器 =====
     'fc.title':               ['菊粉生产工艺流程图', 'Inulin Production Process Flowchart'],
-    'fc.subtitle':            ['展示从菊芋验收到成品储存的完整生产工艺流程，包含关键控制点(CCP)与操作性前提方案(OPRP)', 'Complete production process from Jerusalem artichoke receiving to final product storage, including CCPs and OPRPs'],
+    'fc.subtitle':            ['展示从菊芋验收到成品储存的完整生产工艺流程，包含关键控制点(CCP)与操作性前提方案(OPRP)', 'Complete production process from chicory root receiving to final product storage, including CCPs and OPRPs'],
     'fc.hint':                ['🖱️ 滚轮缩放 · 拖拽平移', '🖱️ Scroll to zoom · Drag to pan'],
     'fc.loading':             ['正在加载 Mermaid 渲染引擎...', 'Loading Mermaid render engine...'],
     'fc.errorTitle':          ['加载失败', 'Load Failed'],
@@ -778,6 +778,7 @@ const I18n = (() => {
     'q.verNeedSigner':       ['请输入组长姓名', 'Please enter team leader name'],
     'q.verNeedDate':         ['请选择签署日期', 'Please select sign date'],
     'q.aiAnalyzing':         ['AI分析中...', 'AI analyzing...'],
+    'q.aiWaitHint':          ['⏳ AI 分析中，通常需要 10~30 秒，请稍候...', '⏳ AI analyzing, usually 10-30 seconds, please wait...'],
     'q.addExtra2':           ['+ 添加项目', '+ Add Item'],
 
     'q.verMgmtReviewTitle':  ['📊 管理评审', '📊 Management Review'],
@@ -824,6 +825,8 @@ const I18n = (() => {
     'q.alertSubmitMsg':      ['您的HACCP问卷信息已保存，可前往「查看结果」页面查看。', 'Your HACCP questionnaire has been saved. Go to Results to view.'],
     'q.alertOverwriteCCP':   ['步骤数量已变化，将重新初始化CCP判定数据。已有的判定结果将丢失。', 'Step count changed. CCP judgment data will be re-initialized. Existing results will be lost.'],
     'q.alertSkipCheck':      ['确定要跳过逐项预览，直接生成计划书吗？', 'Skip item-by-item preview and generate the plan directly?'],
+    'q.btnSkipHACCP':        ['⏭️ 跳过确认', '⏭️ Skip Confirmation'],
+    'q.alertSkipDone':       ['已跳过逐项确认，HACCP计划书已生成。', 'Item-by-item confirmation skipped. The HACCP plan has been generated.'],
 
     // ===== 记录管理页面 =====
     'rec.pageTitle':          ['HACCP记录管理', 'HACCP Records Management'],
@@ -1248,6 +1251,11 @@ const I18n = (() => {
     'q.clBasis': ["依据标准", "Standard Basis"],
     'q.clParam': ["参数", "Parameter"],
     'q.clSelectStd': ["选择执行标准", "Select Standard"],
+    'q.clSuggestion': ["⚠️ 关键限值为 AI 建议，需由 HACCP 小组依据标准原文和实际工艺确认；无合适依据时可留空或填写「待定」。", "⚠️ Critical limits are AI suggestions and must be confirmed by the HACCP team against the standard texts and actual process; leave blank or enter \"TBD\" if no suitable basis exists."],
+    'q.clSuggestionBadge': ["💡 AI建议·待确认", "💡 AI Suggestion · Pending"],
+    'q.clStdRef':     ["📚 标准参考", "📚 Standard References"],
+    'q.clStdRefHint': ["根据当前CCP与产品自动匹配相关国家标准，AI 生成关键限值时将以此为依据", "Relevant national standards matched to your CCPs and product. AI uses these as the basis for critical limits."],
+    'q.clStdRefEmpty': ["暂无匹配的标准（或后端未启动）", "No matching standards (or backend not running)"],
     'q.clSummary': ["关键限值汇总说明", "Critical Limits Summary"],
     'q.clTitle': ["关键限值设定", "Critical Limits Setting"],
     'q.clUnit': ["单位", "Unit"],
@@ -1546,6 +1554,7 @@ const I18n = (() => {
     'q.sumColQ3':             ['可消除危害', 'Hazard Eliminated?'],
     'q.sumColQ4':             ['污染升高', 'Contamination Increase?'],
     'q.sumColQ5':             ['后续消除', 'Subsequent Elimination?'],
+    'q.sumColResult':         ['判定结果', 'Result'],
     'q.hwPrintExport':        ['🖨️ 打印/导出', '🖨️ Print/Export'],
     'q.haccpConfirmTitle':    ['HACCP 确认', 'HACCP Confirmation'],
     'q.haccpConfirmSub':      ['请逐项预览确认', 'Please preview and confirm each item'],
@@ -1579,6 +1588,23 @@ const I18n = (() => {
     'r15.exportMermaidTitle': ['15min 问卷生产流程', '15min Questionnaire Production Process'],
     'nav.langTitle':          ['切换语言', 'Switch Language'],
     'nav.verificationTitle':  ['验证程序', 'Verification'],
+    'q.demoSave':             ['💾 保存为演示数据', '💾 Save as Demo Data'],
+    'q.demoLoad':             ['📥 载入演示数据', '📥 Load Demo Data'],
+    'q.demoConfirm':          ['载入演示数据将覆盖当前填写内容，确定继续？', 'Loading demo data will overwrite your current input. Continue?'],
+    'q.demoSaved':            ['✅ 已保存到后端', '✅ Saved to backend'],
+    'q.demoLoaded':           ['✅ 已载入演示数据', '✅ Demo data loaded'],
+    'q.demoFailed':           ['操作失败：', 'Operation failed: '],
+    'q.demoSavedLocal':       ['⚠ 后端不可用，已保存到本地备份', '⚠ Backend unavailable. Saved to local backup.'],
+    'q.demoEmpty':            ['暂无填写内容可保存', 'No filled content to save'],
+    'q15.productInfo':        ['📋 产品信息（用于危害分析）', '📋 Product Info (used for hazard analysis)'],
+    'q.hwStepsTitle':         ['⚙️ 工艺流程步骤确认', '⚙️ Confirm Process Flow Steps'],
+    'q.hwStepsHint':          ['先确认工艺流程步骤（可从档案/流程图自动带入），确认后系统将按步骤自动识别危害', 'Confirm the process flow steps first (auto-loaded from profile/flowchart). Hazards will be identified per step afterwards.'],
+    'q.hwAiFallback':         ['⚠️ AI 分析不可用，当前显示内置示例数据。', '⚠️ AI analysis unavailable. Showing built-in sample data.'],
+    'q.hwAiRetry':            ['🔄 重试AI分析', '🔄 Retry AI Analysis'],
+    'q.hwAiCached':           ['（AI结果缓存）', ' (cached AI results)'],
+    'q.hwKeywordMatched':     ['（关键词匹配）', ' (keyword matched)'],
+    'q.hwAiMatched':          ['（AI匹配）', ' (AI matched)'],
+    'q.monitorDedup':         ['🧹 清除重复行', '🧹 Remove Duplicates'],
   };
 
   let currentLang = 'zh';
@@ -1608,6 +1634,9 @@ const I18n = (() => {
   // 中英双语字符串解析：从 "中文|||English" 中按当前语言提取
   function b(str) {
     if (!str) return '';
+    if (typeof str !== 'string') return str;
+    // 历史名称统一修正（兼容旧数据残留）
+    if (str.indexOf('Jerusalem') !== -1) str = str.replace(/Jerusalem artichoke/gi, 'chicory root');
     if (str.indexOf('|||') === -1) return str;
     var parts = str.split('|||');
     return currentLang === 'en' ? (parts[1] || parts[0]) : parts[0];
@@ -1616,6 +1645,9 @@ const I18n = (() => {
   // 全局处理：替换字符串中所有 "中文|||English" 模式为当前语言版本
   function processBilingual(str) {
     if (!str) return '';
+    if (typeof str !== 'string') return str;
+    // 历史名称统一修正（兼容旧数据残留）
+    if (str.indexOf('Jerusalem') !== -1) str = str.replace(/Jerusalem artichoke/gi, 'chicory root');
     if (str.indexOf('|||') === -1) return str;
     var langIndex = currentLang === 'en' ? 1 : 0;
     // Split by ||| and rebuild: segments alternate [zh, en, zh, en, ...]

@@ -1,0 +1,207 @@
+[
+  {
+    "id": "gb14881-2013",
+    "number": "GB 14881-2013",
+    "name": "食品安全国家标准 食品生产通用卫生规范|||National Food Safety Standard - General Hygienic Practice for Food Production",
+    "category": "通用卫生规范|||General Hygiene",
+    "scope": "适用于食品生产企业的选址、厂房与设施、设备、人员卫生、清洁消毒、虫害控制等|||Applicable to site selection, plant and facilities, equipment, personnel hygiene, cleaning and disinfection, and pest control of food production enterprises",
+    "keyLimits": [],
+    "applyKeywords": ["生产", "卫生", "清洗", "消毒", "设施", "washing", "cleaning", "hygiene"]
+  },
+  {
+    "id": "gb2760-2024",
+    "number": "GB 2760-2024",
+    "name": "食品安全国家标准 食品添加剂使用标准|||National Food Safety Standard - Standard for Uses of Food Additives",
+    "category": "添加剂|||Additives",
+    "scope": "规定食品添加剂的允许使用品种、使用范围及最大使用量|||Specifies permitted food additives, applicable food categories and maximum usage levels",
+    "keyLimits": [],
+    "applyKeywords": ["添加剂", "配料", "additive", "ingredient"]
+  },
+  {
+    "id": "gb2761-2017",
+    "number": "GB 2761-2017",
+    "name": "食品安全国家标准 食品中真菌毒素限量|||National Food Safety Standard - Maximum Levels of Mycotoxins in Foods",
+    "category": "污染物限量|||Contaminants",
+    "scope": "规定食品中黄曲霉毒素、脱氧雪腐镰刀菌烯醇等真菌毒素限量|||Sets maximum levels of mycotoxins such as aflatoxins and deoxynivalenol in foods",
+    "keyLimits": [
+      "黄曲霉毒素B1（谷物及其制品）：≤20 μg/kg|||Aflatoxin B1 (cereal products): ≤20 μg/kg"
+    ],
+    "applyKeywords": ["霉菌", "真菌", "储存", "mold", "storage", "grain"]
+  },
+  {
+    "id": "gb2762-2022",
+    "number": "GB 2762-2022",
+    "name": "食品安全国家标准 食品中污染物限量|||National Food Safety Standard - Maximum Levels of Contaminants in Foods",
+    "category": "污染物限量|||Contaminants",
+    "scope": "规定食品中铅、镉、总汞、总砷、锡等污染物的限量|||Sets maximum levels of contaminants including lead, cadmium, total mercury, total arsenic and tin in foods",
+    "keyLimits": [
+      "铅（固体饮料）：≤1.0 mg/kg|||Lead (solid beverages): ≤1.0 mg/kg",
+      "铅（茶叶）：≤5.0 mg/kg|||Lead (tea): ≤5.0 mg/kg",
+      "镉（谷物及其制品）：≤0.1 mg/kg|||Cadmium (cereal products): ≤0.1 mg/kg"
+    ],
+    "applyKeywords": ["重金属", "铅", "砷", "金属", "原料", "heavy metal", "lead", "raw material", "receiving"]
+  },
+  {
+    "id": "gb2763-2021",
+    "number": "GB 2763-2021",
+    "name": "食品安全国家标准 食品中农药最大残留限量|||National Food Safety Standard - Maximum Residue Limits for Pesticides in Food",
+    "category": "农药残留|||Pesticide Residues",
+    "scope": "规定食品中各类农药的最大残留限量|||Sets maximum residue limits (MRLs) for pesticides in foods",
+    "keyLimits": [],
+    "applyKeywords": ["农药", "残留", "原料验收", "pesticide", "residue", "receiving"]
+  },
+  {
+    "id": "gb29921-2021",
+    "number": "GB 29921-2021",
+    "name": "食品安全国家标准 预包装食品中致病菌限量|||National Food Safety Standard - Limits of Pathogenic Bacteria in Prepackaged Foods",
+    "category": "微生物限量|||Microbiological Limits",
+    "scope": "规定预包装食品中沙门氏菌、金黄色葡萄球菌、单核细胞增生李斯特氏菌等致病菌限量|||Sets limits of pathogens such as Salmonella, Staphylococcus aureus and Listeria monocytogenes in prepackaged foods",
+    "keyLimits": [
+      "沙门氏菌：n=5,c=0,0/25g|||Salmonella: n=5,c=0,0/25g",
+      "金黄色葡萄球菌：n=5,c=1,m=10,M=100 CFU/g|||Staphylococcus aureus: n=5,c=1,m=10,M=100 CFU/g",
+      "单核细胞增生李斯特氏菌（即食食品）：n=5,c=0,0/25g|||Listeria monocytogenes (ready-to-eat): n=5,c=0,0/25g"
+    ],
+    "applyKeywords": ["致病菌", "微生物", "杀菌", "灭菌", "pathogen", "microbial", "sterilization"]
+  },
+  {
+    "id": "gb7101-2022",
+    "number": "GB 7101-2022",
+    "name": "食品安全国家标准 饮料|||National Food Safety Standard - Beverages",
+    "category": "产品标准|||Product Standard",
+    "scope": "规定饮料（含固体饮料）的感官、理化及微生物限量要求|||Specifies sensory, physicochemical and microbiological requirements for beverages (including solid beverages)",
+    "keyLimits": [
+      "菌落总数（固体饮料）：n=5,c=2,m=1000,M=10000 CFU/g|||Aerobic plate count (solid beverages): n=5,c=2,m=1000,M=10000 CFU/g",
+      "大肠菌群（固体饮料）：n=5,c=2,m=10,M=100 CFU/g|||Coliforms (solid beverages): n=5,c=2,m=10,M=100 CFU/g",
+      "霉菌和酵母（固体饮料）：n=5,c=2,m=50,M=100 CFU/g|||Mold and yeast (solid beverages): n=5,c=2,m=50,M=100 CFU/g",
+      "沙门氏菌（固体饮料）：n=5,c=0,0/25g|||Salmonella (solid beverages): n=5,c=0,0/25g",
+      "金黄色葡萄球菌（固体饮料）：n=5,c=1,m=10,M=100 CFU/g|||Staphylococcus aureus (solid beverages): n=5,c=1,m=10,M=100 CFU/g"
+    ],
+    "applyKeywords": ["饮料", "固体饮料", "灌装", "包装", "beverage", "solid beverage", "packaging", "drying"]
+  },
+  {
+    "id": "gbt29602-2013",
+    "number": "GB/T 29602-2013",
+    "name": "固体饮料|||Solid Beverage",
+    "category": "产品标准|||Product Standard",
+    "scope": "规定固体饮料的分类、术语和定义、技术要求|||Specifies classification, terms and definitions, and technical requirements for solid beverages",
+    "keyLimits": [],
+    "applyKeywords": ["固体饮料", "饮料", "solid beverage", "beverage"]
+  },
+  {
+    "id": "gb5749-2022",
+    "number": "GB 5749-2022",
+    "name": "生活饮用水卫生标准|||Standards for Drinking Water Quality",
+    "category": "原辅料|||Raw Materials",
+    "scope": "规定生活饮用水（生产用水）的水质卫生要求|||Sets hygiene requirements for drinking water quality (process water)",
+    "keyLimits": [
+      "色度≤15度；浑浊度≤1NTU|||Color ≤15 degrees; turbidity ≤1 NTU",
+      "pH 6.5~8.5|||pH 6.5~8.5",
+      "菌落总数≤100 CFU/mL；总大肠菌群不得检出|||Total plate count ≤100 CFU/mL; total coliforms not detected"
+    ],
+    "applyKeywords": ["水", "生产用水", "纯净水", "water", "purified water"]
+  },
+  {
+    "id": "gb4789.2-2022",
+    "number": "GB 4789.2-2022",
+    "name": "食品安全国家标准 食品微生物学检验 菌落总数测定|||Microbiological Examination of Food Hygiene - Determination of Aerobic Plate Count",
+    "category": "检验方法|||Test Methods",
+    "scope": "规定食品中菌落总数的测定方法|||Specifies the determination method for aerobic plate count in foods",
+    "keyLimits": [],
+    "applyKeywords": ["菌落", "微生物检验", "plate count", "microbial test"]
+  },
+  {
+    "id": "gb4789.3-2016",
+    "number": "GB 4789.3-2016",
+    "name": "食品安全国家标准 食品微生物学检验 大肠菌群计数|||Microbiological Examination of Food Hygiene - Enumeration of Coliforms",
+    "category": "检验方法|||Test Methods",
+    "scope": "规定食品中大肠菌群的计数方法|||Specifies the enumeration method for coliforms in foods",
+    "keyLimits": [],
+    "applyKeywords": ["大肠菌群", "coliform"]
+  },
+  {
+    "id": "gb4789.4-2024",
+    "number": "GB 4789.4-2024",
+    "name": "食品安全国家标准 食品微生物学检验 沙门氏菌检验|||Microbiological Examination of Food Hygiene - Examination of Salmonella",
+    "category": "检验方法|||Test Methods",
+    "scope": "规定食品中沙门氏菌的检验方法|||Specifies the examination method for Salmonella in foods",
+    "keyLimits": [],
+    "applyKeywords": ["沙门氏菌", "salmonella"]
+  },
+  {
+    "id": "gb4789.10-2016",
+    "number": "GB 4789.10-2016",
+    "name": "食品安全国家标准 食品微生物学检验 金黄色葡萄球菌检验|||Microbiological Examination of Food Hygiene - Examination of Staphylococcus aureus",
+    "category": "检验方法|||Test Methods",
+    "scope": "规定食品中金黄色葡萄球菌的检验方法|||Specifies the examination method for Staphylococcus aureus in foods",
+    "keyLimits": [],
+    "applyKeywords": ["金黄色葡萄球菌", "staphylococcus"]
+  },
+  {
+    "id": "gb4789.15-2016",
+    "number": "GB 4789.15-2016",
+    "name": "食品安全国家标准 食品微生物学检验 霉菌和酵母计数|||Microbiological Examination of Food Hygiene - Enumeration of Molds and Yeasts",
+    "category": "检验方法|||Test Methods",
+    "scope": "规定食品中霉菌和酵母的计数方法|||Specifies the enumeration method for molds and yeasts in foods",
+    "keyLimits": [],
+    "applyKeywords": ["霉菌", "酵母", "mold", "yeast"]
+  },
+  {
+    "id": "gb5009.3-2016",
+    "number": "GB 5009.3-2016",
+    "name": "食品安全国家标准 食品中水分的测定|||National Food Safety Standard - Determination of Moisture in Foods",
+    "category": "检验方法|||Test Methods",
+    "scope": "规定食品中水分含量的测定方法|||Specifies the determination method of moisture content in foods",
+    "keyLimits": [],
+    "applyKeywords": ["水分", "干燥", "moisture", "drying"]
+  },
+  {
+    "id": "gb7718-2011",
+    "number": "GB 7718-2011",
+    "name": "食品安全国家标准 预包装食品标签通则|||National Food Safety Standard - General Rules for the Labeling of Prepackaged Foods",
+    "category": "标签|||Labelling",
+    "scope": "规定预包装食品标签的基本要求、标示内容|||Specifies basic requirements and labeling content of prepackaged foods",
+    "keyLimits": [],
+    "applyKeywords": ["标签", "包装", "label", "packaging"]
+  },
+  {
+    "id": "gb28050-2011",
+    "number": "GB 28050-2011",
+    "name": "食品安全国家标准 预包装食品营养标签通则|||National Food Safety Standard - General Rules for Nutrition Labeling of Prepackaged Foods",
+    "category": "标签|||Labelling",
+    "scope": "规定预包装食品营养标签的标示内容与格式|||Specifies the content and format of nutrition labeling for prepackaged foods",
+    "keyLimits": [],
+    "applyKeywords": ["营养", "标签", "nutrition", "label"]
+  },
+  {
+    "id": "gb31640-2016",
+    "number": "GB 31640-2016",
+    "name": "食品安全国家标准 食用酒精|||National Food Safety Standard - Edible Alcohol",
+    "category": "原辅料|||Raw Materials",
+    "scope": "规定食用酒精的感官、理化及卫生要求|||Specifies sensory, physicochemical and hygiene requirements for edible alcohol",
+    "keyLimits": [],
+    "applyKeywords": ["乙醇", "酒精", "醇", "ethanol", "alcohol"]
+  },
+  {
+    "id": "gb30610-2014",
+    "number": "GB 30610-2014",
+    "name": "食品安全国家标准 食品添加剂 乙醇|||National Food Safety Standard - Food Additive Ethanol",
+    "category": "原辅料|||Raw Materials",
+    "scope": "规定食品添加剂乙醇的理化指标（醛、甲醇、氰化物、铅等）|||Specifies physicochemical indicators of food additive ethanol (aldehydes, methanol, cyanide, lead, etc.)",
+    "keyLimits": [
+      "醛（以乙醛计）≤30 mg/L|||Aldehydes (as acetaldehyde) ≤30 mg/L",
+      "甲醇≤150 mg/L|||Methanol ≤150 mg/L",
+      "氰化物（以HCN计）≤5 mg/L|||Cyanide (as HCN) ≤5 mg/L",
+      "铅（以Pb计）≤1.0 mg/kg|||Lead (as Pb) ≤1.0 mg/kg"
+    ],
+    "applyKeywords": ["乙醇", "酒精", "醇", "ethanol", "alcohol"]
+  },
+  {
+    "id": "gb1886.255-2016",
+    "number": "GB 1886.255-2016",
+    "name": "食品安全国家标准 食品添加剂 活性炭（植物来源）|||National Food Safety Standard - Food Additive Activated Carbon (Plant Origin)",
+    "category": "原辅料|||Raw Materials",
+    "scope": "规定食品添加剂活性炭的理化及卫生要求|||Specifies physicochemical and hygiene requirements for food additive activated carbon",
+    "keyLimits": [],
+    "applyKeywords": ["活性炭", "脱色", "activated carbon", "decolor"]
+  }
+]

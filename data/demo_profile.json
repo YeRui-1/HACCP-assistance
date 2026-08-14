@@ -1,0 +1,158 @@
+{
+  "companyName": "Gansu Lircon Biological Co., Ltd.",
+  "deptName": "Quality Assurance Department",
+  "haccpTeam": [
+    {
+      "id": "f_1785746256960_59nna",
+      "name": "David Chen",
+      "dept": "Hygiene & Quality Control",
+      "role": "Team leader",
+      "authority": "Approve CCP limits, verify records",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_rlfd3",
+      "name": "Sarah Miller",
+      "dept": "Product R&D",
+      "role": "Deputy Leader",
+      "authority": "Approve corrective actions, halt production",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_t56nu",
+      "name": "Emily Zhang",
+      "dept": "Hygiene & Quality Control",
+      "role": "Coordinator",
+      "authority": "Maintain documents, compile",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_ziqgp",
+      "name": "James Wilson",
+      "dept": "Equipment & Facility Management",
+      "role": "Member",
+      "authority": "Calibrate monitoring equipment, validation tests",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_1czzm",
+      "name": "Lisa Wang",
+      "dept": "Equipment & Facility Management",
+      "role": "Member",
+      "authority": "Calibrate monitoring equipment, validation tests",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_8js1o",
+      "name": "Robert Taylor",
+      "dept": "Transport",
+      "role": "Member",
+      "authority": "Approve suppliers, verify raw material specs",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_9jcqb",
+      "name": "Amanda Lee",
+      "dept": "Warehouse",
+      "role": "Member",
+      "authority": "Monitor storage conditions, control shipments",
+      "remark": ""
+    },
+    {
+      "id": "f_1785746256960_3qsqx",
+      "name": "Michael Brown",
+      "dept": "Equipment & Facility Management",
+      "role": "Member",
+      "authority": "Operate CCP monitoring, record CCP data",
+      "remark": ""
+    }
+  ],
+  "auditor": "Kevin Nakamura",
+  "extraItems": [],
+  "pd_rawProps": "Product: Food-grade Inulin. Category: Water-soluble dietary fibre food ingredient. Main component: Inulin polysaccharide. Appearance: White fine powder, soluble in water. Stable at normal storage temperature; low glycaemic index. Complies with national food safety standards.",
+  "pd_rawSupply": "Raw material: Fresh chicory root tuber; rich in inulin, carbohydrate, moisture. Packaging materials: Food-grade aluminium composite film and PE plastic bags. The packaging is non-toxic, moisture-proof, stable under normal temperature and avoids migration of harmful substances.",
+  "pd_rawUsage": "chicory root is purchased from qualified planting bases in Gansu Province. Food-grade packaging materials are sourced from certified food packaging manufacturers. Raw materials are transported in covered vehicles and stored in ventilated, dry warehouses. Packaging materials are kept away from moisture and contamination before use.",
+  "pd_productProps": "Raw material batches shall be inspected for pesticides, heavy metals and microbial indicators before acceptance. Random sampling inspection is adopted. Unqualified raw materials will be rejected. Packaging materials must provide qualification certificates; damaged packages are prohibited from production.",
+  "pd_productProcess": "Raw material cleaning and sorting → Crushing and homogenisation → Heating & pressurised extraction → Vacuum concentration → Multi-stage membrane filtration → Activated carbon decolourisation → Ion exchange desalination → Ethanol precipitation → Hot air drying → Finished product packaging.",
+  "pd_productStorage": "Finished products are sealed in food-grade aluminium foil packages. Store in cool, dry, dark environment (temperature ≤25℃). Avoid humidity and direct sunlight during transportation. Covered dry vehicles are used for delivery to prevent package breakage and moisture absorption.",
+  "pd_productSales": "Products are sold to food manufacturers and end consumers via domestic and international channels. Product labels include product name, ingredients, shelf life, storage conditions, manufacturer information and allergen statements, complying with food labelling regulations. ",
+  "productExtraItems": [],
+  "iu_consumerExpect": "Consumers expect the inulin powder to be pure, free of hazardous contaminants, stable in quality, with good water solubility and neutral flavour. The product should meet food safety standards and deliver expected prebiotic benefits for intestinal health.",
+  "iu_intendedUse": "Intended use: Food raw material and water-soluble dietary fibre supplement. Storage: Sealed, kept in cool, dry and dark environment (≤25°C), protected from moisture. Shelf life: 24 months in intact original packaging.",
+  "iu_consumptionMethod": "Industrial application: Added into dairy, baked goods and beverages. Direct consumption: Dissolve the powder in warm water for daily drinking.",
+  "iu_targetCustomer": "Food processing manufacturers; general adult consumers who pay attention to gastrointestinal health.",
+  "iu_vulnerableGroups": "Elderly people and pregnant women can take moderate doses. Infants require reduced intake. Individuals with chicory root allergy shall not consume this product.",
+  "iu_unintendedUse": "Excessive consumption resulting in flatulence and abdominal discomfort; use of damp & deteriorated products; overfeeding infants; improper application for non-food purposes. ",
+  "iuExtraItems": [],
+  "productName": "",
+  "rawMaterials": "",
+  "additives": "",
+  "productPH": "",
+  "waterActivity": "",
+  "intendedUse": "",
+  "storageCondition": "",
+  "packagingMethod": "",
+  "targetConsumer": "",
+  "shelfLife": "",
+  "formula": [
+    {
+      "id": "f_1784301621246_ls5ls",
+      "material": "",
+      "dosage": "",
+      "func": ""
+    }
+  ],
+  "processSteps": [],
+  "flowConfirmed": false,
+  "flowchartConfirmDate": "",
+  "flowchartXml": "",
+  "flowchartSvg": "data:image/svg+xml;base64,PHN2ZyBpZD0ibVN2ZyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIyMTkwIiB2aWV3Qm94PSIwIDAgMTYwMCAyMTkwIj48ZGVmcz48bWFya2VyIGlkPSJtMSIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj48cG9seWdvbiBwb2ludHM9IjAgMCwxMCAzLjUsMCA3IiBmaWxsPSIjMjIyIi8+PC9tYXJrZXI+PG1hcmtlciBpZD0ibTIiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+PHBvbHlnb24gcG9pbnRzPSIwIDAsMTAgMy41LDAgNyIgZmlsbD0iI2U1MzkzNSIvPjwvbWFya2VyPjxtYXJrZXIgaWQ9Im0zIiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI2IiByZWZYPSI3IiByZWZZPSIzIiBvcmllbnQ9ImF1dG8iPjxwb2x5Z29uIHBvaW50cz0iMCAwLDggMywwIDYiIGZpbGw9IiMwNTk2NjkiLz48L21hcmtlcj48L2RlZnM+PGxpbmUgeDE9IjQxMS41IiB5MT0iODAiIHgyPSI1MDEuNSIgeTI9IjgwIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtMSkiLz48dGV4dCB4PSIzOTYuNSIgeT0iODgiIGZpbGw9IiMzMzMiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0iZW5kIj5GZWVkPC90ZXh0PjxyZWN0IHg9IjUwMS41IiB5PSI1MCIgd2lkdGg9IjI5NyIgaGVpZ2h0PSI2MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9IjkwIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MS4gRnJlc2ggY2hpY29yeSByb290PC90ZXh0PjxyZWN0IHg9IjQzNSIgeT0iMTUwIiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjx0ZXh0IHg9IjY1MCIgeT0iMTgzIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Mi4gVWx0cmFzb25pYyBjbGVhbmluZyBhbmQgcGVlPC90ZXh0Pjx0ZXh0IHg9IjY1MCIgeT0iMjA3IiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bGluZzwvdGV4dD48cmVjdCB4PSI0ODIiIHk9IjI2MCIgd2lkdGg9IjMzNiIgaGVpZ2h0PSI2MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9IjMwMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjMuIENydXNoaW5nIFByZXRyZWF0bWVudDwvdGV4dD48cmVjdCB4PSI1MzAiIHk9IjM2MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI2MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9IjQwMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQuIEZpbmUgZ3JpbmRpbmc8L3RleHQ+PHJlY3QgeD0iNDg4LjUiIHk9IjQ2MCIgd2lkdGg9IjMyMyIgaGVpZ2h0PSI2MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9IjUwMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjUuIENsZWFyIGhvbW9nZW5pemF0aW9uPC90ZXh0PjxyZWN0IHg9IjQ4MiIgeT0iNTYwIiB3aWR0aD0iMzM2IiBoZWlnaHQ9IjYwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjx0ZXh0IHg9IjY1MCIgeT0iNjAwIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Ni4gVWx0cmFzb3VuZCBkaXNydXB0aW9uPC90ZXh0PjxyZWN0IHg9IjQ1NiIgeT0iNjYwIiB3aWR0aD0iMzg4IiBoZWlnaHQ9IjYwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjx0ZXh0IHg9IjY1MCIgeT0iNzAwIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Ny4gUHJlY2lwaXRhdGlvbiBzdXBlcm5hdGFudDwvdGV4dD48cmVjdCB4PSI0MzUiIHk9Ijc2MCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI3MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9Ijc5MyIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjguIEV4dHJhY3Rpb24gb2YgcmF3IGNoaWNvcnkgIDwvdGV4dD48dGV4dCB4PSI2NTAiIHk9IjgxNyIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJvb3Q8L3RleHQ+PHJlY3QgeD0iNDg4LjUiIHk9Ijg3MCIgd2lkdGg9IjMyMyIgaGVpZ2h0PSI2MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9IjkxMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjkuIFZhY3V1bSBjb25jZW50cmF0aW9uPC90ZXh0PjxyZWN0IHg9IjQ4OC41IiB5PSI5NzAiIHdpZHRoPSIzMjMiIGhlaWdodD0iNjAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZGMyNjI2IiBzdHJva2U9IiM5OTFiMWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjY1MCIgeT0iMTAxMCIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEwLiBNZW1icmFuZSBmaWx0cmF0aW9uPC90ZXh0PjxyZWN0IHg9IjUwOCIgeT0iMTA3MCIgd2lkdGg9IjI4NCIgaGVpZ2h0PSI2MCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmNWY1ZjUiIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48dGV4dCB4PSI2NTAiIHk9IjExMTAiIGZpbGw9IiMzMzMiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMS4gRmxvY2N1bG9yZWFjdGlvbjwvdGV4dD48cmVjdCB4PSI0NjkiIHk9IjExNzAiIHdpZHRoPSIzNjIiIGhlaWdodD0iNjAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZjVmNWY1IiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS41Ii8+PHRleHQgeD0iNjUwIiB5PSIxMjEwIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTIuIENlbnRyaWZ1Z2FsIHNlcGFyYXRpb248L3RleHQ+PHJlY3QgeD0iNDM2LjUiIHk9IjEyNzAiIHdpZHRoPSI0MjciIGhlaWdodD0iNzAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZjVmNWY1IiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS41Ii8+PHRleHQgeD0iNjUwIiB5PSIxMzAzIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTMuIEFjdGl2ZWQgY2FyYm9uIGRlY29sb3JhdGlvPC90ZXh0Pjx0ZXh0IHg9IjY1MCIgeT0iMTMyNyIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm48L3RleHQ+PHJlY3QgeD0iNDQzIiB5PSIxMzgwIiB3aWR0aD0iNDE0IiBoZWlnaHQ9IjYwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjx0ZXh0IHg9IjY1MCIgeT0iMTQyMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjE0LiBDZW50cmlmdWdhbCBjYXJib24gcmVtb3ZhbDwvdGV4dD48cmVjdCB4PSI0OTUiIHk9IjE0ODAiIHdpZHRoPSIzMTAiIGhlaWdodD0iNjAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZjVmNWY1IiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS41Ii8+PHRleHQgeD0iNjUwIiB5PSIxNTIwIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTUuIFJlc2luIGRlaW9uaXphdGlvbjwvdGV4dD48cmVjdCB4PSI0MzUiIHk9IjE1ODAiIHdpZHRoPSI0MzAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZGMyNjI2IiBzdHJva2U9IiM5OTFiMWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjY1MCIgeT0iMTYxMyIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjE2LiBTZWNvbmRhcnkgbWVtYnJhbmUgZmlsdHJhdDwvdGV4dD48dGV4dCB4PSI2NTAiIHk9IjE2MzciIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5pb248L3RleHQ+PHJlY3QgeD0iNDc1LjUiIHk9IjE2OTAiIHdpZHRoPSIzNDkiIGhlaWdodD0iNjAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZjVmNWY1IiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS41Ii8+PHRleHQgeD0iNjUwIiB5PSIxNzMwIiBmaWxsPSIjMzMzIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTcuIEFsY29ob2wgcHJlY2lwaXRhdGlvbjwvdGV4dD48cmVjdCB4PSI1MzAiIHk9IjE3OTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNjAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZGMyNjI2IiBzdHJva2U9IiM5OTFiMWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjY1MCIgeT0iMTgzMCIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjE4LiBEcnlpbmc8L3RleHQ+PHJlY3QgeD0iNTE0LjUiIHk9IjE4OTAiIHdpZHRoPSIyNzEiIGhlaWdodD0iNjAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZGMyNjI2IiBzdHJva2U9IiM5OTFiMWIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjY1MCIgeT0iMTkzMCIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjE5LiBNZXRhbCBkZXRlY3Rpb248L3RleHQ+PHJlY3QgeD0iNTMwIiB5PSIxOTkwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjYwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjx0ZXh0IHg9IjY1MCIgeT0iMjAzMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjIwLiBQYWNrYWdpbmc8L3RleHQ+PHJlY3QgeD0iNTMwIiB5PSIyMDkwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjYwIiByeD0iMTIiIHJ5PSIxMiIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjx0ZXh0IHg9IjY1MCIgeT0iMjEzMCIgZmlsbD0iIzMzMyIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjIxLiBTdG9yYWdpbmc8L3RleHQ+PGxpbmUgeDE9IjY1MCIgeTE9IjExMCIgeDI9IjY1MCIgeTI9IjE1MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjIyMCIgeDI9IjY1MCIgeTI9IjI2MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjMyMCIgeDI9IjY1MCIgeTI9IjM2MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjQyMCIgeDI9IjY1MCIgeTI9IjQ2MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjUyMCIgeDI9IjY1MCIgeTI9IjU2MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjYyMCIgeDI9IjY1MCIgeTI9IjY2MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjcyMCIgeDI9IjY1MCIgeTI9Ijc2MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjgzMCIgeDI9IjY1MCIgeTI9Ijg3MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjkzMCIgeDI9IjY1MCIgeTI9Ijk3MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjEwMzAiIHgyPSI2NTAiIHkyPSIxMDcwIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtMSkiLz48bGluZSB4MT0iNjUwIiB5MT0iMTEzMCIgeDI9IjY1MCIgeTI9IjExNzAiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI20xKSIvPjxsaW5lIHgxPSI2NTAiIHkxPSIxMjMwIiB4Mj0iNjUwIiB5Mj0iMTI3MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjEzNDAiIHgyPSI2NTAiIHkyPSIxMzgwIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtMSkiLz48bGluZSB4MT0iNjUwIiB5MT0iMTQ0MCIgeDI9IjY1MCIgeTI9IjE0ODAiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI20xKSIvPjxsaW5lIHgxPSI2NTAiIHkxPSIxNTQwIiB4Mj0iNjUwIiB5Mj0iMTU4MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjE2NTAiIHgyPSI2NTAiIHkyPSIxNjkwIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtMSkiLz48bGluZSB4MT0iNjUwIiB5MT0iMTc1MCIgeDI9IjY1MCIgeTI9IjE3OTAiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI20xKSIvPjxsaW5lIHgxPSI2NTAiIHkxPSIxODUwIiB4Mj0iNjUwIiB5Mj0iMTg5MCIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbTEpIi8+PGxpbmUgeDE9IjY1MCIgeTE9IjE5NTAiIHgyPSI2NTAiIHkyPSIxOTkwIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtMSkiLz48bGluZSB4MT0iNjUwIiB5MT0iMjA1MCIgeDI9IjY1MCIgeTI9IjIwOTAiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI20xKSIvPjwvc3ZnPg==",
+  "fcEditor": {
+    "steps": [
+      "Fresh chicory root",
+      "Ultrasonic cleaning and peeling",
+      "Crushing Pretreatment",
+      "Fine grinding",
+      "Clear homogenization",
+      "Ultrasound disruption",
+      "Precipitation supernatant",
+      "Extraction of raw chicory  root",
+      "Vacuum concentration",
+      "Membrane filtration",
+      "Flocculoreaction",
+      "Centrifugal separation",
+      "Actived carbon decoloration",
+      "Centrifugal carbon removal",
+      "Resin deionization",
+      "Secondary membrane filtration",
+      "Alcohol precipitation",
+      "Drying",
+      "Metal detection",
+      "Packaging",
+      "Storaging"
+    ],
+    "ccp": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      1,
+      0,
+      0
+    ]
+  }
+}
